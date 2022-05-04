@@ -3,12 +3,20 @@ package main
 import (
 	"errors"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
+
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -137,4 +145,87 @@ func (s mockSSM) GetParameter(i *ssm.GetParameterInput) (*ssm.GetParameterOutput
 	}
 
 	return o, nil
+}
+
+func mockEnvironment(lambdaClient lambdaiface.LambdaAPI, consulClient *api.Client) Environment {
+	return Environment{
+		Lambda:       lambdaClient,
+		NodeName:     "lambdas",
+		ConsulClient: consulClient,
+		Region:       "us-east-1",
+		IsEnterprise: false,
+		Partitions:   []string{},
+		Logger: hclog.New(
+			&hclog.LoggerOptions{
+				Level: hclog.LevelFromString("info"),
+			},
+		),
+	}
+}
+
+type UpsertEventPlusAliases struct {
+	UpsertEvent
+	Aliases []string
+}
+
+func mockLambdaClient(events ...UpsertEventPlusAliases) LambdaClient {
+	functions := make(map[string]*lambda.GetFunctionOutput)
+	tags := make(map[string]*lambda.ListTagsOutput)
+	for _, event := range events {
+		t := &lambda.ListTagsOutput{
+			Tags: map[string]*string{
+				enabledTag:            aws.String(strconv.FormatBool(event.CreateService)),
+				payloadPassthroughTag: aws.String(strconv.FormatBool(event.PayloadPassthrough)),
+			},
+		}
+
+		if len(event.Aliases) > 0 {
+			t.Tags[aliasesTag] = aws.String(strings.Join(event.Aliases, ","))
+		}
+
+		if em := event.EnterpriseMeta; em != nil {
+			t.Tags[namespaceTag] = &em.Namespace
+			t.Tags[partitionTag] = &em.Partition
+		}
+
+		l := &lambda.GetFunctionOutput{
+			Configuration: &lambda.FunctionConfiguration{
+				FunctionName: &event.ServiceName,
+				FunctionArn:  &event.ARN,
+			},
+		}
+
+		functions[event.ARN] = l
+		tags[event.ARN] = t
+	}
+
+	return LambdaClient{
+		Functions: functions,
+		Tags:      tags,
+	}
+}
+
+type LambdaClient struct {
+	lambdaiface.LambdaAPI
+	Functions map[string]*lambda.GetFunctionOutput
+	Tags      map[string]*lambda.ListTagsOutput
+}
+
+func (lc LambdaClient) ListFunctions(i *lambda.ListFunctionsInput) (*lambda.ListFunctionsOutput, error) {
+	var fns []*lambda.FunctionConfiguration
+	for _, v := range lc.Functions {
+		fns = append(fns, v.Configuration)
+	}
+
+	return &lambda.ListFunctionsOutput{
+		Functions: fns,
+	}, nil
+}
+
+func (lc LambdaClient) ListTags(i *lambda.ListTagsInput) (*lambda.ListTagsOutput, error) {
+	tags := lc.Tags[*i.Resource]
+	if tags == nil {
+		return nil, errors.New("no tags")
+	}
+	return tags, nil
 }

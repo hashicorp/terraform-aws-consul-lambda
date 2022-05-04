@@ -1,0 +1,8 @@
+{
+    "detail": {
+        "eventName": "TagResource20170331v2",
+        "requestParameters": {
+            "resource": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
+        }
+    }
+}

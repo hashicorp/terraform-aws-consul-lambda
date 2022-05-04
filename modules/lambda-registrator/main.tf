@@ -119,3 +119,49 @@ resource "aws_lambda_function" "registration" {
     )
   }
 }
+
+module "eventbridge" {
+  source = "terraform-aws-modules/eventbridge/aws"
+
+  create_bus = false
+
+  rules = {
+    lambda_events = {
+      description = "Capture Lambda events from CloudTrail"
+      enabled     = true
+      event_pattern = jsonencode({
+        "source" : ["aws.lambda"],
+        "detail-type" : ["AWS API Call via CloudTrail"],
+        "detail" : {
+          "eventSource" : ["lambda.amazonaws.com"]
+          "eventName" : [
+            "CreateFunction20150331",
+            "CreateFunction",
+            "TagResource20170331v2",
+            "TagResource20170331",
+            "TagResource",
+            "UntagResource20170331v2",
+            "UntagResource20170331",
+            "UntagResource",
+          ]
+        }
+      })
+    }
+  }
+
+  targets = {
+    lambda_events = [
+      {
+        name = "Process CloudTrail events"
+        arn  = aws_lambda_function.registration.arn
+      },
+    ]
+  }
+}
+
+resource "aws_lambda_permission" "cloudtrail-invoke" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.registration.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = module.eventbridge.eventbridge_rule_arns.lambda_events
+}
