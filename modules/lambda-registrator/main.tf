@@ -1,14 +1,3 @@
-locals {
-  registration_path = "registration.zip"
-}
-
-data "archive_file" "lambda_registration_zip" {
-  type = "zip"
-  // TODO This only works in dev but that is good enough for now.
-  source_file = "../../lambda-registrator/lambda-registrator"
-  output_path = local.registration_path
-}
-
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -90,15 +79,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_lambda_function" "registration" {
-  filename         = local.registration_path
-  source_code_hash = data.archive_file.lambda_registration_zip.output_base64sha256
-  function_name    = var.name
-  role             = aws_iam_role.registration.arn
-  handler          = "lambda-registrator"
-  runtime          = "go1.x"
-  timeout          = var.timeout
-  layers           = []
-  tags             = {}
+  image_uri     = var.ecr_image_uri
+  package_type  = "Image"
+  function_name = var.name
+  role          = aws_iam_role.registration.arn
+  timeout       = var.timeout
+  layers        = []
+  tags          = {}
   environment {
     variables = merge(
       {

@@ -11,6 +11,8 @@ provider "aws" {
   region = var.region
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_availability_zones" "available" {
   filter {
     name   = "opt-in-status"
@@ -57,4 +59,5 @@ module "lambda-registration" {
   consul_http_addr       = local.consul_http_addr
   consul_ca_cert_path    = var.tls ? aws_ssm_parameter.ca-cert[0].name : ""
   consul_http_token_path = var.acls ? aws_ssm_parameter.acl-token[0].name : ""
+  ecr_image_uri          = "${aws_ecr_repository.lambda-registrator.repository_url}@${data.aws_ecr_image.lambda-registrator.id}"
 }
