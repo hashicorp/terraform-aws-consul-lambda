@@ -134,12 +134,22 @@ module "eventbridge" {
         }
       })
     }
+    cron = {
+      description         = "Periodically trigger the Lambda"
+      schedule_expression = "rate(${var.sync_frequency_in_minutes} ${var.sync_frequency_in_minutes > 1 ? "minutes" : "minute"})"
+    }
   }
 
   targets = {
     lambda_events = [
       {
         name = "Process CloudTrail events"
+        arn  = aws_lambda_function.registration.arn
+      },
+    ]
+    cron = [
+      {
+        name = "Periodic sync"
         arn  = aws_lambda_function.registration.arn
       },
     ]
@@ -151,4 +161,11 @@ resource "aws_lambda_permission" "cloudtrail-invoke" {
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"
   source_arn    = module.eventbridge.eventbridge_rule_arns.lambda_events
+}
+
+resource "aws_lambda_permission" "cron-invoke" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.registration.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = module.eventbridge.eventbridge_rule_arns.cron
 }
