@@ -47,7 +47,7 @@ func TestSetupEnvironment(t *testing.T) {
 	require.NotNil(t, env.ConsulClient)
 	require.Equal(t, "region", env.Region)
 	require.False(t, env.IsEnterprise)
-	require.Equal(t, []string{"a", "b"}, env.Partitions)
+	require.Equal(t, map[string]struct{}{"a": {}, "b": {}}, env.Partitions)
 }
 
 func TestSetConsulCACert(t *testing.T) {
@@ -154,7 +154,7 @@ func mockEnvironment(lambdaClient lambdaiface.LambdaAPI, consulClient *api.Clien
 		ConsulClient: consulClient,
 		Region:       "us-east-1",
 		IsEnterprise: false,
-		Partitions:   []string{},
+		Partitions:   make(map[string]struct{}),
 		Logger: hclog.New(
 			&hclog.LoggerOptions{
 				Level: hclog.LevelFromString("info"),

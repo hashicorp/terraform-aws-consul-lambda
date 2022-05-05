@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAWSEventToEvents(t *testing.T) {
@@ -84,6 +88,7 @@ func TestGetLambdaData(t *testing.T) {
 		expected     []Event
 		err          bool
 		enterprise   bool
+		partitions   []string
 	}{
 		"Invalid arn": {
 			arn: "1234",
@@ -119,6 +124,18 @@ func TestGetLambdaData(t *testing.T) {
 			expected: []Event{
 				makeService(true, ""),
 			},
+			partitions: []string{"p"},
+		},
+		"Ignoring unhandled partitions - Enterprise": {
+			arn: arn,
+			err: false,
+			upsertEvents: []UpsertEventPlusMeta{
+				{
+					UpsertEvent: makeService(true, ""),
+				},
+			},
+			enterprise: true,
+			partitions: []string{},
 		},
 		"Removing disabled services": {
 			arn: arn,
@@ -180,6 +197,9 @@ func TestGetLambdaData(t *testing.T) {
 			lambda := mockLambdaClient(c.upsertEvents...)
 			env := mockEnvironment(lambda, nil)
 			env.IsEnterprise = c.enterprise
+			for _, p := range c.partitions {
+				env.Partitions[p] = struct{}{}
+			}
 
 			events, err := env.GetLambdaData(arn)
 			if c.err {
@@ -188,6 +208,134 @@ func TestGetLambdaData(t *testing.T) {
 			}
 
 			require.Equal(t, c.expected, events)
+		})
+	}
+}
+
+func TestFullSyncData(t *testing.T) {
+	enterprise := enterpriseFlag()
+
+	var enterpriseMeta *EnterpriseMeta
+	if enterprise {
+		enterpriseMeta = &EnterpriseMeta{
+			Namespace: "ns1",
+			Partition: "ap1",
+		}
+	}
+
+	s1 := UpsertEvent{
+		ServiceName:    "lambda-1234",
+		ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+		EnterpriseMeta: enterpriseMeta,
+	}
+	service1 := UpsertEventPlusMeta{
+		UpsertEvent:   s1,
+		CreateService: true,
+	}
+	disabledService1 := service1
+	disabledService1.CreateService = false
+
+	s1prod := UpsertEvent{
+		ServiceName:    "lambda-1234-prod",
+		ARN:            s1.ARN + ":prod",
+		EnterpriseMeta: enterpriseMeta,
+	}
+	s1dev := UpsertEvent{
+		ServiceName:    "lambda-1234-dev",
+		ARN:            s1.ARN + ":dev",
+		EnterpriseMeta: enterpriseMeta,
+	}
+	service1WithAlias := UpsertEventPlusMeta{
+		UpsertEvent:   s1,
+		Aliases:       []string{"prod", "dev"},
+		CreateService: true,
+	}
+
+	type caseData struct {
+		// Set up consul state
+		SeedConsulState []UpsertEventPlusMeta
+		// Set up Lambda state
+		SeedLambdaState []UpsertEventPlusMeta
+		ExpectedEvents  []Event
+		Partitions      []string
+	}
+
+	cases := map[string]*caseData{
+		"Add a service": {
+			SeedLambdaState: []UpsertEventPlusMeta{service1},
+			ExpectedEvents:  []Event{s1},
+		},
+		"Remove a service": {
+			SeedConsulState: []UpsertEventPlusMeta{service1},
+			ExpectedEvents: []Event{
+				DeleteEvent{
+					ServiceName:    "lambda-1234",
+					EnterpriseMeta: enterpriseMeta,
+				}},
+		},
+		"Ignore Lambdas without create servie meta": {
+			SeedLambdaState: []UpsertEventPlusMeta{disabledService1},
+			ExpectedEvents:  []Event{},
+		},
+		"With aliases": {
+			SeedLambdaState: []UpsertEventPlusMeta{service1WithAlias},
+			ExpectedEvents:  []Event{s1, s1dev, s1prod},
+		},
+	}
+
+	if enterprise {
+		for k := range cases {
+			cases[k].Partitions = []string{"default", "ap1"}
+		}
+
+		cases["Ignoring Lambdas in unhandled partitions"] = &caseData{
+			SeedLambdaState: []UpsertEventPlusMeta{service1},
+			ExpectedEvents:  []Event{},
+			Partitions:      []string{},
+		}
+
+		cases["Ignoring Lambda Consul services in unhandled partitions"] = &caseData{
+			SeedConsulState: []UpsertEventPlusMeta{service1},
+			ExpectedEvents:  []Event{},
+			Partitions:      []string{},
+		}
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			c := c
+			server, err := testutil.NewTestServerConfigT(t, nil)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_ = server.Stop()
+			})
+
+			consulClient, err := api.NewClient(&api.Config{Address: server.HTTPAddr})
+			require.NoError(t, err)
+
+			if enterprise {
+				_, _, err = consulClient.Partitions().Create(context.Background(), &api.Partition{Name: "ap1"}, nil)
+				require.NoError(t, err)
+				_, _, err = consulClient.Namespaces().Create(&api.Namespace{Name: "ns1", Partition: "ap1"}, &api.WriteOptions{
+					Partition: "ap1",
+				})
+				require.NoError(t, err)
+			}
+
+			env := mockEnvironment(mockLambdaClient(c.SeedLambdaState...), consulClient)
+			env.IsEnterprise = enterprise
+			for _, p := range c.Partitions {
+				env.Partitions[p] = struct{}{}
+			}
+
+			for _, e := range c.SeedConsulState {
+				err := e.Reconcile(env)
+				require.NoError(t, err)
+			}
+
+			events, err := env.FullSyncData()
+			require.NoError(t, err)
+			require.ElementsMatch(t, c.ExpectedEvents, events)
 		})
 	}
 }

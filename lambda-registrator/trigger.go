@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	sdkARN "github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/lambda"
+
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -148,6 +151,13 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 		return nil, notEnterpriseErr
 	}
 
+	// Ignore events in unhandled partitions.
+	if e.IsEnterprise && em != nil {
+		if _, ok := e.Partitions[em.Partition]; !ok {
+			return nil, nil
+		}
+	}
+
 	if aliasesRaw, ok := tags[aliasesTag]; ok {
 		aliases = strings.Split(*aliasesRaw, ",")
 	}
@@ -187,5 +197,130 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 }
 
 func (e Environment) FullSyncData() ([]Event, error) {
-	return nil, nil
+	// Fetching Lambdas.
+	maxItems := 50
+	input := &lambda.ListFunctionsInput{MaxItems: aws.Int64(int64(maxItems))}
+	var done bool
+	lambdas := make(map[*EnterpriseMeta]map[string]Event)
+
+	for !done {
+		output, err := e.Lambda.ListFunctions(input)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, fn := range output.Functions {
+			events, err := e.GetLambdaData(*fn.FunctionArn)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, event := range events {
+				switch e := event.(type) {
+				case UpsertEvent:
+					if lambdas[e.EnterpriseMeta] == nil {
+						lambdas[e.EnterpriseMeta] = make(map[string]Event)
+					}
+
+					lambdas[e.EnterpriseMeta][e.ServiceName] = event
+				case DeleteEvent:
+					if lambdas[e.EnterpriseMeta] == nil {
+						lambdas[e.EnterpriseMeta] = make(map[string]Event)
+					}
+
+					lambdas[e.EnterpriseMeta][e.ServiceName] = event
+				}
+			}
+		}
+
+		done = len(output.Functions) < maxItems
+		input.Marker = output.NextMarker
+	}
+
+	// Determining which Consul partitions to sync.
+	var enterpriseMetas []*EnterpriseMeta
+	if e.IsEnterprise {
+		for partition := range e.Partitions {
+			namespaces, _, err := e.ConsulClient.Namespaces().List(&api.QueryOptions{Partition: partition})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, namespace := range namespaces {
+				enterpriseMetas = append(enterpriseMetas, &EnterpriseMeta{
+					Partition: partition,
+					Namespace: namespace.Name,
+				})
+			}
+		}
+	} else {
+		enterpriseMetas = append(enterpriseMetas, nil)
+	}
+
+	consulServices := make(map[*EnterpriseMeta]map[string]struct{})
+
+	// Fetching Consul serices.
+	for _, em := range enterpriseMetas {
+		var queryOptions *api.QueryOptions
+		if em != nil {
+			queryOptions = &api.QueryOptions{
+				Partition: em.Partition,
+				Namespace: em.Namespace,
+			}
+		}
+		services, _, err := e.ConsulClient.Catalog().Services(queryOptions)
+		if err != nil {
+			return nil, err
+		}
+		consulServices[em] = make(map[string]struct{})
+		for serviceName, tags := range services {
+			for _, t := range tags {
+				if tag == t {
+					consulServices[em][serviceName] = struct{}{}
+					break
+				}
+			}
+		}
+	}
+
+	var events []Event
+
+	// Constructing upsert events for services that need to be registered in Consul
+	for enterpriseMeta, lambdaEvents := range lambdas {
+		for serviceName, event := range lambdaEvents {
+			switch e := event.(type) {
+			case UpsertEvent:
+				if consulEvents, ok := consulServices[enterpriseMeta]; ok {
+					if _, ok := consulEvents[serviceName]; !ok {
+						events = append(events, e)
+					}
+				} else {
+					events = append(events, e)
+				}
+			case DeleteEvent:
+				if consulEvents, ok := consulServices[enterpriseMeta]; ok {
+					if _, ok := consulEvents[serviceName]; ok {
+						events = append(events, e)
+					}
+				}
+			}
+		}
+	}
+
+	// Constructing delete events for services that need to be deregistered in Consul
+	for enterpriseMeta, consulService := range consulServices {
+		for serviceName := range consulService {
+			deleteEvent := DeleteEvent{ServiceName: serviceName, EnterpriseMeta: enterpriseMeta}
+			if lambdaEvents, ok := lambdas[enterpriseMeta]; ok {
+				if _, ok := lambdaEvents[serviceName]; !ok {
+					events = append(events, deleteEvent)
+				}
+			} else {
+				events = append(events, deleteEvent)
+			}
+		}
+	}
+
+	return events, nil
 }
