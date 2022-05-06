@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/api"
 )
 
@@ -50,4 +52,9 @@ func (e DeleteEvent) writeOptions() *api.WriteOptions {
 	}
 
 	return writeOptions
+}
+
+func (e DeleteEvent) AddAlias(alias string) DeleteEvent {
+	e.ServiceName = fmt.Sprintf("%s-%s", e.ServiceName, alias)
+	return e
 }

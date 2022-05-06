@@ -163,12 +163,13 @@ func mockEnvironment(lambdaClient lambdaiface.LambdaAPI, consulClient *api.Clien
 	}
 }
 
-type UpsertEventPlusAliases struct {
+type UpsertEventPlusMeta struct {
 	UpsertEvent
-	Aliases []string
+	Aliases       []string
+	CreateService bool
 }
 
-func mockLambdaClient(events ...UpsertEventPlusAliases) LambdaClient {
+func mockLambdaClient(events ...UpsertEventPlusMeta) LambdaClient {
 	functions := make(map[string]*lambda.GetFunctionOutput)
 	tags := make(map[string]*lambda.ListTagsOutput)
 	for _, event := range events {

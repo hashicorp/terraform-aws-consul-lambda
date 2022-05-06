@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/consul/api"
@@ -9,7 +10,6 @@ import (
 const tag = "managed-by-lambda-registrator"
 
 type UpsertEvent struct {
-	CreateService      bool
 	PayloadPassthrough bool
 	ServiceName        string
 	ARN                string
@@ -21,10 +21,6 @@ func (e UpsertEvent) Identifier() string {
 }
 
 func (e UpsertEvent) Reconcile(env Environment) error {
-	if !e.CreateService {
-		return e.toDeleteEvent().Reconcile(env)
-	}
-
 	env.Logger.Info("Upserting Lambda", "arn", e.ARN)
 	env.Logger.Debug("Storing service defaults config entry", "arn", e.ARN)
 	err := env.storeServiceDefaults(e)
@@ -75,10 +71,6 @@ func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 	return err
 }
 
-func (e UpsertEvent) toDeleteEvent() DeleteEvent {
-	return DeleteEvent{ServiceName: e.ServiceName, EnterpriseMeta: e.EnterpriseMeta}
-}
-
 func (e UpsertEvent) writeOptions() *api.WriteOptions {
 	var writeOptions *api.WriteOptions
 	if e.EnterpriseMeta != nil {
@@ -89,4 +81,10 @@ func (e UpsertEvent) writeOptions() *api.WriteOptions {
 	}
 
 	return writeOptions
+}
+
+func (e UpsertEvent) AddAlias(alias string) UpsertEvent {
+	e.ServiceName = fmt.Sprintf("%s-%s", e.ServiceName, alias)
+	e.ARN = fmt.Sprintf("%s:%s", e.ARN, alias)
+	return e
 }

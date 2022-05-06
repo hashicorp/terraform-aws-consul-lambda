@@ -11,12 +11,12 @@ import (
 func TestAWSEventToEvents(t *testing.T) {
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	s1 := UpsertEvent{
-		CreateService: true,
-		ServiceName:   "lambda-1234",
-		ARN:           arn,
+		ServiceName: "lambda-1234",
+		ARN:         arn,
 	}
-	s1WithAliases := UpsertEventPlusAliases{
-		UpsertEvent: s1,
+	s1WithAliases := UpsertEventPlusMeta{
+		UpsertEvent:   s1,
+		CreateService: true,
 	}
 
 	lambda := mockLambdaClient(s1WithAliases)
@@ -43,7 +43,6 @@ func TestAWSEventToEvents(t *testing.T) {
 			require.Len(t, events, 1)
 			e, ok := events[0].(UpsertEvent)
 			require.True(t, ok)
-			require.Equal(t, e.CreateService, s1.CreateService)
 			require.Equal(t, e.ServiceName, s1.ServiceName)
 			require.Equal(t, e.ARN, s1.ARN)
 		})
@@ -62,7 +61,6 @@ func TestGetLambdaData(t *testing.T) {
 		e := UpsertEvent{
 			ARN:                arn,
 			PayloadPassthrough: true,
-			CreateService:      true,
 			ServiceName:        "lambda-1234",
 		}
 		if enterprise {
@@ -74,10 +72,11 @@ func TestGetLambdaData(t *testing.T) {
 		}
 		return e
 	}
+	disabledService := makeService(false, "")
 	cases := map[string]struct {
 		arn          string
-		upsertEvents []UpsertEventPlusAliases
-		expected     []UpsertEvent
+		upsertEvents []UpsertEventPlusMeta
+		expected     []Event
 		err          bool
 		enterprise   bool
 	}{
@@ -88,15 +87,14 @@ func TestGetLambdaData(t *testing.T) {
 		"Error fetching tags": {
 			arn:          arn,
 			err:          true,
-			upsertEvents: []UpsertEventPlusAliases{},
+			upsertEvents: []UpsertEventPlusMeta{},
 		},
 		"Enterprise meta is passed without enterprise Consul": {
 			arn: arn,
 			err: true,
-			upsertEvents: []UpsertEventPlusAliases{
+			upsertEvents: []UpsertEventPlusMeta{
 				{
 					UpsertEvent: UpsertEvent{
-						CreateService:  true,
 						ServiceName:    "lambda-1234",
 						EnterpriseMeta: &EnterpriseMeta{Namespace: "n", Partition: "p"},
 					},
@@ -106,40 +104,55 @@ func TestGetLambdaData(t *testing.T) {
 		"Everything is passed - Enterprise": {
 			arn: arn,
 			err: false,
-			upsertEvents: []UpsertEventPlusAliases{
+			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent: makeService(true, ""),
+					UpsertEvent:   makeService(true, ""),
+					CreateService: true,
 				},
 			},
 			enterprise: true,
-			expected: []UpsertEvent{
+			expected: []Event{
 				makeService(true, ""),
 			},
+		},
+		"Removing disabled services": {
+			arn: arn,
+			err: false,
+			upsertEvents: []UpsertEventPlusMeta{
+				{
+					UpsertEvent:   disabledService,
+					CreateService: false,
+				},
+			},
+			enterprise: false,
+			expected:   []Event{DeleteEvent{EnterpriseMeta: nil, ServiceName: "lambda-1234"}},
 		},
 		"Everything is passed - OSS": {
 			arn: arn,
 			err: false,
-			upsertEvents: []UpsertEventPlusAliases{
+			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent: makeService(false, ""),
+					UpsertEvent:   makeService(false, ""),
+					CreateService: true,
 				},
 			},
 			enterprise: false,
-			expected: []UpsertEvent{
+			expected: []Event{
 				makeService(false, ""),
 			},
 		},
 		"Aliases": {
 			arn: arn,
 			err: false,
-			upsertEvents: []UpsertEventPlusAliases{
+			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent: makeService(false, ""),
-					Aliases:     []string{"a1", "a2"},
+					UpsertEvent:   makeService(false, ""),
+					Aliases:       []string{"a1", "a2"},
+					CreateService: true,
 				},
 			},
 			enterprise: false,
-			expected: []UpsertEvent{
+			expected: []Event{
 				makeService(false, ""),
 				makeService(false, "a1"),
 				makeService(false, "a2"),
