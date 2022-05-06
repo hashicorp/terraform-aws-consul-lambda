@@ -13,6 +13,7 @@ type UpsertEvent struct {
 	PayloadPassthrough bool
 	ServiceName        string
 	ARN                string
+	InvocationMode     string
 	EnterpriseMeta     *EnterpriseMeta
 }
 
