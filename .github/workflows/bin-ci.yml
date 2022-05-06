@@ -4,6 +4,7 @@ on:
     branches: '**'
 env:
   GO_VERSION: '1.18'
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 jobs:
   lint:
     defaults:
@@ -28,13 +29,17 @@ jobs:
         working-directory: ./lambda-registrator
 
   test:
+    name: unit test (consul-version=${{ matrix.consul-version }})
+    strategy:
+      matrix:
+        consul-version:
+        - 1.12.0
+        - 1.12.0+ent
     defaults:
       run:
         working-directory: ./lambda-registrator
-    name: unit test
     env:
-      CONSUL_VERSION: 1.12.0
-      TEST_RESULTS_DIR: /tmp/test-results/consul
+      TEST_RESULTS_DIR: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
     runs-on: ubuntu-latest
     steps:
@@ -48,7 +53,7 @@ jobs:
       uses: nickethier/action-setup-hashicorp-tool@main #TODO: update action when migrated to hc org
       with:
         product: consul
-        version: ${{ env.CONSUL_VERSION }}
+        version: ${{ matrix.consul-version }}
     - name: Build
       run: go build -v ./...
     - name: Setup gotestsum
@@ -59,16 +64,19 @@ jobs:
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Test
       run: |
-        mkdir -p $TEST_RESULTS_DIR/json
+        mkdir -p $TEST_RESULTS_DIR/${{ matrix.consul-version }}/json
         PACKAGE_NAMES=$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')
         echo "Testing $(echo $PACKAGE_NAMES | wc -w) packages"
-        echo $PACKAGE_NAMES
+        if [[ "${{ matrix.consul-version }}" == *ent ]]; then
+          FLAG=-enterprise
+        fi
         gotestsum \
           --format=short-verbose \
-          --jsonfile $TEST_RESULTS_DIR/json/go-test-race.log \
-          --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-          -race $PACKAGE_NAMES
+          --jsonfile $TEST_RESULTS_DIR/${{ matrix.consul-version }}/json/go-test-race.log \
+          --junitfile $TEST_RESULTS_DIR/${{ matrix.consul-version }}/gotestsum-report.xml -- \
+          -race $PACKAGE_NAMES \
+          -- $FLAG
     - uses: actions/upload-artifact@v3
       with:
         name: test-results
-        path: ${{ env.TEST_RESULTS_DIR }}
+        path: ${{ env.TEST_RESULTS_DIR }}/${{ matrix.consul-version }}
