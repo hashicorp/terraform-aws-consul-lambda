@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -59,7 +58,7 @@ func GetEvents(env Environment, data map[string]interface{}) ([]Event, error) {
 	env.Logger.Info("Received event", "source", source)
 	switch source {
 	case "aws.events":
-		return nil, errors.New("Unimplemented")
+		return env.FullSyncData()
 	case "aws.lambda":
 		var e AWSEvent
 		err := mapstructure.Decode(data, &e)

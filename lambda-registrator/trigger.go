@@ -154,3 +154,7 @@ func (e Environment) GetLambdaData(arn string) ([]UpsertEvent, error) {
 
 	return upsertEvents, nil
 }
+
+func (e Environment) FullSyncData() ([]Event, error) {
+	return nil, nil
+}

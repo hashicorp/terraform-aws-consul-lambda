@@ -49,3 +49,9 @@ variable "ecr_image_uri" {
   type        = string
   // TODO add a default when we publish this somewhere.
 }
+
+variable "sync_frequency_in_minutes" {
+  description = "The interval EventBridge is configured to trigger full synchronizations."
+  type        = number
+  default     = 10
+}
