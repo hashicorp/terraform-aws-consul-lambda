@@ -57,7 +57,6 @@ func TestUpsertAndDelete(t *testing.T) {
 
 	for n, c := range cases {
 		upsertEvent := UpsertEvent{
-			CreateService:      true,
 			PayloadPassthrough: true,
 			ServiceName:        serviceName,
 			ARN:                "arn",
@@ -71,16 +70,6 @@ func TestUpsertAndDelete(t *testing.T) {
 				require.NoError(t, err)
 
 				assertConsulState(t, consulClient, env, upsertEvent, 1)
-			})
-
-			t.Run("Disabling the service with meta", func(t *testing.T) {
-				upsertEvent2 := upsertEvent
-				upsertEvent2.CreateService = false
-
-				err := upsertEvent2.Reconcile(env)
-				require.NoError(t, err)
-
-				assertConsulState(t, consulClient, env, upsertEvent2, 0)
 			})
 
 			t.Run("Enabling the service with meta", func(t *testing.T) {

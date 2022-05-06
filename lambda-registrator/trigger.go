@@ -79,7 +79,7 @@ func (e Environment) AWSEventToEvents(event AWSEvent) ([]Event, error) {
 	return events, nil
 }
 
-func (e Environment) GetLambdaData(arn string) ([]UpsertEvent, error) {
+func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	createService := false
 	payloadPassthrough := false
 	var aliases []string
@@ -135,24 +135,37 @@ func (e Environment) GetLambdaData(arn string) ([]UpsertEvent, error) {
 		aliases = strings.Split(*aliasesRaw, ",")
 	}
 
-	baseUpsertEvent := UpsertEvent{
-		CreateService:      createService,
-		PayloadPassthrough: payloadPassthrough,
-		ServiceName:        functionName,
-		ARN:                arn,
-		EnterpriseMeta:     em,
+	var events []Event
+
+	if createService {
+		baseUpsertEvent := UpsertEvent{
+			PayloadPassthrough: payloadPassthrough,
+			ServiceName:        functionName,
+			ARN:                arn,
+			EnterpriseMeta:     em,
+		}
+
+		events = append(events, baseUpsertEvent)
+
+		for _, aliasName := range aliases {
+			e := baseUpsertEvent.AddAlias(aliasName)
+			events = append(events, e)
+		}
+	} else {
+		baseDeleteEvent := DeleteEvent{
+			ServiceName:    functionName,
+			EnterpriseMeta: em,
+		}
+
+		events = append(events, baseDeleteEvent)
+
+		for _, aliasName := range aliases {
+			e := baseDeleteEvent.AddAlias(aliasName)
+			events = append(events, e)
+		}
 	}
 
-	upsertEvents := []UpsertEvent{baseUpsertEvent}
-
-	for _, aliasName := range aliases {
-		e := baseUpsertEvent
-		e.ServiceName = fmt.Sprintf("%s-%s", baseUpsertEvent.ServiceName, aliasName)
-		e.ARN = fmt.Sprintf("%s:%s", arn, aliasName)
-		upsertEvents = append(upsertEvents, e)
-	}
-
-	return upsertEvents, nil
+	return events, nil
 }
 
 func (e Environment) FullSyncData() ([]Event, error) {
