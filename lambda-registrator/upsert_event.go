@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-const tag = "managed-by-lambda-registrator"
+const managedLambdaTag = "managed-by-lambda-registrator"
 
 type UpsertEvent struct {
 	PayloadPassthrough bool
@@ -44,7 +44,7 @@ func (env Environment) registerService(e UpsertEvent) error {
 		Service: &api.AgentService{
 			ID:      e.ServiceName,
 			Service: e.ServiceName,
-			Tags:    []string{tag},
+			Tags:    []string{managedLambdaTag},
 		},
 	}
 

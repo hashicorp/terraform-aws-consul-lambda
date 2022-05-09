@@ -213,15 +213,14 @@ type LambdaClient struct {
 	Tags      map[string]*lambda.ListTagsOutput
 }
 
-func (lc LambdaClient) ListFunctions(i *lambda.ListFunctionsInput) (*lambda.ListFunctionsOutput, error) {
+func (lc LambdaClient) ListFunctionsPages(i *lambda.ListFunctionsInput, fn func(*lambda.ListFunctionsOutput, bool) bool) error {
 	var fns []*lambda.FunctionConfiguration
 	for _, v := range lc.Functions {
 		fns = append(fns, v.Configuration)
 	}
 
-	return &lambda.ListFunctionsOutput{
-		Functions: fns,
-	}, nil
+	fn(&lambda.ListFunctionsOutput{Functions: fns}, true)
+	return nil
 }
 
 func (lc LambdaClient) ListTags(i *lambda.ListTagsInput) (*lambda.ListTagsOutput, error) {

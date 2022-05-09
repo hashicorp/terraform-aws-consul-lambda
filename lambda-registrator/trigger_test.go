@@ -227,6 +227,7 @@ func TestFullSyncData(t *testing.T) {
 		ServiceName:    "lambda-1234",
 		ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 		EnterpriseMeta: enterpriseMeta,
+		InvocationMode: "SYNCHRONOUS",
 	}
 	service1 := UpsertEventPlusMeta{
 		UpsertEvent:   s1,
@@ -239,11 +240,13 @@ func TestFullSyncData(t *testing.T) {
 		ServiceName:    "lambda-1234-prod",
 		ARN:            s1.ARN + ":prod",
 		EnterpriseMeta: enterpriseMeta,
+		InvocationMode: "SYNCHRONOUS",
 	}
 	s1dev := UpsertEvent{
 		ServiceName:    "lambda-1234-dev",
 		ARN:            s1.ARN + ":dev",
 		EnterpriseMeta: enterpriseMeta,
+		InvocationMode: "SYNCHRONOUS",
 	}
 	service1WithAlias := UpsertEventPlusMeta{
 		UpsertEvent:   s1,
@@ -273,7 +276,7 @@ func TestFullSyncData(t *testing.T) {
 					EnterpriseMeta: enterpriseMeta,
 				}},
 		},
-		"Ignore Lambdas without create servie meta": {
+		"Ignore Lambdas without create service meta": {
 			SeedLambdaState: []UpsertEventPlusMeta{disabledService1},
 			ExpectedEvents:  []Event{},
 		},
