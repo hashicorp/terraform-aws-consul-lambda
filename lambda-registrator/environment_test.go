@@ -177,6 +177,7 @@ func mockLambdaClient(events ...UpsertEventPlusMeta) LambdaClient {
 			Tags: map[string]*string{
 				enabledTag:            aws.String(strconv.FormatBool(event.CreateService)),
 				payloadPassthroughTag: aws.String(strconv.FormatBool(event.PayloadPassthrough)),
+				invocationModeTag:     aws.String(event.InvocationMode),
 			},
 		}
 

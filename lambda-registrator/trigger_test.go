@@ -11,8 +11,9 @@ import (
 func TestAWSEventToEvents(t *testing.T) {
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	s1 := UpsertEvent{
-		ServiceName: "lambda-1234",
-		ARN:         arn,
+		ServiceName:    "lambda-1234",
+		ARN:            arn,
+		InvocationMode: asynchronousInvocationMode,
 	}
 	s1WithAliases := UpsertEventPlusMeta{
 		UpsertEvent:   s1,
@@ -61,6 +62,7 @@ func TestGetLambdaData(t *testing.T) {
 		e := UpsertEvent{
 			ARN:                arn,
 			PayloadPassthrough: true,
+			InvocationMode:     asynchronousInvocationMode,
 			ServiceName:        "lambda-1234",
 		}
 		if enterprise {
@@ -73,6 +75,9 @@ func TestGetLambdaData(t *testing.T) {
 		return e
 	}
 	disabledService := makeService(false, "")
+	serviceWithInvalidInvocationMode := makeService(false, "")
+	serviceWithInvalidInvocationMode.InvocationMode = "invalid"
+
 	cases := map[string]struct {
 		arn          string
 		upsertEvents []UpsertEventPlusMeta
@@ -140,6 +145,16 @@ func TestGetLambdaData(t *testing.T) {
 			expected: []Event{
 				makeService(false, ""),
 			},
+		},
+		"Invalid invocation mode": {
+			arn: arn,
+			err: true,
+			upsertEvents: []UpsertEventPlusMeta{
+				{
+					UpsertEvent: serviceWithInvalidInvocationMode,
+				},
+			},
+			enterprise: false,
 		},
 		"Aliases": {
 			arn: arn,

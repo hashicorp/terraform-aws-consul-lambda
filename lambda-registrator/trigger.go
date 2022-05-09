@@ -3,20 +3,27 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	sdkARN "github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"strings"
 )
 
 const (
-	prefix                = "serverless.consul.hashicorp.com/v1alpha1"
-	enabledTag            = prefix + "/lambda/enabled"
-	arnTag                = prefix + "/lambda/arn"
-	payloadPassthroughTag = prefix + "/lambda/payload-passhthrough"
-	regionTag             = prefix + "/lambda/region"
-	partitionTag          = prefix + "/lambda/partition"
-	namespaceTag          = prefix + "/lambda/namespace"
-	aliasesTag            = prefix + "/lambda/aliases"
+	prefix                = "serverless.consul.hashicorp.com/v1alpha1/lambda"
+	enabledTag            = prefix + "/enabled"
+	arnTag                = prefix + "/arn"
+	payloadPassthroughTag = prefix + "/payload-passhthrough"
+	regionTag             = prefix + "/region"
+	partitionTag          = prefix + "/partition"
+	namespaceTag          = prefix + "/namespace"
+	aliasesTag            = prefix + "/aliases"
+	invocationModeTag     = prefix + "/invocation-mode"
+)
+
+const (
+	asynchronousInvocationMode = "ASYNCHRONOUS"
+	synchronousInvocationMode  = "SYNCHRONOUS"
 )
 
 var (
@@ -82,6 +89,7 @@ func (e Environment) AWSEventToEvents(event AWSEvent) ([]Event, error) {
 func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	createService := false
 	payloadPassthrough := false
+	invocationMode := synchronousInvocationMode
 	var aliases []string
 
 	// This is terrible, but it saves tons of API calls to GetFunction just for
@@ -111,6 +119,15 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 
 	if tags[payloadPassthroughTag] != nil {
 		payloadPassthrough = *tags[payloadPassthroughTag] == "true"
+	}
+
+	if tags[invocationModeTag] != nil {
+		invocationMode = *tags[invocationModeTag]
+		switch invocationMode {
+		case asynchronousInvocationMode, synchronousInvocationMode:
+		default:
+			return nil, fmt.Errorf("invalid invocation mode: %s", invocationMode)
+		}
 	}
 
 	var em *EnterpriseMeta
@@ -143,6 +160,7 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 			ServiceName:        functionName,
 			ARN:                arn,
 			EnterpriseMeta:     em,
+			InvocationMode:     invocationMode,
 		}
 
 		events = append(events, baseUpsertEvent)
