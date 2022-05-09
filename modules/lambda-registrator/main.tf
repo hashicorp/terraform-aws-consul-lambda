@@ -1,3 +1,11 @@
+locals {
+  on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
+  vpc_config = local.on_vpc ? [{
+    subnet_ids         = var.subnet_ids
+    security_group_ids = var.security_group_ids
+  }] : []
+}
+
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -59,11 +67,37 @@ resource "aws_iam_policy" "policy" {
       "Resource": "arn:aws:ssm:*:*:parameter${var.consul_http_token_path}"
     },
 %{endif~}
+%{if local.on_vpc~}
+    {
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface"
+
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    },
+%{endif~}
     {
       "Action": [
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "lambda:ListTags"
+      ],
+      "Resource": "arn:aws:lambda:*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "lambda:ListFunctions"
       ],
       "Resource": "*",
       "Effect": "Allow"
@@ -104,6 +138,13 @@ resource "aws_lambda_function" "registration" {
         CONSUL_HTTP_SSL    = "true"
       } : {}
     )
+  }
+  dynamic "vpc_config" {
+    for_each = local.vpc_config
+    content {
+      subnet_ids         = vpc_config.value["subnet_ids"]
+      security_group_ids = vpc_config.value["security_group_ids"]
+    }
   }
 }
 

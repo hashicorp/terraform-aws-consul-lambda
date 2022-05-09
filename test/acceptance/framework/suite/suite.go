@@ -17,6 +17,7 @@ var DefaultExecs = []string{
 	"ecs-cli",
 	"session-manager-plugin",
 	"terraform",
+	"unbuffer",
 }
 
 type suite struct {

@@ -19,6 +19,7 @@ const (
 	flagTFOutputDir        = "tf-output-dir"
 	flagVPCID              = "vpc-id"
 	flagECRImageURI        = "ecr-image-uri"
+	flagSuffix             = "suffix"
 
 	setupTerraformDir = "../setup-terraform"
 )
@@ -32,6 +33,7 @@ type TestFlags struct {
 	flagTFOutputDir        string
 	flagVPCID              string
 	flagECRImageURI        string
+	flagSuffix             string
 
 	once sync.Once
 }
@@ -54,6 +56,7 @@ func (t *TestFlags) init() {
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
 	flag.StringVar(&t.flagECRImageURI, t.flagECRImageURI, "", "Lambda registrator's container image.")
 	flag.StringVar(&t.flagTFOutputDir, flagTFOutputDir, setupTerraformDir, "The directory of the setup terraform state for the tests.")
+	flag.StringVar(&t.flagSuffix, flagSuffix, setupTerraformDir, "The suffix to use when naming resources.")
 }
 
 func (t *TestFlags) Validate() error {

@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "3.63.0"
+      version = "4.13.0"
     }
   }
 }
@@ -42,4 +42,14 @@ resource "aws_cloudwatch_log_group" "log_group" {
 resource "aws_ecs_cluster" "cluster" {
   name               = local.name
   capacity_providers = ["FARGATE"]
+}
+
+module "preexisting-lambda" {
+  source = "../tests/lambda"
+  name   = "preexisting_${local.suffix}"
+  tags = {
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true",
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough" : "true",
+  }
+  region = var.region
 }
