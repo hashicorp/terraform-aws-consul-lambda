@@ -7,7 +7,7 @@ This repository holds the Go code and Terraform module used for deploying Lambda
 
 ## Contributing
 
-We want to create a strong community around Consul on ECS. We will take all PRs very seriously and review for inclusion. Please read about [contributing](./CONTRIBUTING.md).
+We want to create a strong community around Consul on Lambda. We will take all PRs very seriously and review for inclusion. Please read about [contributing](./CONTRIBUTING.md).
 
 ## License
 
