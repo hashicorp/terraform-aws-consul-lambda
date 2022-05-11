@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	sdkARN "github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/lambda"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -148,6 +152,13 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 		return nil, notEnterpriseErr
 	}
 
+	// Ignore events in unhandled partitions.
+	if e.IsEnterprise && em != nil {
+		if _, ok := e.Partitions[em.Partition]; !ok {
+			return nil, nil
+		}
+	}
+
 	if aliasesRaw, ok := tags[aliasesTag]; ok {
 		aliases = strings.Split(*aliasesRaw, ",")
 	}
@@ -187,5 +198,171 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 }
 
 func (e Environment) FullSyncData() ([]Event, error) {
-	return nil, nil
+	lambdas, err := e.getLambdas()
+	if err != nil {
+		return nil, err
+	}
+
+	enterpriseMetas, err := e.getEnterpriseMetas()
+	if err != nil {
+		return nil, err
+	}
+
+	// EnterpriseMeta is nil for OSS Consul.
+	consulServices, err := e.getConsulServices(enterpriseMetas)
+	if err != nil {
+		return nil, err
+	}
+
+	events := e.constructUpsertEvents(lambdas, consulServices)
+	return append(events, e.constructDeleteEvents(lambdas, consulServices)...), nil
+}
+
+// getLambdas makes requests to the AWS APIs to get data about every Lambda and
+// constructs events to register that Lambdas into Consul.
+func (e Environment) getLambdas() (map[*EnterpriseMeta]map[string]Event, error) {
+	var resultErr error
+	maxItems := 50
+	input := &lambda.ListFunctionsInput{MaxItems: aws.Int64(int64(maxItems))}
+	lambdas := make(map[*EnterpriseMeta]map[string]Event)
+
+	err := e.Lambda.ListFunctionsPages(input, func(output *lambda.ListFunctionsOutput, lastPage bool) bool {
+		for _, fn := range output.Functions {
+			events, err := e.GetLambdaData(*fn.FunctionArn)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, err)
+				return true
+			}
+
+			for _, event := range events {
+				switch e := event.(type) {
+				case UpsertEvent:
+					if lambdas[e.EnterpriseMeta] == nil {
+						lambdas[e.EnterpriseMeta] = make(map[string]Event)
+					}
+
+					lambdas[e.EnterpriseMeta][e.ServiceName] = event
+				case DeleteEvent:
+					if lambdas[e.EnterpriseMeta] == nil {
+						lambdas[e.EnterpriseMeta] = make(map[string]Event)
+					}
+
+					lambdas[e.EnterpriseMeta][e.ServiceName] = event
+				}
+			}
+		}
+
+		return true
+	})
+
+	if err != nil {
+		resultErr = multierror.Append(resultErr, err)
+	}
+
+	return lambdas, resultErr
+}
+
+// getEnterpriseMetas determines which Consul partitions will be synced. A nil return
+// value is used for OSS Consul.
+func (e Environment) getEnterpriseMetas() ([]*EnterpriseMeta, error) {
+	var enterpriseMetas []*EnterpriseMeta
+	if e.IsEnterprise {
+		for partition := range e.Partitions {
+			namespaces, _, err := e.ConsulClient.Namespaces().List(&api.QueryOptions{Partition: partition})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, namespace := range namespaces {
+				enterpriseMetas = append(enterpriseMetas, &EnterpriseMeta{
+					Partition: partition,
+					Namespace: namespace.Name,
+				})
+			}
+		}
+	} else {
+		enterpriseMetas = append(enterpriseMetas, nil)
+	}
+
+	return enterpriseMetas, nil
+}
+
+// getConsulServices retrieves all Consul services that are managed by Lambda registrator.
+func (e Environment) getConsulServices(enterpriseMetas []*EnterpriseMeta) (map[*EnterpriseMeta]map[string]struct{}, error) {
+	consulServices := make(map[*EnterpriseMeta]map[string]struct{})
+	// Fetching Consul serices.
+	for _, em := range enterpriseMetas {
+		var queryOptions *api.QueryOptions
+		if em != nil {
+			queryOptions = &api.QueryOptions{
+				Partition: em.Partition,
+				Namespace: em.Namespace,
+			}
+		}
+		services, _, err := e.ConsulClient.Catalog().Services(queryOptions)
+		if err != nil {
+			return nil, err
+		}
+		consulServices[em] = make(map[string]struct{})
+		for serviceName, tags := range services {
+			for _, t := range tags {
+				if managedLambdaTag == t {
+					consulServices[em][serviceName] = struct{}{}
+					break
+				}
+			}
+		}
+	}
+
+	return consulServices, nil
+}
+
+// constructUpsertEvents determines which upsert events need to be processed to
+// synchronize Consul with Lambda.
+func (e Environment) constructUpsertEvents(lambdas map[*EnterpriseMeta]map[string]Event, consulServices map[*EnterpriseMeta]map[string]struct{}) []Event {
+	var events []Event
+
+	for enterpriseMeta, lambdaEvents := range lambdas {
+		for serviceName, event := range lambdaEvents {
+			switch e := event.(type) {
+			case UpsertEvent:
+				if consulEvents, ok := consulServices[enterpriseMeta]; ok {
+					if _, ok := consulEvents[serviceName]; !ok {
+						events = append(events, e)
+					}
+				} else {
+					events = append(events, e)
+				}
+			case DeleteEvent:
+				if consulEvents, ok := consulServices[enterpriseMeta]; ok {
+					if _, ok := consulEvents[serviceName]; ok {
+						events = append(events, e)
+					}
+				}
+			}
+		}
+	}
+
+	return events
+}
+
+// constructUpsertEvents determines which delete events need to be processed to
+// synchronize Consul with Lambda.
+func (e Environment) constructDeleteEvents(lambdas map[*EnterpriseMeta]map[string]Event, consulServices map[*EnterpriseMeta]map[string]struct{}) []Event {
+	var events []Event
+	// Constructing delete events for services that need to be deregistered in Consul
+	for enterpriseMeta, consulService := range consulServices {
+		for serviceName := range consulService {
+			deleteEvent := DeleteEvent{ServiceName: serviceName, EnterpriseMeta: enterpriseMeta}
+			if lambdaEvents, ok := lambdas[enterpriseMeta]; ok {
+				if _, ok := lambdaEvents[serviceName]; !ok {
+					events = append(events, deleteEvent)
+				}
+			} else {
+				events = append(events, deleteEvent)
+			}
+		}
+	}
+
+	return events
 }

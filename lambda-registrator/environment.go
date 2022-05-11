@@ -36,7 +36,7 @@ type Environment struct {
 	IsEnterprise bool
 
 	// Partitions specifies the Admin Partitions that Lambda registrator manages.
-	Partitions []string
+	Partitions map[string]struct{}
 
 	Logger hclog.Logger
 }
@@ -67,7 +67,11 @@ func SetupEnvironment() (Environment, error) {
 	region := os.Getenv(awsRegionEnvironment)
 	isEnterprise := os.Getenv(enterpriseEnvironment) == "true"
 	partitionsRaw := os.Getenv(partitionsEnvironment)
-	partitions := strings.Split(partitionsRaw, ",")
+
+	partitions := make(map[string]struct{})
+	for _, p := range strings.Split(partitionsRaw, ",") {
+		partitions[p] = struct{}{}
+	}
 
 	logLevel := "info"
 	if level := os.Getenv(logLevelEnvironment); level != "" {
