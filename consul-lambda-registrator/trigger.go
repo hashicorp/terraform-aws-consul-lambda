@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	sdkARN "github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
@@ -60,7 +60,7 @@ type EnterpriseMeta struct {
 	Partition string
 }
 
-func (e Environment) AWSEventToEvents(event AWSEvent) ([]Event, error) {
+func (e Environment) AWSEventToEvents(ctx context.Context, event AWSEvent) ([]Event, error) {
 	var events []Event
 	var arn string
 	switch event.Detail.EventName {
@@ -77,7 +77,7 @@ func (e Environment) AWSEventToEvents(event AWSEvent) ([]Event, error) {
 		return events, arnUndefinedErr
 	}
 
-	upsertEvents, err := e.GetLambdaData(arn)
+	upsertEvents, err := e.GetLambdaData(ctx, arn)
 
 	if err != nil {
 		return events, err
@@ -96,43 +96,33 @@ const (
 	listSeparator = "+"
 )
 
-func (e Environment) GetLambdaData(arn string) ([]Event, error) {
+func (e Environment) GetLambdaData(ctx context.Context, arn string) ([]Event, error) {
 	createService := false
 	payloadPassthrough := false
 	invocationMode := synchronousInvocationMode
 	var aliases []string
 
-	// This is terrible, but it saves tons of API calls to GetFunction just for
-	// the function name.
-	parsedARN, err := sdkARN.Parse(arn)
-	if err != nil {
-		return nil, err
-	}
-	functionName := ""
-	if i := strings.IndexByte(parsedARN.Resource, ':'); i != -1 {
-		functionName = parsedARN.Resource[i+1:]
-	}
-
-	tagOutput, err := e.Lambda.ListTags(&lambda.ListTagsInput{
-		Resource: &arn,
+	fn, err := e.Lambda.GetFunction(ctx, &lambda.GetFunctionInput{
+		FunctionName: &arn,
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	tags := tagOutput.Tags
+	tags := fn.Tags
+	functionName := *fn.Configuration.FunctionName
 
-	if tags[enabledTag] != nil {
-		createService = *tags[enabledTag] == "true"
+	if v, ok := tags[enabledTag]; ok {
+		createService = v == "true"
 	}
 
-	if tags[payloadPassthroughTag] != nil {
-		payloadPassthrough = *tags[payloadPassthroughTag] == "true"
+	if v, ok := tags[payloadPassthroughTag]; ok {
+		payloadPassthrough = v == "true"
 	}
 
-	if tags[invocationModeTag] != nil {
-		invocationMode = *tags[invocationModeTag]
+	if v, ok := tags[invocationModeTag]; ok {
+		invocationMode = v
 		switch invocationMode {
 		case asynchronousInvocationMode, synchronousInvocationMode:
 		default:
@@ -141,16 +131,15 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	}
 
 	var em *EnterpriseMeta
-	if tags[namespaceTag] != nil {
-		em = &EnterpriseMeta{Namespace: *tags[namespaceTag], Partition: "default"}
+	if v, ok := tags[namespaceTag]; ok {
+		em = &EnterpriseMeta{Namespace: v, Partition: "default"}
 	}
 
-	if tags[partitionTag] != nil {
-		partition := *tags[partitionTag]
+	if v, ok := tags[partitionTag]; ok {
 		if em == nil {
-			em = &EnterpriseMeta{Namespace: "default", Partition: partition}
+			em = &EnterpriseMeta{Namespace: "default", Partition: v}
 		} else {
-			em.Partition = partition
+			em.Partition = v
 		}
 	}
 
@@ -166,7 +155,7 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	}
 
 	if aliasesRaw, ok := tags[aliasesTag]; ok {
-		aliases = strings.Split(*aliasesRaw, listSeparator)
+		aliases = strings.Split(aliasesRaw, listSeparator)
 	}
 
 	var events []Event
@@ -203,8 +192,8 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	return events, nil
 }
 
-func (e Environment) FullSyncData() ([]Event, error) {
-	lambdas, err := e.getLambdas()
+func (e Environment) FullSyncData(ctx context.Context) ([]Event, error) {
+	lambdas, err := e.getLambdas(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -226,18 +215,24 @@ func (e Environment) FullSyncData() ([]Event, error) {
 
 // getLambdas makes requests to the AWS APIs to get data about every Lambda and
 // constructs events to register that Lambdas into Consul.
-func (e Environment) getLambdas() (map[*EnterpriseMeta]map[string]Event, error) {
+func (e Environment) getLambdas(ctx context.Context) (map[*EnterpriseMeta]map[string]Event, error) {
 	var resultErr error
 	maxItems := 50
-	input := &lambda.ListFunctionsInput{MaxItems: aws.Int64(int64(maxItems))}
+	params := &lambda.ListFunctionsInput{MaxItems: aws.Int32(int32(maxItems))}
+	paginator := lambda.NewListFunctionsPaginator(e.Lambda, params)
 	lambdas := make(map[*EnterpriseMeta]map[string]Event)
 
-	err := e.Lambda.ListFunctionsPages(input, func(output *lambda.ListFunctionsOutput, lastPage bool) bool {
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, err)
+			return nil, resultErr
+		}
+
 		for _, fn := range output.Functions {
-			events, err := e.GetLambdaData(*fn.FunctionArn)
+			events, err := e.GetLambdaData(ctx, *fn.FunctionArn)
 			if err != nil {
 				resultErr = multierror.Append(resultErr, err)
-				return true
 			}
 
 			for _, event := range events {
@@ -257,12 +252,6 @@ func (e Environment) getLambdas() (map[*EnterpriseMeta]map[string]Event, error) 
 				}
 			}
 		}
-
-		return true
-	})
-
-	if err != nil {
-		resultErr = multierror.Append(resultErr, err)
 	}
 
 	return lambdas, resultErr

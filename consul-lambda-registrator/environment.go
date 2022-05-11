@@ -1,16 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	sdklambda "github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
-	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/api"
@@ -19,7 +20,7 @@ import (
 // Environment contains all of Lambda registrator's dependencies.
 type Environment struct {
 	// Lambda is the Lambda client that will reconcile state with Consul.
-	Lambda lambdaiface.LambdaAPI
+	Lambda LambdaAPIClient
 
 	// NodeName is the Consul node name that will have all Lambda services
 	// registered to it.
@@ -57,11 +58,18 @@ const (
 
 // SetupEnvironment constructs Environment based on environment variables
 // and Parameter Store.
-func SetupEnvironment() (Environment, error) {
+func SetupEnvironment(ctx context.Context) (Environment, error) {
 	var env Environment
 
-	session := session.Must(session.NewSession())
-	ssmClient := ssm.New(session, nil)
+	sdkConfig, err := config.LoadDefaultConfig(ctx, config.WithRetryer(func() aws.Retryer {
+		// Adaptive mode should retry on hitting rate limits.
+		return retry.AddWithMaxBackoffDelay(retry.NewAdaptiveMode(), 3*time.Second)
+	}))
+	if err != nil {
+		return env, err
+	}
+
+	ssmClient := ssm.NewFromConfig(sdkConfig)
 
 	nodeName := os.Getenv(nodeNameEnvironment)
 	region := os.Getenv(awsRegionEnvironment)
@@ -83,25 +91,25 @@ func SetupEnvironment() (Environment, error) {
 		},
 	)
 
-	err := setConsulHTTPToken(ssmClient)
+	err = setConsulHTTPToken(ctx, ssmClient)
 	if err != nil {
 		return env, err
 	}
 
-	err = setConsulCACert(ssmClient)
+	err = setConsulCACert(ctx, ssmClient)
 	if err != nil {
 		return env, err
 	}
 
-	cfg := api.DefaultConfig()
-	consulClient, err := api.NewClient(cfg)
+	consulConfig := api.DefaultConfig()
+	consulClient, err := api.NewClient(consulConfig)
 
 	if err != nil {
 		return env, err
 	}
 
 	return Environment{
-		Lambda:       sdklambda.New(session),
+		Lambda:       lambda.NewFromConfig(sdkConfig),
 		NodeName:     nodeName,
 		ConsulClient: consulClient,
 		Region:       region,
@@ -111,16 +119,25 @@ func SetupEnvironment() (Environment, error) {
 	}, nil
 }
 
-func setConsulCACert(ssmClient ssmiface.SSMAPI) error {
+type GetParameterAPIClient interface {
+	GetParameter(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+}
+
+type LambdaAPIClient interface {
+	lambda.GetFunctionAPIClient
+	lambda.ListFunctionsAPIClient
+}
+
+func setConsulCACert(ctx context.Context, ssmClient GetParameterAPIClient) error {
 	path := os.Getenv(consulCAPathEnvironment)
 
 	if path == "" {
 		return nil
 	}
 
-	paramValue, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+	paramValue, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           &path,
-		WithDecryption: aws.Bool(true),
+		WithDecryption: true,
 	})
 
 	if err != nil {
@@ -142,16 +159,16 @@ func setConsulCACert(ssmClient ssmiface.SSMAPI) error {
 	return nil
 }
 
-func setConsulHTTPToken(ssmClient ssmiface.SSMAPI) error {
+func setConsulHTTPToken(ctx context.Context, ssmClient GetParameterAPIClient) error {
 	path := os.Getenv(consulHTTPTokenPath)
 
 	if path == "" {
 		return nil
 	}
 
-	paramValue, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+	paramValue, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           &path,
-		WithDecryption: aws.Bool(true),
+		WithDecryption: true,
 	})
 
 	if err != nil {
