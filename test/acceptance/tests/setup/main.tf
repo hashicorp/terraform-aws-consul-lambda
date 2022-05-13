@@ -24,6 +24,7 @@ locals {
   name             = "lambda-registrator-${var.suffix}"
   short_name       = "lr-${var.suffix}"
   consul_http_addr = "${var.secure ? "https" : "http"}://${module.dev_consul_server.server_dns}:${var.secure ? 8501 : 8500}"
+  enterprise       = var.consul_partition != ""
 }
 
 data "aws_secretsmanager_secret_version" "ca_cert" {
@@ -55,12 +56,14 @@ resource "aws_ssm_parameter" "ca-cert" {
 module "lambda-registration" {
   source = "../../../../modules/lambda-registrator"
 
-  name                      = "lambda-registrator-${var.suffix}"
+  name                      = "lambda-registrator-1-${var.suffix}"
   consul_http_addr          = local.consul_http_addr
   consul_ca_cert_path       = var.secure ? aws_ssm_parameter.ca-cert[0].name : ""
   consul_http_token_path    = var.secure ? aws_ssm_parameter.acl-token[0].name : ""
   ecr_image_uri             = var.ecr_image_uri
-  subnet_ids                = var.subnets
+  subnet_ids                = var.private_subnets
   security_group_ids        = [data.aws_security_group.vpc_default.id]
   sync_frequency_in_minutes = 1
+  partitions                = local.enterprise ? [var.consul_partition] : []
+  enterprise                = local.enterprise
 }
