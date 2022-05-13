@@ -182,7 +182,7 @@ func mockLambdaClient(events ...UpsertEventPlusMeta) LambdaClient {
 		}
 
 		if len(event.Aliases) > 0 {
-			t.Tags[aliasesTag] = aws.String(strings.Join(event.Aliases, ","))
+			t.Tags[aliasesTag] = aws.String(strings.Join(event.Aliases, listSeparator))
 		}
 
 		if em := event.EnterpriseMeta; em != nil {

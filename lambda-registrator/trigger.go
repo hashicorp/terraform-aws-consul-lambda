@@ -90,6 +90,12 @@ func (e Environment) AWSEventToEvents(event AWSEvent) ([]Event, error) {
 	return events, nil
 }
 
+const (
+	// `,` isn't allowed
+	// https://docs.aws.amazon.com/directoryservice/latest/devguide/API_Tag.html
+	listSeparator = "+"
+)
+
 func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	createService := false
 	payloadPassthrough := false
@@ -160,7 +166,7 @@ func (e Environment) GetLambdaData(arn string) ([]Event, error) {
 	}
 
 	if aliasesRaw, ok := tags[aliasesTag]; ok {
-		aliases = strings.Split(*aliasesRaw, ",")
+		aliases = strings.Split(*aliasesRaw, listSeparator)
 	}
 
 	var events []Event

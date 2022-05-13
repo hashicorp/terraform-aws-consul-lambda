@@ -21,3 +21,7 @@ output "log_group_name" {
 output "ecr_image_uri" {
   value = "${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}"
 }
+
+output "suffix" {
+  value = random_string.suffix.result
+}

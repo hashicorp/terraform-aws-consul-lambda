@@ -55,3 +55,15 @@ variable "sync_frequency_in_minutes" {
   type        = number
   default     = 10
 }
+
+variable "subnet_ids" {
+  description = "List of subnet IDs associated with Lambda registrator"
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_ids" {
+  description = "List of security group IDs associated with Lambda registrator"
+  type        = list(string)
+  default     = []
+}
