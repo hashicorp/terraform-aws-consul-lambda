@@ -45,7 +45,7 @@ variable "timeout" {
 }
 
 variable "ecr_image_uri" {
-  description = "lambda-registrator Docker image."
+  description = "consul-lambda-registrator Docker image."
   type        = string
   // TODO add a default when we publish this somewhere.
 }

@@ -9,7 +9,7 @@ jobs:
   lint:
     defaults:
       run:
-        working-directory: ./lambda-registrator
+        working-directory: ./consul-lambda-registrator
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -26,7 +26,7 @@ jobs:
         only-new-issues: false
         skip-pkg-cache: true
         skip-build-cache: true
-        working-directory: ./lambda-registrator
+        working-directory: ./consul-lambda-registrator
 
   test:
     name: unit test (consul-version=${{ matrix.consul-version }})
@@ -37,7 +37,7 @@ jobs:
         - 1.12.0+ent
     defaults:
       run:
-        working-directory: ./lambda-registrator
+        working-directory: ./consul-lambda-registrator
     env:
       TEST_RESULTS_DIR: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0

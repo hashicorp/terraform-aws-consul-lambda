@@ -5,3 +5,5 @@ terraform.tfstate
 terraform.tfstate.backup
 .terraform.lock.hcl
 registration.zip
+dist/
+out/

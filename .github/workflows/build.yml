@@ -1,0 +1,142 @@
+name: build
+on: [workflow_dispatch, push]
+env:
+  PKG_NAME: "consul-lambda-registrator"
+
+jobs:
+  get-go-version:
+    name: "Determine Go toolchain version"
+    defaults:
+      run:
+        working-directory: ./consul-lambda-registrator
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Determine Go version
+        id: get-go-version
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat ./consul-lambda-registrator/.go-version)"
+
+  get-product-version:
+    defaults:
+      run:
+        working-directory: ./consul-lambda-registrator
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: get product version
+        id: get-product-version
+        run: |
+          make version
+          echo "::set-output name=product-version::$(make version)"
+
+  generate-metadata-file:
+    needs: get-product-version
+    defaults:
+      run:
+        working-directory: ./consul-lambda-registrator
+    runs-on: ubuntu-latest
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+    steps:
+      - name: "Checkout directory"
+        uses: actions/checkout@v2
+      - name: Generate metadata file
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@v1
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+          repositoryOwner: "hashicorp"
+      - uses: actions/upload-artifact@v2
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build-linux:
+    defaults:
+      run:
+        working-directory: ./consul-lambda-registrator
+    env:
+      GOOS: linux
+      GOARCH: amd64
+    needs:
+      - get-go-version
+      - get-product-version
+    runs-on: ubuntu-latest
+    name: Go build
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build
+        run: |
+          mkdir dist out
+          go build -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: consul-lambda-registrator/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+  build-docker-default:
+    defaults:
+      run:
+        working-directory: ./consul-lambda-registrator
+    name: Docker default release build
+    needs:
+      - get-product-version
+      - build-linux
+    runs-on: ubuntu-latest
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
+      arch: amd64
+      REPO_NAME: consul-lambda-registrator
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Docker Build (Action)
+        uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{ env.version }}
+          target: release-default
+          workdir: ./consul-lambda-registrator
+          arch: ${{ env.arch }}
+          # The ECR tag used below is to allow us to test by pushing to a private ECR registry.
+          # If you want to pubish to ECR use the following syntax instead - public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}.
+          # Please note - if you haven't previously been publishing to ECR you will need to reach out to team-rel-eng
+          # - https://hashicorp.atlassian.net/wiki/spaces/RDXPOC/pages/2298218311/How+to+Push+a+Docker+image+to+ECR
+          tags: |
+            docker.io/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
+            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
+          # dev_tags are tags that get automatically pushed whenever successful
+          # builds make it to the stable channel. The intention is for these tags
+          # to be used for early testing of new code prior to official releases
+          # going out. The stable channel implies that all tests and scans have
+          # completed successfully, so these images should be _stable_ but are not
+          # intended for production use.
+          #
+          # Here we have two example dev tags. The first (ending -dev) is a tag
+          # that will be updated over-and-over as new builds arrive in stable.
+          #
+          # The second (using the git SHA) will produce a new separate tag for
+          # each commit that is built. (These can still be overridden if the same
+          # commit is built successfully a second time, but that is a less likely
+          # scenario.) These kinds of dev tags are useful if you want to be able
+          # to use Docker images built from those specific commits.
+          #
+          # NOTE: dev_tags MUST publish to the 'hashicorppreview' DockerHub org, it
+          # will fail to any other DockerHub org or registry. You can optionally
+          # prepend docker.io
+          dev_tags: |
+            hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}
+            docker.io/hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}-${{ github.sha }}
