@@ -27,13 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
+      ldflags: ${{ steps.get-product-version.outputs.ldflags }}
     steps:
       - uses: actions/checkout@v2
       - name: get product version
         id: get-product-version
         run: |
-          make version
           echo "::set-output name=product-version::$(make version)"
+          echo "::set-output name=ldflags::-s -w -X github.com/hashicorp/terraform-aws-consul-lambda-registrator/version.GitCommit=$(git rev-parse --short HEAD)"
 
   generate-metadata-file:
     needs: get-product-version
@@ -65,6 +66,7 @@ jobs:
     env:
       GOOS: linux
       GOARCH: amd64
+      LDFLAGS: ${{ needs.get-product-version.outputs.ldflags }}
     needs:
       - get-go-version
       - get-product-version
@@ -81,7 +83,7 @@ jobs:
       - name: Build
         run: |
           mkdir dist out
-          go build -o dist/ .
+          go build -ldflags="$LDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -118,6 +120,7 @@ jobs:
           tags: |
             docker.io/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
             986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
+            public.ecr.aws/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
           # dev_tags are tags that get automatically pushed whenever successful
           # builds make it to the stable channel. The intention is for these tags
           # to be used for early testing of new code prior to official releases
@@ -139,4 +142,4 @@ jobs:
           # prepend docker.io
           dev_tags: |
             hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}
-            docker.io/hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}
