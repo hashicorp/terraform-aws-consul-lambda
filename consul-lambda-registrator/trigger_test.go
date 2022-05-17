@@ -13,6 +13,7 @@ import (
 )
 
 func TestAWSEventToEvents(t *testing.T) {
+	ctx := context.Background()
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	s1 := UpsertEvent{
 		ServiceName:    "lambda-1234",
@@ -41,9 +42,10 @@ func TestAWSEventToEvents(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c, func(t *testing.T) {
+			ctx := context.Background()
 			event := loadFixture(c)
 
-			events, err := env.AWSEventToEvents(event)
+			events, err := env.AWSEventToEvents(ctx, event)
 			require.NoError(t, err)
 			require.Len(t, events, 1)
 			e, ok := events[0].(UpsertEvent)
@@ -55,7 +57,7 @@ func TestAWSEventToEvents(t *testing.T) {
 
 	t.Run("with an unsupported event name", func(t *testing.T) {
 		event := loadFixture("unsupported")
-		_, err := env.AWSEventToEvents(event)
+		_, err := env.AWSEventToEvents(ctx, event)
 		require.Error(t, err)
 	})
 }
@@ -194,6 +196,7 @@ func TestGetLambdaData(t *testing.T) {
 
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
+			ctx := context.Background()
 			lambda := mockLambdaClient(c.upsertEvents...)
 			env := mockEnvironment(lambda, nil)
 			env.IsEnterprise = c.enterprise
@@ -201,7 +204,7 @@ func TestGetLambdaData(t *testing.T) {
 				env.Partitions[p] = struct{}{}
 			}
 
-			events, err := env.GetLambdaData(arn)
+			events, err := env.GetLambdaData(ctx, arn)
 			if c.err {
 				require.Error(t, err)
 				return
@@ -306,6 +309,7 @@ func TestFullSyncData(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
 			c := c
 			server, err := testutil.NewTestServerConfigT(t, nil)
 			require.NoError(t, err)
@@ -336,7 +340,7 @@ func TestFullSyncData(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			events, err := env.FullSyncData()
+			events, err := env.FullSyncData(ctx)
 			require.NoError(t, err)
 			require.ElementsMatch(t, c.ExpectedEvents, events)
 		})
