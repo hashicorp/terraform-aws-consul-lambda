@@ -15,7 +15,11 @@ variable "secure" {
   type = bool
 }
 
-variable "subnets" {
+variable "private_subnets" {
+  type = list(string)
+}
+
+variable "public_subnets" {
   type = list(string)
 }
 
@@ -32,10 +36,24 @@ variable "vpc_id" {
 }
 
 variable "consul_image" {
-  type    = string
-  default = "ghcr.io/erichaberkorn/consul:lambda-demo"
+  type = string
 }
 
 variable "ecr_image_uri" {
   type = string
+}
+
+variable "consul_license" {
+  type    = string
+  default = ""
+}
+
+variable "consul_namespace" {
+  type    = string
+  default = ""
+}
+
+variable "consul_partition" {
+  type    = string
+  default = ""
 }

@@ -13,7 +13,8 @@ import (
 const (
 	flagNoCleanupOnFailure = "no-cleanup-on-failure"
 	flagECSClusterARN      = "ecs-cluster-arn"
-	flagSubnets            = "subnets"
+	flagPrivateSubnets     = "private_subnets"
+	flagPublicSubnets      = "public-subnets"
 	flagRegion             = "region"
 	flagLogGroupName       = "log-group-name"
 	flagTFOutputDir        = "tf-output-dir"
@@ -27,7 +28,8 @@ const (
 type TestFlags struct {
 	flagNoCleanupOnFailure bool
 	flagECSClusterARN      string
-	flagSubnets            string
+	flagPrivateSubnets     string
+	flagPublicSubnets      string
 	flagRegion             string
 	flagLogGroupName       string
 	flagTFOutputDir        string
@@ -50,7 +52,8 @@ func (t *TestFlags) init() {
 		"If true, the tests will not clean up resources they create when they finish running."+
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
 	flag.StringVar(&t.flagECSClusterARN, flagECSClusterARN, "", "ECS Cluster ARN.")
-	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
+	flag.StringVar(&t.flagPrivateSubnets, flagPrivateSubnets, "", "Private subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
+	flag.StringVar(&t.flagPublicSubnets, flagPublicSubnets, "", "Public subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagVPCID, flagVPCID, "", "VPC to deploy into.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "AWS Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
@@ -112,7 +115,8 @@ func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 		cfg = config.TestConfig{
 			NoCleanupOnFailure: t.flagNoCleanupOnFailure,
 			ECSClusterARN:      t.flagECSClusterARN,
-			Subnets:            t.flagSubnets,
+			PrivateSubnets:     t.flagPrivateSubnets,
+			PublicSubnets:      t.flagPublicSubnets,
 			Region:             t.flagRegion,
 			LogGroupName:       t.flagLogGroupName,
 			ECRImageURI:        t.flagECRImageURI,

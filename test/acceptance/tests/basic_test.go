@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,11 +20,42 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	for _, secure := range []bool{true, false} {
-		t.Run(fmt.Sprintf("secure=%t", secure), func(t *testing.T) {
+	cases := map[string]struct {
+		secure     bool
+		enterprise bool
+	}{
+		"secure": {
+			secure: true,
+		},
+		"insecure": {
+			secure: false,
+		},
+		"enterprise and secure": {
+			secure:     true,
+			enterprise: true,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
 			config := suite.Config()
 			tfVars := config.TFVars()
-			tfVars["secure"] = secure
+			tfVars["secure"] = c.secure
+			namespace := ""
+			partition := ""
+			queryString := ""
+			tfVars["consul_image"] = "ghcr.io/erichaberkorn/consul:lambda-demo"
+
+			if c.enterprise {
+				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
+				namespace = "ns1"
+				partition = "ap1"
+				tfVars["consul_namespace"] = namespace
+				tfVars["consul_partition"] = partition
+				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
+				tfVars["consul_image"] = "ghcr.io/erichaberkorn/consul:lambda-demo-enterprise"
+			}
+
 			setupSuffix := tfVars["suffix"]
 			suffix := strings.ToLower(random.UniqueId())
 			tfVars["suffix"] = suffix
@@ -86,7 +118,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for passing health check for test_server and test_client
 			tokenHeader := ""
-			if secure {
+			if c.secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
@@ -122,27 +154,34 @@ func TestBasic(t *testing.T) {
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/catalog/service/%s'`, tokenHeader, clientServiceName),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, clientServiceName, queryString),
 					&services,
 				)
 				r.Check(err)
 				require.Len(r, services, 1)
 			})
 
+			tags := map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":              "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough": "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/aliases":              "prod+dev",
+			}
+			if c.enterprise {
+				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/partition"] = partition
+				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
+			}
+
 			lambdaTerraformOptions.Vars = map[string]interface{}{
-				"tags": map[string]string{
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":              "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough": "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/aliases":              "prod+dev",
-				},
+				"tags":   tags,
 				"name":   lambdaServiceName,
 				"region": config.Region,
 			}
 			terraform.InitAndApply(t, lambdaTerraformOptions)
 
 			lambdas := []struct {
-				port int
-				name string
+				port               int
+				name               string
+				inDefaultPartition bool
 			}{
 				{
 					port: 1234,
@@ -159,32 +198,42 @@ func TestBasic(t *testing.T) {
 				{
 					port: 2345,
 					name: preexistingLambdaServiceName,
+					// This doesn't set up mesh gateways for cross-partition
+					// communication.
+					inDefaultPartition: c.enterprise,
 				},
 			}
 
 			for _, c := range lambdas {
 				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
+					qs := queryString
+					if c.inDefaultPartition {
+						qs = ""
+					}
 					err := ExecuteRemoteCommandJSON(
 						t,
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/catalog/service/%s'`, tokenHeader, c.name),
+						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, c.name, qs),
 						&services,
 					)
 					r.Check(err)
 					require.Len(r, services, 1)
 
-					out, err := ExecuteRemoteCommand(
-						t,
-						suite.Config(),
-						clientTaskARN,
-						"basic",
-						fmt.Sprintf(`curl -d "{\"name\": \"foo\"}" localhost:%d`, c.port),
-					)
-					expected := "Hello foo!"
-					require.Contains(r, out, expected)
+					if !c.inDefaultPartition {
+						out, err := ExecuteRemoteCommand(
+							t,
+							suite.Config(),
+							clientTaskARN,
+							"basic",
+							fmt.Sprintf(`curl -d "{\"name\": \"foo\"}" localhost:%d`, c.port),
+						)
+						expected := "Hello foo!"
+						r.Check(err)
+						require.Contains(r, out, expected)
+					}
 				})
 			}
 
@@ -205,7 +254,7 @@ func TestBasic(t *testing.T) {
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/catalog/service/%s'`, tokenHeader, lambdaServiceName),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, lambdaServiceName, queryString),
 					&services,
 				)
 				r.Check(err)

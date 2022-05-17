@@ -4,7 +4,7 @@ resource "aws_ecs_service" "test_client" {
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.private_subnets
   }
   launch_type            = "FARGATE"
   propagate_tags         = "TASK_DEFINITION"
@@ -31,16 +31,22 @@ module "test_client" {
   retry_join = [module.dev_consul_server.server_dns]
   upstreams = [
     {
-      destinationName = "example_${var.suffix}"
-      localBindPort   = 1234
+      destinationName      = "example_${var.suffix}"
+      localBindPort        = 1234
+      destinationPartition = var.consul_partition
+      destinationNamespace = var.consul_namespace
     },
     {
-      destinationName = "example_${var.suffix}-dev"
-      localBindPort   = 1235
+      destinationName      = "example_${var.suffix}-dev"
+      localBindPort        = 1235
+      destinationPartition = var.consul_partition
+      destinationNamespace = var.consul_namespace
     },
     {
-      destinationName = "example_${var.suffix}-prod"
-      localBindPort   = 1236
+      destinationName      = "example_${var.suffix}-prod"
+      localBindPort        = 1236
+      destinationPartition = var.consul_partition
+      destinationNamespace = var.consul_namespace
     },
     {
       destinationName = "preexisting_${var.setup_suffix}"
@@ -60,6 +66,8 @@ module "test_client" {
   consul_image                   = var.consul_image
   consul_server_ca_cert_arn      = module.dev_consul_server.ca_cert_arn
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
+  consul_namespace               = var.consul_namespace
+  consul_partition               = var.consul_partition
 
   additional_task_role_policies = [
     aws_iam_policy.execute-command.arn,
@@ -154,6 +162,8 @@ module "acl_controller" {
   consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
-  subnets                           = var.subnets
+  subnets                           = var.private_subnets
   name_prefix                       = var.suffix
+  consul_partitions_enabled         = local.enterprise
+  consul_partition                  = var.consul_partition
 }
