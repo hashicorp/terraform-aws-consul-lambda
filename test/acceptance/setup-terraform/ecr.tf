@@ -16,7 +16,7 @@ resource "null_resource" "push-lambda-registrator-to-ecr" {
   provisioner "local-exec" {
     command = <<EOF
     aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${local.account_id}.dkr.ecr.${var.region}.amazonaws.com
-    cd ../../../lambda-registrator
+    cd ../../../consul-lambda-registrator
     docker build -t ${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag} .
     docker push ${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}
     EOF
