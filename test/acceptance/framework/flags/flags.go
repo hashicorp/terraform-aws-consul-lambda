@@ -57,7 +57,7 @@ func (t *TestFlags) init() {
 	flag.StringVar(&t.flagVPCID, flagVPCID, "", "VPC to deploy into.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "AWS Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
-	flag.StringVar(&t.flagECRImageURI, t.flagECRImageURI, "", "Lambda registrator's container image.")
+	flag.StringVar(&t.flagECRImageURI, flagECRImageURI, "", "Lambda registrator's container image.")
 	flag.StringVar(&t.flagTFOutputDir, flagTFOutputDir, setupTerraformDir, "The directory of the setup terraform state for the tests.")
 	flag.StringVar(&t.flagSuffix, flagSuffix, setupTerraformDir, "The suffix to use when naming resources.")
 }

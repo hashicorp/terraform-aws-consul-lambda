@@ -2,6 +2,9 @@ name: terraform-ci
 on:
   push:
     branches: '**'
+env:
+  GO_VERSION: '1.18'
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -14,3 +17,79 @@ jobs:
         terraform_version: v1.1.9
     - name: Validate
       run: terraform fmt -check -recursive .
+  test-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - name: lint-consul-retry
+      run: |
+        go install github.com/hashicorp/lint-consul-retry@latest
+        lint-consul-retry
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.45
+        args: |
+          --verbose
+        only-new-issues: false
+        skip-pkg-cache: true
+        skip-build-cache: true
+        working-directory: ./test/acceptance
+  acceptance:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    env:
+      TEST_RESULTS: /tmp/test-results
+      GOTESTSUM_VERSION: 1.8.0
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - name: Setup gotestsum
+      shell: bash
+      run: |
+        url=https://github.com/gotestyourself/gotestsum/releases/download
+        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
+        tar -xz --overwrite -C /usr/local/bin gotestsum
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y expect
+        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+        sudo dpkg -i session-manager-plugin.deb
+    - name: Configure AWS
+      # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
+      run: |
+        aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
+        aws configure set source_profile lambda_user
+    - name: terraform init & apply
+      run: |
+        cd setup-terraform
+        terraform init
+        terraform apply -auto-approve
+    - name: Run acceptance tests
+      run: |
+        mkdir -p $TEST_RESULTS
+        gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: acceptance-test-results
+        path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+    - name: terraform destroy
+      if: always()
+      run: |
+        cd setup-terraform
+        terraform destroy -auto-approve
