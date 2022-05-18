@@ -24,6 +24,9 @@ version:
 	@echo $(VERSION)
 .PHONY: version
 
+dist:
+	mkdir -p $(DIST)
+
 dev: dist
 	GOARCH=$(ARCH) GOOS=$(OS) go build -ldflags "$(LD_FLAGS)" -o $(BIN)
 .PHONY: dev
@@ -34,7 +37,7 @@ dev: dist
 #       We can set this here one time, once we're off CircleCI.
 # export DOCKER_BUILDKIT=1
 BUILD_ARGS = BIN_NAME=consul-lambda-registrator VERSION=$(VERSION) GIT_COMMIT=$(GIT_COMMIT) GIT_DIRTY=$(GIT_DIRTY)
-TAG        = $(BIN_NAME)/$(TARGET):$(VERSION)
+TAG        ?= $(BIN_NAME)/$(TARGET):$(VERSION)
 BA_FLAGS   = $(addprefix --build-arg=,$(BUILD_ARGS))
 FLAGS      = --target $(TARGET) --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
 

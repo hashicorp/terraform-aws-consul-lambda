@@ -90,7 +90,7 @@ resource "aws_iam_policy" "policy" {
     },
     {
       "Action": [
-        "lambda:ListTags"
+        "lambda:GetFunction"
       ],
       "Resource": "arn:aws:lambda:*",
       "Effect": "Allow"

@@ -14,7 +14,6 @@ import (
 // run the tests. They can be overridden or customized per test as needed.
 var DefaultExecs = []string{
 	"aws",
-	"ecs-cli",
 	"session-manager-plugin",
 	"terraform",
 	"unbuffer",
