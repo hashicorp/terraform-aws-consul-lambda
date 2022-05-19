@@ -66,6 +66,14 @@ func GetEvents(ctx context.Context, env Environment, data map[string]interface{}
 			return nil, fmt.Errorf("error decoding aws.lambda event %s", err)
 		}
 
+		if e.Detail.ErrorCode != "" {
+			env.Logger.Info("Unprocessable event",
+				"errorCode", e.Detail.ErrorCode,
+				"eventID", e.Detail.EventID,
+				"eventName", e.Detail.EventName)
+			return nil, nil
+		}
+
 		events, err := env.AWSEventToEvents(ctx, e)
 		if err != nil {
 			return nil, fmt.Errorf("error converting aws.lambda event our event %s", err)

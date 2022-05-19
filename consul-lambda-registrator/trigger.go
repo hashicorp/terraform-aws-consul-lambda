@@ -41,6 +41,8 @@ type AWSEvent struct {
 }
 
 type Detail struct {
+	EventID           string            `json:"eventID"`
+	ErrorCode         string            `json:"errorCode"`
 	EventName         string            `json:"eventName"`
 	ResponseElements  ResponseElements  `json:"responseElements"`
 	RequestParameters RequestParameters `json:"requestParameters"`
