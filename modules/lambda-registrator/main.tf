@@ -4,6 +4,8 @@ locals {
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }] : []
+  cron_key          = "${var.name}-cron"
+  lambda_events_key = "${var.name}-lambda_events"
 }
 
 resource "aws_iam_role" "registration" {
@@ -152,9 +154,10 @@ module "eventbridge" {
   source = "terraform-aws-modules/eventbridge/aws"
 
   create_bus = false
+  role_name  = "${var.name}-eventbridge"
 
   rules = {
-    lambda_events = {
+    "${local.lambda_events_key}" = {
       description = "Capture Lambda events from CloudTrail"
       enabled     = true
       event_pattern = jsonencode({
@@ -175,20 +178,20 @@ module "eventbridge" {
         }
       })
     }
-    cron = {
+    "${local.cron_key}" = {
       description         = "Periodically trigger the Lambda"
       schedule_expression = "rate(${var.sync_frequency_in_minutes} ${var.sync_frequency_in_minutes > 1 ? "minutes" : "minute"})"
     }
   }
 
   targets = {
-    lambda_events = [
+    "${local.lambda_events_key}" = [
       {
         name = "Process CloudTrail events"
         arn  = aws_lambda_function.registration.arn
       },
     ]
-    cron = [
+    "${local.cron_key}" = [
       {
         name = "Periodic sync"
         arn  = aws_lambda_function.registration.arn
@@ -201,12 +204,12 @@ resource "aws_lambda_permission" "cloudtrail-invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = module.eventbridge.eventbridge_rule_arns.lambda_events
+  source_arn    = module.eventbridge.eventbridge_rule_arns[local.lambda_events_key]
 }
 
 resource "aws_lambda_permission" "cron-invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = module.eventbridge.eventbridge_rule_arns.cron
+  source_arn    = module.eventbridge.eventbridge_rule_arns[local.cron_key]
 }

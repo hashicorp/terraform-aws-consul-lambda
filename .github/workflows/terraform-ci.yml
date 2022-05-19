@@ -6,7 +6,7 @@ env:
   GO_VERSION: '1.18'
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 jobs:
-  lint:
+  terraform-lint:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -17,7 +17,7 @@ jobs:
         terraform_version: v1.1.9
     - name: Validate
       run: terraform fmt -check -recursive .
-  test-lint:
+  go-test-lint:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,6 +50,7 @@ jobs:
     env:
       TEST_RESULTS: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
+    needs: [go-test-lint, terraform-lint]
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -82,12 +83,24 @@ jobs:
     - name: Run acceptance tests
       run: |
         mkdir -p $TEST_RESULTS
-        gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
+        gotestsum \
+          --rerun-fails=2 \
+          --rerun-fails-max-failures=2 \
+          --rerun-fails-report "$TEST_RESULTS/gotestsum-rerun-fails" \
+          --packages "./..." \
+          --junitfile "$TEST_RESULTS/gotestsum-report.xml" \
+          --format standard-verbose -- \
+          ./... -p 1 -timeout 90m -v -failfast
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: acceptance-test-results
         path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: acceptance-test-flakes
+        path: ${{ env.TEST_RESULTS }}/gotestsum-rerun-fails
     - name: terraform destroy
       if: always()
       run: |
