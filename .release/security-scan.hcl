@@ -1,7 +1,10 @@
 container {
 	dependencies = true
 	alpine_secdb = true
-	secrets      = true
+	secrets {
+		all = true
+		skip_path_strings = ["/usr/lib64/libunistring.so.0.1.2"]
+	}
 }
 
 binary {
