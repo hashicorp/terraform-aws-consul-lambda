@@ -10,15 +10,13 @@ DIST     = dist/$(PLATFORM)
 BIN      = $(DIST)/$(BIN_NAME)
 
 BIN_NAME ?= consul-lambda-registrator
-VERSION ?= $(shell ./build-scripts/version.sh version/version.go)
+VERSION ?= $(shell ./build-scripts/version.sh)
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_DIRTY ?= $(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_DESCRIBE=$(shell git describe --tags --always)
 PROJECT = $(shell go list -m)
-LD_FLAGS ?= -s -w \
-	-X "$(PROJECT)/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)" \
-	-X "$(PROJECT)/version.GitDescribe=$(GIT_DESCRIBE)"
+LD_FLAGS ?= -X "$(PROJECT)/version.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 version:
 	@echo $(VERSION)

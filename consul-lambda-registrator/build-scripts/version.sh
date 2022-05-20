@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
-version_file=$1
-version=$(awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < "${version_file}")
-prerelease=$(awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < "${version_file}")
+git_commit=$(git rev-parse --short HEAD)
+version="0.1.0"
+prerelease="dev"
 
-if [ -n "$prerelease" ]; then
+if [ "$prerelease" == "dev" ]; then
+    echo "${version}-${prerelease}-${git_commit}"
+elif [ -n "$prerelease" ]; then
     echo "${version}-${prerelease}"
 else
     echo "${version}"
