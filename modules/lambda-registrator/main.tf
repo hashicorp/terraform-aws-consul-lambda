@@ -115,13 +115,14 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_lambda_function" "registration" {
-  image_uri     = var.ecr_image_uri
-  package_type  = "Image"
-  function_name = var.name
-  role          = aws_iam_role.registration.arn
-  timeout       = var.timeout
-  layers        = []
-  tags          = {}
+  image_uri                      = var.ecr_image_uri
+  package_type                   = "Image"
+  function_name                  = var.name
+  role                           = aws_iam_role.registration.arn
+  timeout                        = var.timeout
+  reserved_concurrent_executions = var.reserved_concurrent_executions
+  layers                         = []
+  tags                           = {}
   environment {
     variables = merge(
       {

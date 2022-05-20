@@ -44,6 +44,12 @@ variable "timeout" {
   default     = 30
 }
 
+variable "reserved_concurrent_executions" {
+  description = "The amount of reserved concurrent executions for Lambda registrator."
+  type        = number
+  default     = -1
+}
+
 variable "ecr_image_uri" {
   description = "consul-lambda-registrator Docker image."
   type        = string
