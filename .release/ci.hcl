@@ -9,7 +9,10 @@ project "terraform-aws-consul-lambda-registrator" {
   github {
     organization = "hashicorp"
     repository = "terraform-aws-consul-lambda-registrator"
-    release_branches = ["main"]
+    release_branches = [
+      "main",
+      "release/0.1.x",
+    ]
   }
 }
 
