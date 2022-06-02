@@ -1,11 +1,20 @@
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }] : []
-  cron_key          = "${var.name}-cron"
-  lambda_events_key = "${var.name}-lambda_events"
+  cron_key              = "${var.name}-cron"
+  lambda_events_key     = "${var.name}-lambda_events"
+  image_path            = trimprefix(var.ecr_image_uri, "public.ecr.aws/")
+  public_ecr_image_uri  = var.ecr_image_uri != local.image_path
+  account_id            = data.aws_caller_identity.current.account_id
+  ecr_repository_prefix = "consul-ecr-public"
+  ecr_image_uri         = local.public_ecr_image_uri ? "${local.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${local.ecr_repository_prefix}/${local.image_path}" : var.ecr_image_uri
 }
 
 resource "aws_iam_role" "registration" {
@@ -115,7 +124,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri
+  image_uri                      = local.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
@@ -149,6 +158,8 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
+
+  depends_on = [time_sleep.wait_for_pull_through_cache_rule]
 }
 
 module "eventbridge" {
@@ -213,4 +224,18 @@ resource "aws_lambda_permission" "cron-invoke" {
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"
   source_arn    = module.eventbridge.eventbridge_rule_arns[local.cron_key]
+}
+
+
+resource "aws_ecr_pull_through_cache_rule" "ecr" {
+  count                 = local.public_ecr_image_uri ? 1 : 0
+  ecr_repository_prefix = local.ecr_repository_prefix
+  upstream_registry_url = "public.ecr.aws"
+}
+
+// It takes a few minutes for the pull through cache rule to work with Lambda.
+resource "time_sleep" "wait_for_pull_through_cache_rule" {
+  count           = local.public_ecr_image_uri ? 1 : 0
+  depends_on      = [aws_ecr_pull_through_cache_rule.ecr]
+  create_duration = "3m"
 }

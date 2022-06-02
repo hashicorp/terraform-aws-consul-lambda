@@ -26,11 +26,3 @@ resource "null_resource" "push-lambda-registrator-to-ecr" {
     aws_ecr_repository.lambda-registrator
   ]
 }
-
-data "aws_ecr_image" "lambda-registrator" {
-  depends_on = [
-    null_resource.push-lambda-registrator-to-ecr
-  ]
-  repository_name = local.ecr_repository_name
-  image_tag       = local.ecr_image_tag
-}
