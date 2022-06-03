@@ -3,6 +3,8 @@
   <span>Consul Lambda registrator</span>
 </h1>
 
+> :warning: The beta release, blog post and tutorial will be released on June 15th, 2022.
+
 This repository holds the Go code and Terraform module used for deploying Lambda registrator.
 
 ## Contributing
