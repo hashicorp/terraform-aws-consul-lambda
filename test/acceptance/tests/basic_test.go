@@ -44,7 +44,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "ghcr.io/erichaberkorn/consul:lambda-demo"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.12.1"
 
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
@@ -53,7 +53,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "ghcr.io/erichaberkorn/consul:lambda-demo-enterprise"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.12.1-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
