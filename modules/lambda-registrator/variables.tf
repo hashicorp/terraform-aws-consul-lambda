@@ -51,9 +51,14 @@ variable "reserved_concurrent_executions" {
 }
 
 variable "ecr_image_uri" {
-  description = "consul-lambda-registrator Docker image."
+  description = <<-EOT
+  The ECR image URI for consul-lambda-registrator. The image must be in the
+  same AWS region and in a private ECR repository. Due to these constraints,
+  the public ECR images (https://gallery.ecr.aws/hashicorp/consul-lambda-registrator)
+  cannot be used directly. We recommend either creating and using a new ECR
+  repository or configuring pull through cache rules (https://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html).
+  EOT
   type        = string
-  // TODO add a default when we publish this somewhere.
 }
 
 variable "sync_frequency_in_minutes" {
