@@ -11,17 +11,15 @@ variable "consul_http_addr" {
 variable "consul_ca_cert_path" {
   description = "The Parameter Store path containing the Consul server CA certificate."
   type        = string
-  default     = ""
 }
 
 variable "consul_http_token_path" {
   description = "The Parameter Store path containing the Consul ACL token."
   type        = string
-  default     = ""
 }
 
 variable "node_name" {
-  description = "The Consul node that Lambdas will be registered to."
+  description = "The Consul node that Lambda functions will be registered to."
   type        = string
   default     = "lambdas"
 }
@@ -32,20 +30,20 @@ variable "enterprise" {
   default     = false
 }
 
-variable "partitions" {
-  description = "Specifies the partitions that Lambda registrator will manage [Consul Enterprise]."
+variable "admin_partitions" {
+  description = "Specifies the admin partitions that Lambda function registrator will manage [Consul Enterprise]."
   type        = list(string)
-  default     = []
+  default     = var.enterprise ? [] : null
 }
 
 variable "timeout" {
-  description = "The maximum number of seconds Lambda registrator can run before timing out."
+  description = "The maximum number of seconds Lambda function registrator can run before timing out."
   type        = number
   default     = 30
 }
 
 variable "reserved_concurrent_executions" {
-  description = "The amount of reserved concurrent executions for Lambda registrator."
+  description = "The amount of reserved concurrent executions for Lambda function registrator."
   type        = number
   default     = -1
 }
@@ -68,13 +66,11 @@ variable "sync_frequency_in_minutes" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs associated with Lambda registrator"
+  description = "List of subnet IDs associated with Lambda function registrator"
   type        = list(string)
-  default     = []
 }
 
 variable "security_group_ids" {
-  description = "List of security group IDs associated with Lambda registrator"
+  description = "List of security group IDs associated with Lambda function registrator"
   type        = list(string)
-  default     = []
 }
