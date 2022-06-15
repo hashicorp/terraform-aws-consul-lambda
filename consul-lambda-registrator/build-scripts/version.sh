@@ -2,7 +2,7 @@
 
 git_commit=$(git rev-parse --short HEAD)
 version="0.1.0"
-prerelease="alpha2"
+prerelease="beta1"
 
 if [ "$prerelease" == "dev" ]; then
     echo "${version}-${prerelease}-${git_commit}"
