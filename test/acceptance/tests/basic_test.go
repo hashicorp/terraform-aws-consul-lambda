@@ -162,9 +162,9 @@ func TestBasic(t *testing.T) {
 			})
 
 			tags := map[string]string{
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":              "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough": "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/aliases":              "prod+dev",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/aliases":             "prod+dev",
 			}
 			if c.enterprise {
 				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/partition"] = partition

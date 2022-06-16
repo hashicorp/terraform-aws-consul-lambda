@@ -17,7 +17,7 @@ const (
 	prefix                = "serverless.consul.hashicorp.com/v1alpha1/lambda"
 	enabledTag            = prefix + "/enabled"
 	arnTag                = prefix + "/arn"
-	payloadPassthroughTag = prefix + "/payload-passhthrough"
+	payloadPassthroughTag = prefix + "/payload-passthrough"
 	regionTag             = prefix + "/region"
 	partitionTag          = prefix + "/partition"
 	namespaceTag          = prefix + "/namespace"
