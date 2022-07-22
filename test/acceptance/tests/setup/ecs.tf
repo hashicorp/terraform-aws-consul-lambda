@@ -13,6 +13,7 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  version = "0.5.0"
   family = "test_client_${var.suffix}"
   container_definitions = [{
     name      = "basic"
@@ -65,7 +66,8 @@ module "test_client" {
 
   consul_image                   = var.consul_image
   consul_server_ca_cert_arn      = module.dev_consul_server.ca_cert_arn
-  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
+  consul_https_ca_cert_arn       = module.dev_consul_server.ca_cert_arn
+  consul_http_addr               = local.consul_http_addr
   consul_namespace               = var.consul_namespace
   consul_partition               = var.consul_partition
 
@@ -79,10 +81,10 @@ module "test_client" {
     enable_serverless_plugin = true
   }
   EOT
-  acls                       = var.secure
-  acl_secret_name_prefix     = var.suffix
+
   tls                        = var.secure
-  gossip_key_secret_arn      = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                       = var.secure
+  gossip_key_secret_arn      = var.secure ? module.dev_consul_server.gossip_key_arn : ""
 }
 
 // Policy to allow `aws execute-command`
@@ -148,6 +150,7 @@ resource "aws_iam_role" "execution" {
 module "acl_controller" {
   count  = var.secure ? 1 : 0
   source = "hashicorp/consul-ecs/aws//modules/acl-controller"
+  version = "0.5.0"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -158,7 +161,7 @@ module "acl_controller" {
   }
   launch_type                       = "FARGATE"
   consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.dev_consul_server.server_dns}:8501"
+  consul_server_http_addr           = local.consul_http_addr
   consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
