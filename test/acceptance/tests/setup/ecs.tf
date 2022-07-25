@@ -12,9 +12,9 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
   version = "0.5.0"
-  family = "test_client_${var.suffix}"
+  family  = "test_client_${var.suffix}"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -64,12 +64,10 @@ module "test_client" {
   }
   outbound_only = true
 
-  consul_image                   = var.consul_image
-  consul_server_ca_cert_arn      = module.dev_consul_server.ca_cert_arn
-  consul_https_ca_cert_arn       = module.dev_consul_server.ca_cert_arn
-  consul_http_addr               = local.consul_http_addr
-  consul_namespace               = var.consul_namespace
-  consul_partition               = var.consul_partition
+  consul_image     = var.consul_image
+  consul_http_addr = local.consul_http_addr
+  consul_namespace = var.consul_namespace
+  consul_partition = var.consul_partition
 
   additional_task_role_policies = [
     aws_iam_policy.execute-command.arn,
@@ -82,9 +80,11 @@ module "test_client" {
   }
   EOT
 
-  tls                        = var.secure
-  acls                       = var.secure
-  gossip_key_secret_arn      = var.secure ? module.dev_consul_server.gossip_key_arn : ""
+  tls                       = var.secure
+  consul_server_ca_cert_arn = var.secure ? module.dev_consul_server.ca_cert_arn : ""
+  consul_https_ca_cert_arn  = var.secure ? module.dev_consul_server.ca_cert_arn : ""
+  acls                      = var.secure
+  gossip_key_secret_arn     = var.secure ? module.dev_consul_server.gossip_key_arn : ""
 }
 
 // Policy to allow `aws execute-command`
@@ -148,8 +148,8 @@ resource "aws_iam_role" "execution" {
 }
 
 module "acl_controller" {
-  count  = var.secure ? 1 : 0
-  source = "hashicorp/consul-ecs/aws//modules/acl-controller"
+  count   = var.secure ? 1 : 0
+  source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
   version = "0.5.0"
   log_configuration = {
     logDriver = "awslogs"

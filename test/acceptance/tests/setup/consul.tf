@@ -35,13 +35,13 @@ module "dev_consul_server" {
       awslogs-stream-prefix = "consul-server"
     }
   }
-  launch_type           = "FARGATE"
-  tls                   = var.secure
-  acls                  = var.secure
-  gossip_encryption_enabled = var.secure
+  launch_type                    = "FARGATE"
+  tls                            = var.secure
+  acls                           = var.secure
+  gossip_encryption_enabled      = var.secure
   generate_gossip_encryption_key = false
-  gossip_key_secret_arn = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  consul_license        = var.consul_license
+  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  consul_license                 = var.consul_license
 
 }
 

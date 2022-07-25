@@ -48,6 +48,7 @@ func TestBasic(t *testing.T) {
 
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
+				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
 				namespace = "ns1"
 				partition = "ap1"
 				tfVars["consul_namespace"] = namespace
@@ -67,17 +68,11 @@ func TestBasic(t *testing.T) {
 				NoColor:      true,
 			})
 
-			lambdaTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./lambda",
-				NoColor:      true,
-			})
-
 			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
+					logger.Log(t, "skipping resource cleanup for ./setup because -no-cleanup-on-failure=true")
 				} else {
 					terraform.Destroy(t, setupTerraformOptions)
-					terraform.Destroy(t, lambdaTerraformOptions)
 				}
 			})
 
@@ -171,11 +166,24 @@ func TestBasic(t *testing.T) {
 				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
 			}
 
-			lambdaTerraformOptions.Vars = map[string]interface{}{
-				"tags":   tags,
-				"name":   lambdaServiceName,
-				"region": config.Region,
-			}
+			lambdaTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: "./lambda",
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"tags":   tags,
+					"name":   lambdaServiceName,
+					"region": config.Region,
+				},
+			})
+
+			t.Cleanup(func() {
+				if suite.Config().NoCleanupOnFailure && t.Failed() {
+					logger.Log(t, "skipping resource cleanup for ./lambda because -no-cleanup-on-failure=true")
+				} else {
+					terraform.Destroy(t, lambdaTerraformOptions)
+				}
+			})
+
 			terraform.InitAndApply(t, lambdaTerraformOptions)
 
 			lambdas := []struct {
@@ -221,7 +229,6 @@ func TestBasic(t *testing.T) {
 					)
 					r.Check(err)
 					require.Len(r, services, 1)
-
 					if !c.inDefaultPartition {
 						out, err := ExecuteRemoteCommand(
 							t,
@@ -260,6 +267,8 @@ func TestBasic(t *testing.T) {
 				r.Check(err)
 				require.Len(r, services, 0)
 			})
+
+			logger.Log(t, "Test successful!")
 		})
 	}
 }
