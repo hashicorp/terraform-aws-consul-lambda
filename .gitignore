@@ -1,4 +1,4 @@
-modules/lambda-registrator/lambda-registrator
+consul-lambda-registrator/lambda-registrator
 test.tfvars
 .terraform
 terraform.tfstate
