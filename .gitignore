@@ -1,4 +1,4 @@
-consul-lambda-registrator/lambda-registrator
+consul-lambda-registrator/consul-lambda-registrator
 test.tfvars
 .terraform
 terraform.tfstate
@@ -7,3 +7,4 @@ terraform.tfstate.backup
 registration.zip
 dist/
 out/
+*.out
