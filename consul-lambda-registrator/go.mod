@@ -8,10 +8,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.15.5
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
+	github.com/google/go-cmp v0.5.7
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/hashicorp/consul/sdk v0.9.0
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/stretchr/testify v1.7.1
 )
