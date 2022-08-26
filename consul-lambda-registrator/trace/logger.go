@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-hclog"
 )
 
 // StdLog is a Logger that uses the stdlib log package to output timer information.
