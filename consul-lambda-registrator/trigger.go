@@ -6,19 +6,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
 )
 
 const (
 	prefix                = "serverless.consul.hashicorp.com/v1alpha1/lambda"
 	enabledTag            = prefix + "/enabled"
 	arnTag                = prefix + "/arn"
-	payloadPassthroughTag = prefix + "/payload-passhthrough"
+	payloadPassthroughTag = prefix + "/payload-passthrough"
 	regionTag             = prefix + "/region"
+	serviceNameTag        = prefix + "/service-name"
+	datacenterTag         = prefix + "/datacenter"
 	partitionTag          = prefix + "/partition"
 	namespaceTag          = prefix + "/namespace"
 	aliasesTag            = prefix + "/aliases"
@@ -31,9 +33,8 @@ const (
 )
 
 var (
-	regionUndefinedErr = errors.New("region isn't populated")
-	arnUndefinedErr    = errors.New("arn isn't populated")
-	notEnterpriseErr   = errors.New("namespaces and admin partitions can't be used with open source Consul")
+	errARNUndefined  = errors.New("arn isn't populated")
+	errNotEnterprise = errors.New("namespaces and admin partitions require Consul enterprise")
 )
 
 type AWSEvent struct {
@@ -57,11 +58,7 @@ type RequestParameters struct {
 	Resource     string `json:"resource"`
 }
 
-type EnterpriseMeta struct {
-	Namespace string
-	Partition string
-}
-
+// AWSEventToEvents converts an AWSEvent to a list of Events required to sync Lambda state with Consul.
 func (e Environment) AWSEventToEvents(ctx context.Context, event AWSEvent) ([]Event, error) {
 	var events []Event
 	var arn string
@@ -76,18 +73,20 @@ func (e Environment) AWSEventToEvents(ctx context.Context, event AWSEvent) ([]Ev
 	}
 
 	if arn == "" {
-		return events, arnUndefinedErr
+		return events, errARNUndefined
 	}
 
-	upsertEvents, err := e.GetLambdaData(ctx, arn)
-
+	fn, err := e.Lambda.GetFunction(ctx, arn)
 	if err != nil {
 		return events, err
 	}
 
-	for _, e := range upsertEvents {
-		events = append(events, e)
+	lambdaEvents, err := e.GetLambdaEvents(ctx, fn)
+	if err != nil {
+		return events, err
 	}
+
+	events = append(events, lambdaEvents...)
 
 	return events, nil
 }
@@ -98,22 +97,33 @@ const (
 	listSeparator = "+"
 )
 
-func (e Environment) GetLambdaData(ctx context.Context, arn string) ([]Event, error) {
+// GetLambdaEvents inspects the current state of the given Lambda function and returns the list of
+// Events that are required to reconcile the function's state with Consul.
+func (e Environment) GetLambdaEvents(ctx context.Context, fn client.LambdaFunction) ([]Event, error) {
+	datacenter := ""
 	createService := false
 	payloadPassthrough := false
 	invocationMode := synchronousInvocationMode
 	var aliases []string
 
-	fn, err := e.Lambda.GetFunction(ctx, &lambda.GetFunctionInput{
-		FunctionName: &arn,
-	})
+	tags := fn.Tags
 
-	if err != nil {
-		return nil, err
+	// The service name defaults to the name of the Lambda function
+	serviceName := fn.Name
+	if v, ok := tags[serviceNameTag]; ok {
+		// Use the service name from the tag
+		serviceName = v
 	}
 
-	tags := fn.Tags
-	functionName := *fn.Configuration.FunctionName
+	if v, ok := tags[datacenterTag]; ok {
+		datacenter = v
+	}
+
+	// If configured to manage a specific datacenter, ignore events from Lambdas in other datacenters.
+	if e.Datacenter != "" && e.Datacenter != datacenter {
+		e.Logger.Debug("ignoring function from remote dc", "service", serviceName, "service dc", datacenter, "dc", e.Datacenter)
+		return nil, nil
+	}
 
 	if v, ok := tags[enabledTag]; ok {
 		createService = v == "true"
@@ -132,21 +142,15 @@ func (e Environment) GetLambdaData(ctx context.Context, arn string) ([]Event, er
 		}
 	}
 
-	var em *EnterpriseMeta
-	if v, ok := tags[namespaceTag]; ok {
-		em = &EnterpriseMeta{Namespace: v, Partition: "default"}
-	}
-
-	if v, ok := tags[partitionTag]; ok {
-		if em == nil {
-			em = &EnterpriseMeta{Namespace: "default", Partition: v}
-		} else {
-			em.Partition = v
-		}
-	}
-
+	// Get enterprise metadata from the tags. This will be nil for OSS.
+	em := structs.NewEnterpriseMeta(tags[partitionTag], tags[namespaceTag])
 	if !e.IsEnterprise && em != nil {
-		return nil, notEnterpriseErr
+		return nil, errNotEnterprise
+	}
+
+	if e.IsEnterprise && em == nil {
+		// If enterprise but no tags were provided, then use the default AP and NS.
+		em = structs.NewEnterpriseMeta("default", "default")
 	}
 
 	// Ignore events in unhandled partitions.
@@ -164,10 +168,13 @@ func (e Environment) GetLambdaData(ctx context.Context, arn string) ([]Event, er
 
 	if createService {
 		baseUpsertEvent := UpsertEvent{
+			Service: structs.Service{
+				Name:           serviceName,
+				Datacenter:     datacenter,
+				EnterpriseMeta: em,
+			},
+			ARN:                fn.ARN,
 			PayloadPassthrough: payloadPassthrough,
-			ServiceName:        functionName,
-			ARN:                arn,
-			EnterpriseMeta:     em,
 			InvocationMode:     invocationMode,
 		}
 
@@ -178,10 +185,11 @@ func (e Environment) GetLambdaData(ctx context.Context, arn string) ([]Event, er
 			events = append(events, e)
 		}
 	} else {
-		baseDeleteEvent := DeleteEvent{
-			ServiceName:    functionName,
+		baseDeleteEvent := DeleteEvent{structs.Service{
+			Name:           serviceName,
+			Datacenter:     datacenter,
 			EnterpriseMeta: em,
-		}
+		}}
 
 		events = append(events, baseDeleteEvent)
 
@@ -199,59 +207,60 @@ func (e Environment) FullSyncData(ctx context.Context) ([]Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	e.Logger.Debug("retrieved lambdas", "lambdas", lambdas)
 
 	enterpriseMetas, err := e.getEnterpriseMetas()
 	if err != nil {
 		return nil, err
 	}
+	e.Logger.Debug("retrieved enterpriseMetas", "enterpriseMetas", enterpriseMetas)
 
 	// EnterpriseMeta is nil for OSS Consul.
 	consulServices, err := e.getConsulServices(enterpriseMetas)
 	if err != nil {
 		return nil, err
 	}
+	e.Logger.Debug("retrieved consulServices", "consulServices", consulServices)
 
 	events := e.constructUpsertEvents(lambdas, consulServices)
 	return append(events, e.constructDeleteEvents(lambdas, consulServices)...), nil
 }
 
-// getLambdas makes requests to the AWS APIs to get data about every Lambda and
-// constructs events to register that Lambdas into Consul.
-func (e Environment) getLambdas(ctx context.Context) (map[*EnterpriseMeta]map[string]Event, error) {
-	var resultErr error
-	maxItems := 50
-	params := &lambda.ListFunctionsInput{MaxItems: aws.Int32(int32(maxItems))}
-	paginator := lambda.NewListFunctionsPaginator(e.Lambda, params)
-	lambdas := make(map[*EnterpriseMeta]map[string]Event)
+type eventMap map[*structs.EnterpriseMeta]map[string]Event
+type serviceMap map[*structs.EnterpriseMeta]map[string]struct{}
 
-	for paginator.HasMorePages() {
-		output, err := paginator.NextPage(ctx)
+// getLambdas makes requests to the AWS APIs to get data about every Lambda and
+// constructs events to register or deregister those Lambdas with Consul.
+func (e Environment) getLambdas(ctx context.Context) (eventMap, error) {
+	var resultErr error
+	lambdas := make(eventMap)
+
+	funcs, err := e.Lambda.ListFunctions(ctx)
+	if err != nil {
+		return lambdas, err
+	}
+
+	// TODO: could do this processing concurrently
+	for _, fn := range funcs {
+		events, err := e.GetLambdaEvents(ctx, fn)
 		if err != nil {
 			resultErr = multierror.Append(resultErr, err)
-			return nil, resultErr
+			continue
 		}
 
-		for _, fn := range output.Functions {
-			events, err := e.GetLambdaData(ctx, *fn.FunctionArn)
-			if err != nil {
-				resultErr = multierror.Append(resultErr, err)
-			}
-
-			for _, event := range events {
-				switch e := event.(type) {
-				case UpsertEvent:
-					if lambdas[e.EnterpriseMeta] == nil {
-						lambdas[e.EnterpriseMeta] = make(map[string]Event)
-					}
-
-					lambdas[e.EnterpriseMeta][e.ServiceName] = event
-				case DeleteEvent:
-					if lambdas[e.EnterpriseMeta] == nil {
-						lambdas[e.EnterpriseMeta] = make(map[string]Event)
-					}
-
-					lambdas[e.EnterpriseMeta][e.ServiceName] = event
+		for _, event := range events {
+			switch e := event.(type) {
+			case UpsertEvent:
+				if lambdas[e.EnterpriseMeta] == nil {
+					lambdas[e.EnterpriseMeta] = make(map[string]Event)
 				}
+				lambdas[e.EnterpriseMeta][e.Name] = event
+
+			case DeleteEvent:
+				if lambdas[e.EnterpriseMeta] == nil {
+					lambdas[e.EnterpriseMeta] = make(map[string]Event)
+				}
+				lambdas[e.EnterpriseMeta][e.Name] = event
 			}
 		}
 	}
@@ -259,10 +268,10 @@ func (e Environment) getLambdas(ctx context.Context) (map[*EnterpriseMeta]map[st
 	return lambdas, resultErr
 }
 
-// getEnterpriseMetas determines which Consul partitions will be synced. A nil return
-// value is used for OSS Consul.
-func (e Environment) getEnterpriseMetas() ([]*EnterpriseMeta, error) {
-	var enterpriseMetas []*EnterpriseMeta
+// getEnterpriseMetas determines which Consul partitions will be synced.
+// A slice with one nil entry is used to indicate OSS Consul.
+func (e Environment) getEnterpriseMetas() ([]*structs.EnterpriseMeta, error) {
+	var enterpriseMetas []*structs.EnterpriseMeta
 	if e.IsEnterprise {
 		for partition := range e.Partitions {
 			namespaces, _, err := e.ConsulClient.Namespaces().List(&api.QueryOptions{Partition: partition})
@@ -271,7 +280,7 @@ func (e Environment) getEnterpriseMetas() ([]*EnterpriseMeta, error) {
 			}
 
 			for _, namespace := range namespaces {
-				enterpriseMetas = append(enterpriseMetas, &EnterpriseMeta{
+				enterpriseMetas = append(enterpriseMetas, &structs.EnterpriseMeta{
 					Partition: partition,
 					Namespace: namespace.Name,
 				})
@@ -285,9 +294,8 @@ func (e Environment) getEnterpriseMetas() ([]*EnterpriseMeta, error) {
 }
 
 // getConsulServices retrieves all Consul services that are managed by Lambda registrator.
-func (e Environment) getConsulServices(enterpriseMetas []*EnterpriseMeta) (map[*EnterpriseMeta]map[string]struct{}, error) {
-	consulServices := make(map[*EnterpriseMeta]map[string]struct{})
-	// Fetching Consul serices.
+func (e Environment) getConsulServices(enterpriseMetas []*structs.EnterpriseMeta) (serviceMap, error) {
+	consulServices := make(serviceMap)
 	for _, em := range enterpriseMetas {
 		var queryOptions *api.QueryOptions
 		if em != nil {
@@ -296,10 +304,12 @@ func (e Environment) getConsulServices(enterpriseMetas []*EnterpriseMeta) (map[*
 				Namespace: em.Namespace,
 			}
 		}
+		e.Logger.Debug("querying consul catalog")
 		services, _, err := e.ConsulClient.Catalog().Services(queryOptions)
 		if err != nil {
 			return nil, err
 		}
+		e.Logger.Debug("got service catalog", "services", services)
 		consulServices[em] = make(map[string]struct{})
 		for serviceName, tags := range services {
 			for _, t := range tags {
@@ -316,7 +326,7 @@ func (e Environment) getConsulServices(enterpriseMetas []*EnterpriseMeta) (map[*
 
 // constructUpsertEvents determines which upsert events need to be processed to
 // synchronize Consul with Lambda.
-func (e Environment) constructUpsertEvents(lambdas map[*EnterpriseMeta]map[string]Event, consulServices map[*EnterpriseMeta]map[string]struct{}) []Event {
+func (e Environment) constructUpsertEvents(lambdas eventMap, consulServices serviceMap) []Event {
 	var events []Event
 
 	for enterpriseMeta, lambdaEvents := range lambdas {
@@ -345,12 +355,12 @@ func (e Environment) constructUpsertEvents(lambdas map[*EnterpriseMeta]map[strin
 
 // constructUpsertEvents determines which delete events need to be processed to
 // synchronize Consul with Lambda.
-func (e Environment) constructDeleteEvents(lambdas map[*EnterpriseMeta]map[string]Event, consulServices map[*EnterpriseMeta]map[string]struct{}) []Event {
+func (e Environment) constructDeleteEvents(lambdas eventMap, consulServices serviceMap) []Event {
 	var events []Event
 	// Constructing delete events for services that need to be deregistered in Consul
 	for enterpriseMeta, consulService := range consulServices {
 		for serviceName := range consulService {
-			deleteEvent := DeleteEvent{ServiceName: serviceName, EnterpriseMeta: enterpriseMeta}
+			deleteEvent := DeleteEvent{structs.Service{Name: serviceName, EnterpriseMeta: enterpriseMeta}}
 			if lambdaEvents, ok := lambdas[enterpriseMeta]; ok {
 				if _, ok := lambdaEvents[serviceName]; !ok {
 					events = append(events, deleteEvent)

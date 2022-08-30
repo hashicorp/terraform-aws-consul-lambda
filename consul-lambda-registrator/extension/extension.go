@@ -55,18 +55,14 @@ type Extension struct {
 }
 
 func NewExtension(cfg *Config) *Extension {
-
-	ext := &Extension{
+	return &Extension{
 		Config: cfg,
 		service: structs.Service{
-			Datacenter: cfg.Datacenter,
-			Name:       cfg.ServiceName,
-			Namespace:  cfg.ServiceNamespace,
-			Partition:  cfg.ServicePartition,
+			Datacenter:     cfg.Datacenter,
+			Name:           cfg.ServiceName,
+			EnterpriseMeta: structs.NewEnterpriseMeta(cfg.ServicePartition, cfg.ServiceNamespace),
 		},
 	}
-
-	return ext
 }
 
 func (ext *Extension) Serve(ctx context.Context) error {

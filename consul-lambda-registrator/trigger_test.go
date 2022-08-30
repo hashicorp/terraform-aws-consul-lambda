@@ -10,13 +10,14 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
 )
 
 func TestAWSEventToEvents(t *testing.T) {
 	ctx := context.Background()
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	s1 := UpsertEvent{
-		ServiceName:    "lambda-1234",
+		Service:        structs.Service{Name: "lambda-1234"},
 		ARN:            arn,
 		InvocationMode: asynchronousInvocationMode,
 	}
@@ -50,7 +51,7 @@ func TestAWSEventToEvents(t *testing.T) {
 			require.Len(t, events, 1)
 			e, ok := events[0].(UpsertEvent)
 			require.True(t, ok)
-			require.Equal(t, e.ServiceName, s1.ServiceName)
+			require.Equal(t, e.Name, s1.Name)
 			require.Equal(t, e.ARN, s1.ARN)
 		})
 	}
@@ -69,13 +70,13 @@ func TestGetLambdaData(t *testing.T) {
 			ARN:                arn,
 			PayloadPassthrough: true,
 			InvocationMode:     asynchronousInvocationMode,
-			ServiceName:        "lambda-1234",
+			Service:            structs.Service{Name: "lambda-1234"},
 		}
 		if enterprise {
-			e.EnterpriseMeta = &EnterpriseMeta{Namespace: "n", Partition: "p"}
+			e.EnterpriseMeta = &structs.EnterpriseMeta{Namespace: "n", Partition: "p"}
 		}
 		if alias != "" {
-			e.ServiceName = e.ServiceName + "-" + alias
+			e.Name = e.Name + "-" + alias
 			e.ARN = e.ARN + ":" + alias
 		}
 		return e
@@ -88,18 +89,14 @@ func TestGetLambdaData(t *testing.T) {
 		arn          string
 		upsertEvents []UpsertEventPlusMeta
 		expected     []Event
+		getErr       bool
 		err          bool
 		enterprise   bool
 		partitions   []string
 	}{
 		"Invalid arn": {
-			arn: "1234",
-			err: true,
-		},
-		"Error fetching tags": {
-			arn:          arn,
-			err:          true,
-			upsertEvents: []UpsertEventPlusMeta{},
+			arn:    "1234",
+			getErr: true,
 		},
 		"Enterprise meta is passed without enterprise Consul": {
 			arn: arn,
@@ -107,8 +104,10 @@ func TestGetLambdaData(t *testing.T) {
 			upsertEvents: []UpsertEventPlusMeta{
 				{
 					UpsertEvent: UpsertEvent{
-						ServiceName:    "lambda-1234",
-						EnterpriseMeta: &EnterpriseMeta{Namespace: "n", Partition: "p"},
+						ARN: arn,
+						Service: structs.Service{
+							Name:           "lambda-1234",
+							EnterpriseMeta: &structs.EnterpriseMeta{Namespace: "n", Partition: "p"}},
 					},
 				},
 			},
@@ -149,7 +148,7 @@ func TestGetLambdaData(t *testing.T) {
 				},
 			},
 			enterprise: false,
-			expected:   []Event{DeleteEvent{EnterpriseMeta: nil, ServiceName: "lambda-1234"}},
+			expected:   []Event{DeleteEvent{structs.Service{EnterpriseMeta: nil, Name: "lambda-1234"}}},
 		},
 		"Everything is passed - OSS": {
 			arn: arn,
@@ -204,12 +203,21 @@ func TestGetLambdaData(t *testing.T) {
 				env.Partitions[p] = struct{}{}
 			}
 
-			events, err := env.GetLambdaData(ctx, arn)
+			fn, err := lambda.GetFunction(ctx, arn)
+			if c.getErr {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			events, err := env.GetLambdaEvents(ctx, fn)
 			if c.err {
 				require.Error(t, err)
 				return
 			}
 
+			require.NoError(t, err)
 			require.Equal(t, c.expected, events)
 		})
 	}
@@ -218,18 +226,17 @@ func TestGetLambdaData(t *testing.T) {
 func TestFullSyncData(t *testing.T) {
 	enterprise := enterpriseFlag()
 
-	var enterpriseMeta *EnterpriseMeta
+	var enterpriseMeta *structs.EnterpriseMeta
 	if enterprise {
-		enterpriseMeta = &EnterpriseMeta{
+		enterpriseMeta = &structs.EnterpriseMeta{
 			Namespace: "ns1",
 			Partition: "ap1",
 		}
 	}
 
 	s1 := UpsertEvent{
-		ServiceName:    "lambda-1234",
+		Service:        structs.Service{Name: "lambda-1234", EnterpriseMeta: enterpriseMeta},
 		ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
-		EnterpriseMeta: enterpriseMeta,
 		InvocationMode: "SYNCHRONOUS",
 	}
 	service1 := UpsertEventPlusMeta{
@@ -240,15 +247,13 @@ func TestFullSyncData(t *testing.T) {
 	disabledService1.CreateService = false
 
 	s1prod := UpsertEvent{
-		ServiceName:    "lambda-1234-prod",
+		Service:        structs.Service{Name: "lambda-1234-prod", EnterpriseMeta: enterpriseMeta},
 		ARN:            s1.ARN + ":prod",
-		EnterpriseMeta: enterpriseMeta,
 		InvocationMode: "SYNCHRONOUS",
 	}
 	s1dev := UpsertEvent{
-		ServiceName:    "lambda-1234-dev",
+		Service:        structs.Service{Name: "lambda-1234-dev", EnterpriseMeta: enterpriseMeta},
 		ARN:            s1.ARN + ":dev",
-		EnterpriseMeta: enterpriseMeta,
 		InvocationMode: "SYNCHRONOUS",
 	}
 	service1WithAlias := UpsertEventPlusMeta{
@@ -274,10 +279,10 @@ func TestFullSyncData(t *testing.T) {
 		"Remove a service": {
 			SeedConsulState: []UpsertEventPlusMeta{service1},
 			ExpectedEvents: []Event{
-				DeleteEvent{
-					ServiceName:    "lambda-1234",
+				DeleteEvent{structs.Service{
+					Name:           "lambda-1234",
 					EnterpriseMeta: enterpriseMeta,
-				}},
+				}}},
 		},
 		"Ignore Lambdas without create service meta": {
 			SeedLambdaState: []UpsertEventPlusMeta{disabledService1},

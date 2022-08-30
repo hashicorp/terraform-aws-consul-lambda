@@ -3,30 +3,42 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	lambdaTypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	ssmTypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
+)
+
+const (
+	nodeNameEnvironment      string = "NODE_NAME"
+	awsRegionEnvironment     string = "AWS_REGION"
+	enterpriseEnvironment    string = "ENTERPRISE"
+	datacenterEnvironment    string = "DATACENTER"
+	partitionsEnvironment    string = "PARTITIONS"
+	logLevelEnvironment      string = "LOG_LEVEL"
+	consulCAPathEnvironment  string = "CONSUL_CACERT_PATH"
+	consulHTTPTokenPath      string = "CONSUL_HTTP_TOKEN_PATH"
+	extensionPathEnvironment string = "EXTENSION_DATA_PATH"
 )
 
 func TestSetupEnvironment(t *testing.T) {
 	envVars := map[string]string{
-		nodeNameEnvironment:   "lambdas",
-		awsRegionEnvironment:  "region",
-		enterpriseEnvironment: "false",
-		partitionsEnvironment: "a,b",
-		logLevelEnvironment:   "warn",
+		nodeNameEnvironment:      "lambdas",
+		awsRegionEnvironment:     "region",
+		enterpriseEnvironment:    "false",
+		datacenterEnvironment:    "dc1",
+		partitionsEnvironment:    "a,b",
+		logLevelEnvironment:      "warn",
+		extensionPathEnvironment: "/path/to/data",
 	}
 	for k, v := range envVars {
 		os.Setenv(k, v)
@@ -43,10 +55,14 @@ func TestSetupEnvironment(t *testing.T) {
 	env, err := SetupEnvironment(ctx)
 	require.NoError(t, err)
 
+	require.Equal(t, envVars[nodeNameEnvironment], env.NodeName)
+	require.Equal(t, envVars[awsRegionEnvironment], env.Region)
+	require.Equal(t, envVars[datacenterEnvironment], env.Datacenter)
+	require.Equal(t, envVars[logLevelEnvironment], env.LogLevel)
+	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPath)
 	require.NotNil(t, env.Lambda)
-	require.Equal(t, "lambdas", env.NodeName)
 	require.NotNil(t, env.ConsulClient)
-	require.Equal(t, "region", env.Region)
+	require.NotNil(t, env.Logger)
 	require.False(t, env.IsEnterprise)
 	require.Equal(t, map[string]struct{}{"a": {}, "b": {}}, env.Partitions)
 }
@@ -62,7 +78,7 @@ func TestSetConsulCACert(t *testing.T) {
 	t.Run("Without the environment variable set", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulCACert(ctx, ssmClient)
+		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
 		require.NoError(t, err)
 		_, err = os.Stat(caCertPath)
 		require.Error(t, err)
@@ -73,7 +89,7 @@ func TestSetConsulCACert(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		os.Setenv(consulCAPathEnvironment, "not/real")
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulCACert(ctx, ssmClient)
+		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
 		require.Error(t, err)
 		_, err = os.Stat(caCertPath)
 		require.Error(t, err)
@@ -84,7 +100,7 @@ func TestSetConsulCACert(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		os.Setenv(consulCAPathEnvironment, "real")
 		ssmClient := mockSSMClient(map[string]string{"real": "value"})
-		err := setConsulCACert(ctx, ssmClient)
+		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
 		require.NoError(t, err)
 		buf, err := os.ReadFile(caCertPath)
 		require.NoError(t, err)
@@ -103,7 +119,7 @@ func TestSetConsulHTTPToken(t *testing.T) {
 	t.Run("Without the environment variable set", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulHTTPToken(ctx, ssmClient)
+		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
 		require.NoError(t, err)
 		require.Equal(t, "", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})
@@ -112,7 +128,7 @@ func TestSetConsulHTTPToken(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		os.Setenv(consulHTTPTokenPath, "not/real")
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulHTTPToken(ctx, ssmClient)
+		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
 		require.Error(t, err)
 		require.Equal(t, "", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})
@@ -121,13 +137,13 @@ func TestSetConsulHTTPToken(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		os.Setenv(consulHTTPTokenPath, "real")
 		ssmClient := mockSSMClient(map[string]string{"real": "value"})
-		err := setConsulHTTPToken(ctx, ssmClient)
+		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
 		require.NoError(t, err)
 		require.Equal(t, "value", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})
 }
 
-func mockSSMClient(mappings map[string]string) GetParameterAPIClient {
+func mockSSMClient(mappings map[string]string) ParamStore {
 	return mockSSM{mappings: mappings}
 }
 
@@ -135,30 +151,35 @@ type mockSSM struct {
 	mappings map[string]string
 }
 
-var _ GetParameterAPIClient = (*mockSSM)(nil)
+var _ ParamStore = (*mockSSM)(nil)
 
-func (s mockSSM) GetParameter(_ context.Context, i *ssm.GetParameterInput, _ ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
-	value := s.mappings[*i.Name]
+func (s mockSSM) Delete(_ context.Context, key string) error {
+	delete(s.mappings, key)
+	return nil
+}
 
-	if value == "" {
-		return nil, errors.New("Not found")
+func (s mockSSM) Get(_ context.Context, key string) (string, error) {
+	if value, ok := s.mappings[key]; ok && value != "" {
+		return value, nil
 	}
+	return "", fmt.Errorf("unable to get %s: not found", key)
+}
 
-	o := &ssm.GetParameterOutput{
-		Parameter: &ssmTypes.Parameter{Value: &value},
-	}
-
-	return o, nil
+func (s mockSSM) Set(_ context.Context, key, val string) error {
+	s.mappings[key] = val
+	return nil
 }
 
 func mockEnvironment(lambdaClient LambdaAPIClient, consulClient *api.Client) Environment {
 	return Environment{
+		Config: Config{
+			NodeName:     "lambdas",
+			Region:       "us-east-1",
+			IsEnterprise: false,
+			Partitions:   make(map[string]struct{}),
+		},
 		Lambda:       lambdaClient,
-		NodeName:     "lambdas",
 		ConsulClient: consulClient,
-		Region:       "us-east-1",
-		IsEnterprise: false,
-		Partitions:   make(map[string]struct{}),
 		Logger: hclog.New(
 			&hclog.LoggerOptions{
 				Level: hclog.LevelFromString("info"),
@@ -173,18 +194,17 @@ type UpsertEventPlusMeta struct {
 	CreateService bool
 }
 
-func mockLambdaClient(events ...UpsertEventPlusMeta) LambdaClient {
-	functions := make(map[string]*lambda.GetFunctionOutput)
+func mockLambdaClient(events ...UpsertEventPlusMeta) mockLambda {
+	functions := make(map[string]client.LambdaFunction, len(events))
 	for _, event := range events {
-		l := &lambda.GetFunctionOutput{
-			Configuration: &lambdaTypes.FunctionConfiguration{
-				FunctionName: &event.ServiceName,
-				FunctionArn:  &event.ARN,
-			},
+		l := client.LambdaFunction{
+			ARN:  event.ARN,
+			Name: event.Name,
 			Tags: map[string]string{
 				enabledTag:            strconv.FormatBool(event.CreateService),
 				payloadPassthroughTag: strconv.FormatBool(event.PayloadPassthrough),
 				invocationModeTag:     event.InvocationMode,
+				datacenterTag:         event.Datacenter,
 			},
 		}
 
@@ -200,30 +220,24 @@ func mockLambdaClient(events ...UpsertEventPlusMeta) LambdaClient {
 		functions[event.ARN] = l
 	}
 
-	return LambdaClient{
+	return mockLambda{
 		Functions: functions,
 	}
 }
 
-type LambdaClient struct {
-	Functions map[string]*lambda.GetFunctionOutput
+type mockLambda struct {
+	Functions map[string]client.LambdaFunction
 }
 
-var _ LambdaAPIClient = (*LambdaClient)(nil)
+var _ LambdaAPIClient = (*mockLambda)(nil)
 
-func (lc LambdaClient) ListFunctions(_ context.Context, i *lambda.ListFunctionsInput, _ ...func(*lambda.Options)) (*lambda.ListFunctionsOutput, error) {
-	var fns []lambdaTypes.FunctionConfiguration
-	for _, v := range lc.Functions {
-		fns = append(fns, *v.Configuration)
-	}
-
-	return &lambda.ListFunctionsOutput{Functions: fns}, nil
+func (lc mockLambda) ListFunctions(_ context.Context) (map[string]client.LambdaFunction, error) {
+	return lc.Functions, nil
 }
 
-func (lc LambdaClient) GetFunction(_ context.Context, i *lambda.GetFunctionInput, _ ...func(*lambda.Options)) (*lambda.GetFunctionOutput, error) {
-	fn := lc.Functions[*i.FunctionName]
-	if fn == nil {
-		return nil, errors.New("no tags")
+func (lc mockLambda) GetFunction(_ context.Context, arn string) (client.LambdaFunction, error) {
+	if fn, ok := lc.Functions[arn]; ok {
+		return fn, nil
 	}
-	return fn, nil
+	return client.LambdaFunction{}, fmt.Errorf("function %s does not exist", arn)
 }
