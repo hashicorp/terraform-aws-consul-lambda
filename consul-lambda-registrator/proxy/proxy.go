@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // Server implements a proxy server that manages TCP listeners for a configurable set of upstreams.
@@ -18,15 +20,19 @@ type Server struct {
 
 	stopFlag int32
 	stopChan chan struct{}
+
+	// logger is the logger used to output log messages.
+	logger hclog.Logger
 }
 
 // New returns a new, unstarted proxy server from the given proxy configurations.
 // The proxy can be started by calling Serve.
-func New(cfgs ...*Config) *Server {
+func New(logger hclog.Logger, cfgs ...*Config) *Server {
 	return &Server{
 		waitChan: make(chan struct{}),
 		stopChan: make(chan struct{}),
 		cfgs:     cfgs,
+		logger:   logger,
 	}
 }
 
@@ -37,7 +43,8 @@ func (s *Server) Serve() error {
 		return errors.New("serve called on a closed server")
 	}
 
-	errChan := make(chan error)
+	listenerErrChan := make(chan error)
+	connErrChan := make(chan error)
 	lwg := &sync.WaitGroup{}
 
 	s.listeners = make([]*Listener, 0, len(s.cfgs))
@@ -45,10 +52,10 @@ func (s *Server) Serve() error {
 		l := NewListener(lc)
 		s.listeners = append(s.listeners, l)
 
-		// Start the listener. If Serve returns an error it is written to the errChan and handled below.
+		// Start the listener. If Serve returns an error it is handled below.
 		go func(l *Listener) {
 			if err := l.Serve(); err != nil {
-				errChan <- fmt.Errorf("failed to serve listener: %w", err)
+				listenerErrChan <- fmt.Errorf("failed to serve listener: %w", err)
 				return
 			}
 		}(l)
@@ -60,10 +67,10 @@ func (s *Server) Serve() error {
 			l.Wait()
 		}(lwg, l)
 
-		// Watch for errors on this listener.
+		// Watch for connection errors on this listener.
 		go func(l *Listener) {
-			for le := range l.Errors() {
-				errChan <- le
+			for ce := range l.Errors() {
+				connErrChan <- ce
 			}
 		}(l)
 	}
@@ -75,13 +82,18 @@ func (s *Server) Serve() error {
 		close(s.waitChan)
 	}()
 
-	// Block until a stop event is received or until one of the listeners errs.
+	// Wait until a stop event is received or until one of the listeners errs.
 	// We do not currently attempt to recover a failed listener so an error is fatal.
-	select {
-	case err := <-errChan:
-		return err
-	case <-s.stopChan:
-		return nil
+	// Errors from connections are treated as non-fatal and logged.
+	for {
+		select {
+		case err := <-listenerErrChan:
+			return err
+		case <-s.stopChan:
+			return nil
+		case err := <-connErrChan:
+			s.logger.Error("connection error", "error", err)
+		}
 	}
 }
 
