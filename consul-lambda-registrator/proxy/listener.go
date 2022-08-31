@@ -20,6 +20,7 @@ type Listener struct {
 
 	stopFlag int32
 	stopChan chan struct{}
+	stopLock sync.Mutex
 
 	// listeningChan is closed when listener is opened successfully.
 	listeningChan chan struct{}
@@ -45,6 +46,9 @@ func NewListener(cfg *Config) *Listener {
 
 // Serve runs the listener until it is stopped. It is an error to call Serve
 // more than once for any given Listener instance.
+//
+// Serve returns a non-nil error if the Listener is unable to accept any incoming connections.
+// Errors related to individual connections are written to the Errors() channel.
 func (l *Listener) Serve() error {
 	// Ensure we mark state closed if we fail before Close is called externally.
 	defer l.Close()
@@ -123,6 +127,9 @@ func (l *Listener) handleConn(src net.Conn) {
 
 // Close terminates the listener and all active connections.
 func (l *Listener) Close() {
+	l.stopLock.Lock()
+	defer l.stopLock.Unlock()
+
 	// Prevent the listener from being started.
 	oldFlag := atomic.SwapInt32(&l.stopFlag, 1)
 	if oldFlag != 0 {
@@ -168,14 +175,18 @@ func (l *Listener) getListener() net.Listener {
 }
 
 func (l *Listener) sendError(err error) {
+	// Grab the stopLock to ensure that we don't ever try to send at the same time that Close is called.
+	l.stopLock.Lock()
+	defer l.stopLock.Unlock()
+
 	// Don't send errors if stopped because the error channel is closed.
 	if atomic.LoadInt32(&l.stopFlag) == 1 {
 		return
 	}
 
-	// Drop the oldest error from the channel so that this call doesn't block if the buffer is full.
-	for len(l.errChan) >= errBufSize {
-		<-l.errChan
+	select {
+	case l.errChan <- err:
+	default:
+		// Don't block if the buffer is full.
 	}
-	l.errChan <- err
 }

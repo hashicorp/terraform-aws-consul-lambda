@@ -6,17 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/proxy"
 )
 
@@ -33,18 +34,14 @@ func TestProxyHTTP(t *testing.T) {
 	u, err := url.Parse(httpServer.URL)
 	require.NoError(t, err)
 
-	addr := getAddr(t)
-
-	listenFunc := func() (net.Listener, error) {
-		return net.Listen("tcp", addr)
-	}
+	listenFunc, addr := makeListenFunc(t)
 	dialFunc := func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}
 	cfg := []*proxy.Config{{ListenFunc: listenFunc, DialFunc: dialFunc}}
 
 	// Create and start the proxy
-	p := proxy.New(cfg...)
+	p := proxy.New(hclog.NewNullLogger(), cfg...)
 	t.Cleanup(func() { p.Close() })
 	go p.Serve()
 
@@ -83,9 +80,7 @@ func TestProxyTCP(t *testing.T) {
 			server, err := NewTCPServer(serverTLS)
 			require.NoError(t, err)
 
-			addr := getAddr(t)
-
-			listenFunc := func() (net.Listener, error) { return net.Listen("tcp", addr) }
+			listenFunc, addr := makeListenFunc(t)
 			var dialFunc func() (net.Conn, error)
 
 			if clientTLS != nil {
@@ -102,7 +97,7 @@ func TestProxyTCP(t *testing.T) {
 			cfg := []*proxy.Config{{ListenFunc: listenFunc, DialFunc: dialFunc}}
 
 			// Create and start the proxy
-			p := proxy.New(cfg...)
+			p := proxy.New(hclog.NewNullLogger(), cfg...)
 
 			go func() {
 				err := p.Serve()
@@ -142,54 +137,54 @@ func TestProxyListenError(t *testing.T) {
 	cfg := []*proxy.Config{{ListenFunc: listenFunc, DialFunc: dialFunc}}
 
 	// Create and start the proxy
-	p := proxy.New(cfg...)
+	p := proxy.New(hclog.NewNullLogger(), cfg...)
 	t.Cleanup(func() { p.Close() })
 	require.Error(t, p.Serve())
 }
 
 // TestProxyDialError tests the case where the proxy is unable to connect to the upstream.
 func TestProxyDialError(t *testing.T) {
-	addr := getAddr(t)
-
-	listenFunc := func() (net.Listener, error) {
-		return net.Listen("tcp", addr)
-	}
+	listenFunc, addr := makeListenFunc(t)
 	dialFunc := func() (net.Conn, error) {
 		return nil, errors.New("dial error")
 	}
 	cfg := []*proxy.Config{{ListenFunc: listenFunc, DialFunc: dialFunc}}
 
 	// Create and start the proxy
-	p := proxy.New(cfg...)
+	p := proxy.New(hclog.NewNullLogger(), cfg...)
 	t.Cleanup(func() { p.Close() })
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
-		// Expect the Serve func to err because the proxy fails to dial the destination.
+		// We expect no error from the Serve func because the proxy listener is accepting connections.
 		err := p.Serve()
-		require.Error(t, err)
+		require.NoError(t, err)
 		wg.Done()
 	}(wg)
 
 	// Wait for the proxy to be ready before sending it requests.
 	<-p.Wait()
 
-	// Note that no error is expected here because no data is transmitted, we are only connecting to the proxy.
+	// Make a request to the proxy. We expect the call to error because the proxy can't dial the upstream.
 	c := tcpClient{}
-	_, err := c.request(addr, "")
-	require.NoError(t, err)
+	_, err := c.request(addr, "error")
+	require.Error(t, err)
 
-	// Wait for the error to bubble up. Without the wait there is a race where the proxy
-	// gets closed before the error registers.
+	// Close the proxy and wait for it to exit gracefully.
+	p.Close()
 	wg.Wait()
 }
 
-func getAddr(t *testing.T) string {
+func makeListenFunc(t *testing.T) (func() (net.Listener, error), string) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	defer l.Close()
-	return l.Addr().String()
+	t.Cleanup(func() { l.Close() })
+
+	lf := func() (net.Listener, error) {
+		return l, nil
+	}
+	return lf, l.Addr().String()
 }
 
 func httpRequest(t *testing.T, method, url, reqBody string, statusCode int, resBody string) {
@@ -202,7 +197,7 @@ func httpRequest(t *testing.T, method, url, reqBody string, statusCode int, resB
 	require.NoError(t, err)
 	resp, err := hc.Do(request)
 	require.NoError(t, err)
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	require.Equal(t, statusCode, resp.StatusCode)
 	if len(resBody) > 0 {
@@ -254,7 +249,7 @@ func (c *tcpClient) request(addr, body string) (string, error) {
 
 type tcpServer struct {
 	Listener net.Listener
-	done     bool
+	done     int32
 }
 
 func NewTCPServer(tlsConfig *tls.Config) (*tcpServer, error) {
@@ -273,10 +268,10 @@ func NewTCPServer(tlsConfig *tls.Config) (*tcpServer, error) {
 }
 
 func (s *tcpServer) Listen() error {
-	for !s.done {
+	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			if s.done && errors.Is(err, net.ErrClosed) {
+			if atomic.LoadInt32(&s.done) == 1 && errors.Is(err, net.ErrClosed) {
 				// The server closed expectedly
 				return nil
 			}
@@ -286,13 +281,16 @@ func (s *tcpServer) Listen() error {
 			defer conn.Close()
 			io.Copy(conn, conn)
 		}(conn)
+
+		if atomic.LoadInt32(&s.done) == 1 {
+			return nil
+		}
 	}
-	return nil
 }
 
 func (s *tcpServer) Close() {
-	if !s.done {
-		s.done = true
+	done := atomic.SwapInt32(&s.done, 1)
+	if done == 0 {
 		s.Listener.Close()
 	}
 }
