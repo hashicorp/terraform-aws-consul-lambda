@@ -27,9 +27,6 @@ type Config struct {
 	ServicePartition    string        `envconfig:"SERVICE_PARTITION"`
 	ServiceUpstreams    []string      `envconfig:"SERVICE_UPSTREAMS"`
 	RefreshFrequency    time.Duration `envconfig:"REFRESH_FREQUENCY" default:"5m"`
-	Timeout             time.Duration `envconfig:"PROXY_TIMEOUT" default:"10s"`
-	LogLevel            string        `envconfig:"LOG_LEVEL" default:"info"`
-	TraceEnabled        bool          `envconfig:"TRACE_ENABLED" default:"false"`
 
 	Store  ParamGetter
 	Events EventProcessor

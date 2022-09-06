@@ -26,11 +26,12 @@ const (
 )
 
 func main() {
-	trace.Enabled(strings.ToLower(getEnvOrDefault("TRACE_ENABLED", "false")) == "true")
-
 	logger := hclog.New(&hclog.LoggerOptions{
 		Level: hclog.LevelFromString(getEnvOrDefault("LOG_LEVEL", defaultLogLevel)),
 	})
+
+	trace.SetLogger(trace.HCLog{Logger: logger})
+	trace.Enabled(strings.ToLower(getEnvOrDefault("TRACE_ENABLED", "false")) == "true")
 
 	err := realMain(logger.Named(extensionName))
 	if err != nil {
@@ -42,8 +43,6 @@ func main() {
 func realMain(logger hclog.Logger) error {
 	trace.Enter()
 	defer trace.Exit()
-
-	trace.SetLogger(trace.HCLog{Logger: logger})
 
 	cfg, err := configure()
 	if err != nil {
@@ -75,7 +74,7 @@ func realMain(logger hclog.Logger) error {
 		logger.Error("processing failed with an error", "error", err)
 	}
 
-	// Once processEvents returns, signal that it's time to shutdown.
+	// Signal that it's time to shutdown when the extension returns.
 	shutdownChannel <- struct{}{}
 
 	return err
