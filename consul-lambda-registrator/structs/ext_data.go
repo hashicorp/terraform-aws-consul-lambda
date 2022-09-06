@@ -1,5 +1,7 @@
 package structs
 
+import "reflect"
+
 // ExtensionData holds the information that a Lambda function needs to call services in the Consul service mesh.
 type ExtensionData struct {
 	// PrivateKeyPEM is the TLS certificate private key in PEM format.
@@ -20,4 +22,8 @@ type Peer struct {
 	Name string `json:"name"`
 	// TrustDomain is the trusted domain of the peer.
 	TrustDomain string `json:"trustDomain"`
+}
+
+func (x ExtensionData) Equals(y ExtensionData) bool {
+	return reflect.DeepEqual(x, y)
 }
