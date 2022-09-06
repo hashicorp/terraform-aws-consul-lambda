@@ -81,7 +81,11 @@ func (ext *Extension) Serve(ctx context.Context) error {
 
 	// Cleanup on return. Cancel the context and close the proxy.
 	defer cancel()
-	defer ext.closeProxy()
+	defer func() {
+		ext.proxyMutex.Lock()
+		defer ext.proxyMutex.Unlock()
+		ext.closeProxy()
+	}()
 
 	proxyErrChan := make(chan error)
 	go ext.runProxy(ctx, proxyErrChan)

@@ -27,7 +27,7 @@ func TestExtension(t *testing.T) {
 		ServiceUpstreams:    []string{"upstream-1:1234", "upstream-2:1235"},
 		Events:              MockEventProcessor{Wait: &wg},
 		Logger:              hclog.Default(),
-		RefreshFrequency:    100 * time.Millisecond,
+		RefreshFrequency:    10 * time.Millisecond,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
