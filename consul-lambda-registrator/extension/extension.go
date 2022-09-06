@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -27,9 +27,6 @@ type Config struct {
 	ServicePartition    string        `envconfig:"SERVICE_PARTITION"`
 	ServiceUpstreams    []string      `envconfig:"SERVICE_UPSTREAMS"`
 	RefreshFrequency    time.Duration `envconfig:"REFRESH_FREQUENCY" default:"5m"`
-	Timeout             time.Duration `envconfig:"PROXY_TIMEOUT" default:"10s"`
-	LogLevel            string        `envconfig:"LOG_LEVEL" default:"info"`
-	TraceEnabled        bool          `envconfig:"TRACE_ENABLED" default:"false"`
 
 	Store  ParamGetter
 	Events EventProcessor
@@ -50,10 +47,14 @@ type EventProcessor interface {
 
 type Extension struct {
 	*Config
-	service structs.Service
-	proxy   *proxy.Server
+	service    structs.Service
+	proxy      *proxy.Server
+	proxyMutex sync.Mutex
+	data       structs.ExtensionData
+	upstreams  []structs.Service
 }
 
+// NewExtension returns an instance of the Extension from the given configuration.
 func NewExtension(cfg *Config) *Extension {
 	return &Extension{
 		Config: cfg,
@@ -65,39 +66,70 @@ func NewExtension(cfg *Config) *Extension {
 	}
 }
 
+// Serve executes the main processing loop for the extension.
+// It initializes and starts the proxy server and starts monitoring for incoming
+// events from the Lambda runtime.
+// It periodically retrieves the extension data from the parameter store and updates
+// the proxy configuration for the configured upstreams as necessary.
 func (ext *Extension) Serve(ctx context.Context) error {
 	trace.Enter()
 	defer trace.Exit()
 
-	// Initialize the proxy server.
-	err := ext.initProxy(ctx)
-	if err != nil {
+	ctx, cancel := context.WithCancel(ctx)
+
+	// Cleanup on return. Cancel the context and close the proxy.
+	defer cancel()
+	defer ext.closeProxy()
+
+	proxyErrChan := make(chan error)
+	go ext.runProxy(ctx, proxyErrChan)
+
+	eventErrChan := make(chan error)
+	go ext.runEvents(ctx, eventErrChan)
+
+	// Block until either the proxy returns or until the event processing loop returns.
+	select {
+	case err := <-proxyErrChan:
+		return err
+	case err := <-eventErrChan:
 		return err
 	}
+}
 
-	// Start the proxy
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		err := ext.proxy.Serve()
-		if err != nil {
-			ext.Logger.Error("proxy failed with an error", "error", err)
+func (ext *Extension) runProxy(ctx context.Context, errChan chan error) {
+	refresh := time.NewTicker(ext.RefreshFrequency)
+	defer refresh.Stop()
+
+	pErrChan := make(chan error)
+	for {
+		select {
+		case <-ctx.Done():
+			errChan <- nil
+			return
+		case <-refresh.C:
+			err := ext.startProxy(ctx, pErrChan)
+			if err != nil {
+				errChan <- fmt.Errorf("failed to start proxy: %w", err)
+				return
+			}
+		case err := <-pErrChan:
+			if err != nil {
+				errChan <- fmt.Errorf("proxy failed with an error: %w", err)
+				return
+			}
 		}
-		// Once the proxy exits we cannot handle any more events so cancel our context.
-		cancel()
-	}()
-	defer ext.proxy.Close()
-
-	// Start the event processor and block until it returns.
-	// It will return when there are no more events to process or its context is cancelled,
-	// whichever happens first.
-	ext.Logger.Info("processing events")
-	err = ext.Events.ProcessEvents(ctx)
-	if err != nil {
-		return fmt.Errorf("event processing failed with an error: %w", err)
 	}
+}
 
-	ext.Logger.Info("processing events finished")
-	return nil
+func (ext *Extension) runEvents(ctx context.Context, errChan chan error) {
+	ext.Logger.Info("processing events")
+	err := ext.Events.ProcessEvents(ctx)
+	if err != nil {
+		errChan <- fmt.Errorf("event processing failed with an error: %w", err)
+		return
+	}
+	ext.Logger.Info("event processing completed")
+	errChan <- nil
 }
 
 func (ext *Extension) getExtensionData(ctx context.Context) (structs.ExtensionData, error) {
@@ -120,37 +152,78 @@ func (ext *Extension) getExtensionData(ctx context.Context) (structs.ExtensionDa
 	return extData, nil
 }
 
-func (ext *Extension) initProxy(ctx context.Context) error {
+// startProxy starts, or restarts, the extension's proxy server.
+// It retrieves the configuration for the proxy and if the configuration has changed
+// it closes the existing proxy server and reconfigures a new proxy server.
+// It starts the new proxy server in a separate go routine that reports any errors to the
+// caller via errChan.
+func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error {
 	trace.Enter()
 	defer trace.Exit()
+
+	const errFmt = "failed to init proxy: %w"
 
 	// Get the lambda extension configuration data for this service.
 	extData, err := ext.getExtensionData(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to init proxy: %w", err)
+		// TODO: We need to handle the case where the data used to exist but it was deleted because
+		// this Lambda function was removed from the service mesh. In that case we should shut down
+		// the proxy server so the function can't make any more outgoing calls.
+		return fmt.Errorf(errFmt, err)
 	}
 
-	// Parse the configured list of upstreams.
-	upstreams, err := ext.parseUpstreams(extData)
-	if err != nil {
-		return fmt.Errorf("failed to init proxy: %w", err)
+	// If the extension data has not changed then the proxy is already configured.
+	if extData.Equals(ext.data) {
+		return nil
+	}
+
+	ext.Logger.Info("starting proxy server")
+
+	// Parse the configured list of upstreams. The upstreams are configured as part of the environment
+	// so we only do this on the first time through.
+	if len(ext.upstreams) == 0 {
+		ext.upstreams, err = ext.parseUpstreams()
+		if err != nil {
+			return fmt.Errorf(errFmt, err)
+		}
 	}
 
 	// Create a proxy listener configuration for each upstream.
-	proxyConfigs := make([]*proxy.Config, len(upstreams))
-	for i, upstream := range upstreams {
+	proxyConfigs := make([]*proxy.Config, len(ext.upstreams))
+	for i, upstream := range ext.upstreams {
 		// Create the listener config.
 		cfg, err := ext.proxyConfig(upstream, extData)
 		if err != nil {
-			return fmt.Errorf("failed to init proxy: %w", err)
+			return fmt.Errorf(errFmt, err)
 		}
 		proxyConfigs[i] = cfg
 	}
 
+	// Drain and close the existing proxy.
+	ext.closeProxy()
+
 	// Create the proxy server.
-	ext.proxy = proxy.New(proxyConfigs...)
+	ext.proxy = proxy.New(ext.Logger, proxyConfigs...)
+
+	go func(errChan chan error) {
+		// Get the lock for the proxy mutex. This go routine will exit and release
+		// the lock when the proxy's Close method is called. The lock ensures that
+		// we never attempt to start a new proxy server until the old one has exited.
+		ext.proxyMutex.Lock()
+		defer ext.proxyMutex.Unlock()
+		errChan <- ext.proxy.Serve()
+	}(errChan)
 
 	return nil
+}
+
+func (ext *Extension) closeProxy() {
+	trace.Enter()
+	defer trace.Exit()
+
+	if ext.proxy != nil {
+		ext.proxy.Close()
+	}
 }
 
 func (ext *Extension) proxyConfig(upstream structs.Service, extData structs.ExtensionData) (*proxy.Config, error) {
@@ -171,21 +244,6 @@ func (ext *Extension) proxyConfig(upstream structs.Service, extData structs.Exte
 	cfg.ListenFunc = func() (net.Listener, error) {
 		return net.Listen("tcp", fmt.Sprintf(":%d", upstream.Port))
 	}
-
-	// TODO: How do we want to handle cert rotation?
-	// Considerations:
-	// - Lambda rgy will keep the mTLS material up-to-date in parameter store.
-	// - The extension will likely live between invocations and the mTLS material may go stale
-	// - We shouldn't ever need to recreate the ListenerFunc because it isn't TLS
-	// - We could recreate the DialFunc with updated mTLS on every request.. but that may be overkill?
-	// - Could keep a record (hash) of the mTLS material and update DialFunc only if it has changed.
-	// - In either case, I think this means that the proxy must support updating the DialFunc in flight.
-	//
-	// De-registration is another case to consider:
-	// - When a Lambda service is de-registered we want it to no longer be able to call into the mesh.
-	// - Lambda registrator deletes the mTLS data from parameter store.
-	// - If the Lambda RT and extension stays alive - this is realistic, I've seen it stay up for >15m -
-	//   then the DialFunc for each upstream still contains the mTLS info needed to call in to the mesh (not good).
 
 	// Wrap the outgoing request in an mTLS session and dial the mesh gateway.
 	cfg.DialFunc = func() (net.Conn, error) {
@@ -221,7 +279,7 @@ func (ext *Extension) proxyConfig(upstream structs.Service, extData structs.Exte
 
 				// Match the SPIFFE ID.
 				if !strings.EqualFold(certs[0].URIs[0].String(), upstream.SpiffeID()) {
-					return errors.New("spiffe id mismatch")
+					return fmt.Errorf("invalid SPIFFE ID for upstream %s", upstream.Name)
 				}
 				return nil
 			},
@@ -231,7 +289,7 @@ func (ext *Extension) proxyConfig(upstream structs.Service, extData structs.Exte
 	return cfg, nil
 }
 
-func (ext *Extension) parseUpstreams(extData structs.ExtensionData) ([]structs.Service, error) {
+func (ext *Extension) parseUpstreams() ([]structs.Service, error) {
 	trace.Enter()
 	defer trace.Exit()
 
@@ -241,7 +299,7 @@ func (ext *Extension) parseUpstreams(extData structs.ExtensionData) ([]structs.S
 		if err != nil {
 			return u, fmt.Errorf("failed to parse upstream: %w", err)
 		}
-		up.TrustDomain = extData.TrustDomain
+		up.TrustDomain = ext.data.TrustDomain
 		u = append(u, up)
 	}
 	return u, nil

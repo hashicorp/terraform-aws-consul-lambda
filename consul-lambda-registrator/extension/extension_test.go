@@ -1,54 +1,126 @@
 package extension_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 
 	ext "github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/extension"
 )
 
 func TestExtension(t *testing.T) {
+	const trustDomain = "1e6de438-c2bd-e632-0ce1-c0fa58607a45.consul"
+	const name = "test"
+	var wg sync.WaitGroup
 	cfg := &ext.Config{
 		MeshGatewayURI:      "mesh.gateway.consul:8443",
 		ExtensionDataPrefix: "test",
 		ServiceName:         "lambda-function",
 		ServiceUpstreams:    []string{"upstream-1:1234", "upstream-2:1235"},
-		Store:               MockParamGetter{},
-		Events:              MockEventProcessor{},
+		Events:              MockEventProcessor{Wait: &wg},
 		Logger:              hclog.Default(),
+		RefreshFrequency:    10 * time.Millisecond,
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	extData1 := generateExtensionData(t, name, trustDomain)
+	extData2 := generateExtensionData(t, name, trustDomain)
+
+	mpg := &MockParamGetter{
+		t:             t,
+		cancel:        cancel,
+		wg:            &wg,
+		path:          "test/default/default/lambda-function",
+		extensionData: []string{extData1, extData1, extData2},
+	}
+	cfg.Store = mpg
+	wg.Add(1)
 
 	e := ext.NewExtension(cfg)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go e.Serve(ctx)
+	go func() {
+		err := e.Serve(ctx)
+		if err != nil {
+			// If serve failed with an error, then we need to explicitly call wg.Done
+			// to end the test.
+			wg.Done()
+		}
+		require.NoError(t, err)
+	}()
 
-	time.Sleep(time.Second)
-	cancel()
-	time.Sleep(time.Second)
+	wg.Wait()
 }
 
-type MockParamGetter struct{}
-
-func (m MockParamGetter) Get(_ context.Context, _ string) (string, error) {
-	return extensionData, nil
+type MockParamGetter struct {
+	t             *testing.T
+	cancel        context.CancelFunc
+	wg            *sync.WaitGroup
+	path          string
+	extensionData []string
+	idx           int
 }
 
-type MockEventProcessor struct{}
+func (m *MockParamGetter) Get(_ context.Context, key string) (string, error) {
+	require.True(m.t, m.idx < len(m.extensionData))
+	require.Equal(m.t, m.path, key)
+
+	ed := m.extensionData[m.idx]
+
+	// If the expected number of calls has been reached end the test.
+	m.idx++
+	if m.idx >= len(m.extensionData) {
+		defer m.cancel()
+		defer m.wg.Done()
+	}
+
+	return ed, nil
+}
+
+type MockEventProcessor struct {
+	Wait *sync.WaitGroup
+}
 
 func (m MockEventProcessor) Register(_ context.Context, _ interface{}) error {
 	return nil
 }
 
 func (m MockEventProcessor) ProcessEvents(ctx context.Context) error {
-	fmt.Println("MOCK PROCESSING EVENTS")
+	m.Wait.Add(1)
+	defer m.Wait.Done()
 	<-ctx.Done()
-	fmt.Println("MOCK PROCESSING COMPLETED")
 	return nil
 }
 
-const extensionData = `{"privateKey":"-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIBOESs619TDc4W+v2pT1B4HcIm5YsOpdWGcrUr8CaAxXoAoGCCqGSM49\nAwEHoUQDQgAEFIbwX0KkjD2z247PF5QDM6KV0oMtJYJvqT7tvE7aJNvcVI3UqHt9\nPVDyObnIw8ezr49WBCYAwIZsbsBWFs+kUQ==\n-----END EC PRIVATE KEY-----\n","cert":"-----BEGIN CERTIFICATE-----\nMIICJDCCAcmgAwIBAgIBDTAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWgz\naXZqcXIuY29uc3VsLmNhLjFlNmRlNDM4LmNvbnN1bDAeFw0yMjA4MTUxOTExMzVa\nFw0yMjA4MTgxOTExMzVaMAAwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQUhvBf\nQqSMPbPbjs8XlAMzopXSgy0lgm+pPu28Ttok29xUjdSoe309UPI5ucjDx7Ovj1YE\nJgDAhmxuwFYWz6RRo4IBATCB/jAOBgNVHQ8BAf8EBAMCA7gwHQYDVR0lBBYwFAYI\nKwYBBQUHAwIGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwKQYDVR0OBCIEIJaBEXNd\nFjRFqu84YweH5HbE5i2LnRKS6jrjjKIt05QqMCsGA1UdIwQkMCKAICke+V39fWi7\ni7sSSu3z61tg5zHelIPeHo7EF/ODP6aKMGcGA1UdEQEB/wRdMFuGWXNwaWZmZTov\nLzFlNmRlNDM4LWMyYmQtZTYzMi0wY2UxLWMwZmE1ODYwN2E0NS5jb25zdWwvbnMv\nZGVmYXVsdC9kYy9kYzEvc3ZjL2xhbWJkYS1zZXJ2aWNlMAoGCCqGSM49BAMCA0kA\nMEYCIQC8jGhSMn3H9ME9tamBwwOLH1l78S0AjaJN9plQgLdtOwIhANVnYkOaBQdK\n4GoRF96mtwqJ2X0fosLYBG2pUKgDuw0l\n-----END CERTIFICATE-----\n","rootCert":"-----BEGIN CERTIFICATE-----\nMIICEDCCAbWgAwIBAgIBBzAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWgz\naXZqcXIuY29uc3VsLmNhLjFlNmRlNDM4LmNvbnN1bDAeFw0yMjA4MTUxNDQyNTZa\nFw0zMjA4MTIxNDQyNTZaMDExLzAtBgNVBAMTJnByaS0xaDNpdmpxci5jb25zdWwu\nY2EuMWU2ZGU0MzguY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPg8b\n92nHCFRObrt/A2ZlyIpDa7pfUJsMkeom04RqFiLDta9sgPx63qTBwyRLAvmCmBoC\nD9nUAJ0lHVN4jlRC9aOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUw\nAwEB/zApBgNVHQ4EIgQgKR75Xf19aLuLuxJK7fPrW2DnMd6Ug94ejsQX84M/poow\nKwYDVR0jBCQwIoAgKR75Xf19aLuLuxJK7fPrW2DnMd6Ug94ejsQX84M/poowPwYD\nVR0RBDgwNoY0c3BpZmZlOi8vMWU2ZGU0MzgtYzJiZC1lNjMyLTBjZTEtYzBmYTU4\nNjA3YTQ1LmNvbnN1bDAKBggqhkjOPQQDAgNJADBGAiEA3QMknYjieerzcpMZhPXA\n/nI/HVoTnh/E95WdVDwcMYgCIQDjdESSjPoikuRaN5IMZoZwO6/aHmI/WH3I7xFS\nqS3Zjw==\n-----END CERTIFICATE-----\n","trustDomain":"1e6de438-c2bd-e632-0ce1-c0fa58607a45.consul"}`
+func generateExtensionData(t *testing.T, name, trustDomain string) string {
+	ca, caKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{Domain: trustDomain})
+	require.NoError(t, err)
+
+	signer, err := tlsutil.ParseSigner(caKey)
+	require.NoError(t, err)
+
+	cert, pk, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		CA:          ca,
+		Signer:      signer,
+		Name:        name,
+		DNSNames:    []string{fmt.Sprintf("%s.%s", name, trustDomain)},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+	})
+	require.NoError(t, err)
+
+	caPEM := bytes.ReplaceAll([]byte(ca), []byte{10}, []byte("\\n"))
+	pkPEM := bytes.ReplaceAll([]byte(pk), []byte{10}, []byte("\\n"))
+	certPEM := bytes.ReplaceAll([]byte(cert), []byte{10}, []byte("\\n"))
+
+	edFmt := `{"privateKeyPEM":"%s","certPEM":"%s","rootCertPEM":"%s","trustDomain":"%s"}`
+
+	return fmt.Sprintf(edFmt, pkPEM, certPEM, caPEM, trustDomain)
+}
