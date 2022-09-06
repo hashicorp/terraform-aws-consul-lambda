@@ -13,6 +13,7 @@ import (
 type Server struct {
 	cfgs      []*Config
 	listeners []*Listener
+	lmu       sync.Mutex
 
 	// waitChan is closed once the server is up and running. It can be used by
 	// callers to wait until the server is initialized and ready to handle connections.
@@ -47,6 +48,7 @@ func (s *Server) Serve() error {
 	connErrChan := make(chan error)
 	lwg := &sync.WaitGroup{}
 
+	s.lmu.Lock()
 	s.listeners = make([]*Listener, 0, len(s.cfgs))
 	for _, lc := range s.cfgs {
 		l := NewListener(lc)
@@ -74,6 +76,7 @@ func (s *Server) Serve() error {
 			}
 		}(l)
 	}
+	s.lmu.Unlock()
 
 	// Wait for all listeners to start. Once they have, close the waitChan to indicate
 	// that the proxy is ready to serve requests.
@@ -104,6 +107,8 @@ func (s *Server) Wait() <-chan struct{} {
 
 // Close shuts down the proxy and closes all active connections and listeners.
 func (s *Server) Close() {
+	s.lmu.Lock()
+	defer s.lmu.Unlock()
 	stopFlag := atomic.SwapInt32(&s.stopFlag, 1)
 	if stopFlag != 0 {
 		return
