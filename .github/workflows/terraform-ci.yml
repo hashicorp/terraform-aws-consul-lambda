@@ -1,7 +1,9 @@
 name: terraform-ci
 on:
   push:
-    branches: '**'
+    branches:
+      - 'main'
+      - 'release/**'
 env:
   GO_VERSION: '1.18'
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
