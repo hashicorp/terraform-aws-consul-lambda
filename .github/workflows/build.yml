@@ -107,9 +107,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Docker Build (Action)
-        uses: hashicorp/actions-docker-build@v1
+        uses: hashicorp/actions-docker-build@v1.3.1
         with:
-          pkg_name: ${{ env.PKG_NAME }}
           version: ${{ env.version }}
           target: release-default
           workdir: ./consul-lambda-registrator
