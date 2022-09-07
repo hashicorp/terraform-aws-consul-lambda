@@ -101,15 +101,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      os: linux
       arch: amd64
+      PKG_NAME: consul-lambda-registrator
 
     steps:
       - uses: actions/checkout@v2
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
-          pkg_name: ${{ env.PKG_NAME }}_${{ env.version }}_${{ env.os }}_${{ env.arch }}
+          pkg_name: ${{ env.PKG_NAME }}_${{ env.version }}
+          bin_name: ${{ env.PKG_NAME }}
           version: ${{ env.version }}
           target: release-default
           workdir: ./consul-lambda-registrator
