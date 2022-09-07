@@ -109,6 +109,7 @@ jobs:
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
+          pkg_name: ${{ env.PKG_NAME }}
           version: ${{ env.version }}
           target: release-default
           workdir: ./consul-lambda-registrator
