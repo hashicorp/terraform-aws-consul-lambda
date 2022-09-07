@@ -120,8 +120,8 @@ jobs:
           # Please note - if you haven't previously been publishing to ECR you will need to reach out to team-rel-eng
           # - https://hashicorp.atlassian.net/wiki/spaces/RDXPOC/pages/2298218311/How+to+Push+a+Docker+image+to+ECR
           tags: |
-            docker.io/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
-            public.ecr.aws/hashicorp/${{ env.REPO_NAME }}:${{ env.version }}
+            docker.io/hashicorp/${{ env.PKG_NAME }}:${{ env.version }}
+            public.ecr.aws/hashicorp/${{ env.PKG_NAME }}:${{ env.version }}
           # dev_tags are tags that get automatically pushed whenever successful
           # builds make it to the stable channel. The intention is for these tags
           # to be used for early testing of new code prior to official releases
@@ -142,5 +142,5 @@ jobs:
           # will fail to any other DockerHub org or registry. You can optionally
           # prepend docker.io
           dev_tags: |
-            hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}
-            docker.io/hashicorppreview/${{ env.REPO_NAME }}:${{ env.version }}
+            hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
+            docker.io/hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
