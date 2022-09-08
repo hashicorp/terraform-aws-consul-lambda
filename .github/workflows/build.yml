@@ -28,6 +28,7 @@ jobs:
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
       ldflags: ${{ steps.get-product-version.outputs.ldflags }}
+      git-short-sha: ${{ steps.get-product-version.outputs.git-short-sha }}
     steps:
       - uses: actions/checkout@v2
       - name: get product version
