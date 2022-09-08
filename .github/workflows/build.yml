@@ -91,6 +91,7 @@ jobs:
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
           path: consul-lambda-registrator/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+
   build-docker-default:
     defaults:
       run:
@@ -123,3 +124,42 @@ jobs:
           dev_tags: |
             hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
             docker.io/hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
+
+  upload-dev-docker:
+    name: Upload dev image (hashicorpdev/consul-lambda-registrator:<commit>)
+    environment: dockerhub/hashicorpdev
+    needs:
+      - get-product-version
+      - build-docker-default
+    runs-on: ubuntu-latest
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
+      arch: amd64
+      target: release-default
+      git-short-sha: ${{ needs.get-product-version.outputs.git-short-sha }}
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.PKG_NAME }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
+      - name: docker push
+        shell: bash
+        run: |
+          TAG=hashicorpdev/${{ env.PKG_NAME }}:${{ env.git-short-sha }}
+          echo "==> Load docker image from tar archive"
+          docker load -i "${{ env.PKG_NAME }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
+          echo "==> Tag docker image $TAG"
+          docker tag "hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}-${{ github.sha }}" "$TAG"
+          echo "==> Docker login"
+          echo ${{ secrets.DOCKER_PASS }} | docker login -u=${{ secrets.DOCKER_USER }} --password-stdin
+          echo "==> Push docker image $TAG"
+          docker push "$TAG"
+      - name: docker push (latest)
+        shell: bash
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          TAG=hashicorpdev/${{ env.PKG_NAME }}:latest
+          echo "==> Tag docker image $TAG as :latest"
+          docker tag "hashicorpdev/${{ env.PKG_NAME }}:${{ env.git-short-sha }}" "$TAG"
+          echo "==> Push docker image $TAG"
+          docker push "$TAG"
