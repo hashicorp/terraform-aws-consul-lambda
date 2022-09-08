@@ -152,7 +152,7 @@ jobs:
           echo "==> Load docker image from tar archive"
           docker load -i "${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
           echo "==> Tag docker image $TAG"
-          docker tag "hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}-${{ github.sha }}" "$TAG"
+          docker tag "hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}" "$TAG"
           echo "==> Docker login"
           echo ${{ secrets.DOCKER_PASS }} | docker login -u=${{ secrets.DOCKER_USER }} --password-stdin
           echo "==> Push docker image $TAG"
