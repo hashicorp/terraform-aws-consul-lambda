@@ -133,6 +133,7 @@ jobs:
       - build-docker-default
     runs-on: ubuntu-latest
     env:
+      repo: ${{ github.event.repository.name }}
       version: ${{ needs.get-product-version.outputs.product-version }}
       arch: amd64
       target: release-default
@@ -141,20 +142,20 @@ jobs:
       - name: Download image artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.PKG_NAME }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
-      - name: docker push
+          name: ${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
+      - name: Docker push
         shell: bash
         run: |
           TAG=hashicorpdev/${{ env.PKG_NAME }}:${{ env.git-short-sha }}
           echo "==> Load docker image from tar archive"
-          docker load -i "${{ env.PKG_NAME }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
+          docker load -i "${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
           echo "==> Tag docker image $TAG"
           docker tag "hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}-${{ github.sha }}" "$TAG"
           echo "==> Docker login"
           echo ${{ secrets.DOCKER_PASS }} | docker login -u=${{ secrets.DOCKER_USER }} --password-stdin
           echo "==> Push docker image $TAG"
           docker push "$TAG"
-      - name: docker push (latest)
+      - name: Docker push (latest)
         shell: bash
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
