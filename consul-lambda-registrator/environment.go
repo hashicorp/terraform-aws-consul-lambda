@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -146,17 +144,6 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 // write it to the parameter store.
 func (e Environment) IsManagingTLS() bool {
 	return len(e.ExtensionDataPath) > 0
-}
-
-// Err logs the provided error and returns a wrapped err.
-func (e Environment) Err(err error, args ...string) error {
-	msg := strings.Join(args, ", ")
-	if len(msg) > 0 {
-		e.Logger.Error(msg, "error", err)
-		return fmt.Errorf("%s: %w", msg, err)
-	}
-	e.Logger.Error(err.Error())
-	return err
 }
 
 func setConsulCACert(ctx context.Context, store ParamStore, key string) error {

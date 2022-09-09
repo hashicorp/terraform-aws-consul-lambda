@@ -91,7 +91,7 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	// TODO: Retrieve the root CA IFF it is expiring "soon".
 	caRootList, _, err := env.ConsulClient.Agent().ConnectCARoots(nil)
 	if err != nil {
-		return env.Err(err, "failed to retrieve Consul root CA")
+		return fmt.Errorf("failed to retrieve Consul root CA: %w", err)
 	}
 
 	// Use the first active root CA cert
@@ -103,13 +103,13 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 		}
 	}
 	if caRoot == nil {
-		return env.Err(fmt.Errorf("failed to find an active CA root cert"))
+		return fmt.Errorf("failed to find an active CA root cert: %w", err)
 	}
 
 	// Retrieve the leaf for this service
 	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, e.QueryOptions())
 	if err != nil {
-		return env.Err(err, fmt.Sprintf("failed to retrieve leaf cert for %s", e.Name))
+		return fmt.Errorf("failed to retrieve leaf cert for %s: %w", e.Name, err)
 	}
 
 	extData, err := json.Marshal(structs.ExtensionData{
@@ -120,7 +120,7 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 		// TODO: cluster peering support
 	})
 	if err != nil {
-		return env.Err(err, "failed to marshal extension data")
+		return fmt.Errorf("failed to marshal extension data: %w", err)
 	}
 
 	// Create the info for this service
