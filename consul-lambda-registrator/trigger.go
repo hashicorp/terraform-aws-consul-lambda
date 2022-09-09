@@ -19,7 +19,6 @@ const (
 	arnTag                = prefix + "/arn"
 	payloadPassthroughTag = prefix + "/payload-passthrough"
 	regionTag             = prefix + "/region"
-	serviceNameTag        = prefix + "/service-name"
 	datacenterTag         = prefix + "/datacenter"
 	partitionTag          = prefix + "/partition"
 	namespaceTag          = prefix + "/namespace"
@@ -110,10 +109,6 @@ func (e Environment) GetLambdaEvents(ctx context.Context, fn client.LambdaFuncti
 
 	// The service name defaults to the name of the Lambda function
 	serviceName := fn.Name
-	if v, ok := tags[serviceNameTag]; ok {
-		// Use the service name from the tag
-		serviceName = v
-	}
 
 	if v, ok := tags[datacenterTag]; ok {
 		datacenter = v
