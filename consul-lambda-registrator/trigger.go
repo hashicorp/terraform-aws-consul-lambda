@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
 	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
 )
 
@@ -98,7 +97,7 @@ const (
 
 // GetLambdaEvents inspects the current state of the given Lambda function and returns the list of
 // Events that are required to reconcile the function's state with Consul.
-func (e Environment) GetLambdaEvents(ctx context.Context, fn client.LambdaFunction) ([]Event, error) {
+func (e Environment) GetLambdaEvents(ctx context.Context, fn LambdaFunction) ([]Event, error) {
 	datacenter := ""
 	createService := false
 	payloadPassthrough := false

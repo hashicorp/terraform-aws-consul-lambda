@@ -69,8 +69,8 @@ type ParamStore interface {
 
 // LambdaAPIClient is an interface for retrieving information about Lambda functions.
 type LambdaAPIClient interface {
-	GetFunction(context.Context, string) (client.LambdaFunction, error)
-	ListFunctions(context.Context) (map[string]client.LambdaFunction, error)
+	GetFunction(context.Context, string) (LambdaFunction, error)
+	ListFunctions(context.Context) (map[string]LambdaFunction, error)
 }
 
 // Environment contains all of Lambda registrator's dependencies.
@@ -120,7 +120,7 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 	}
 
 	env.Store = client.NewSSM(&sdkConfig)
-	env.Lambda = client.NewLambda(&sdkConfig)
+	env.Lambda = NewLambdaClient(&sdkConfig, env.PageSize)
 
 	err = setConsulHTTPToken(ctx, env.Store, env.ConsulHTTPTokenPath)
 	if err != nil {

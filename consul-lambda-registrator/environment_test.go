@@ -14,8 +14,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
 )
 
 const (
@@ -195,9 +193,9 @@ type UpsertEventPlusMeta struct {
 }
 
 func mockLambdaClient(events ...UpsertEventPlusMeta) mockLambda {
-	functions := make(map[string]client.LambdaFunction, len(events))
+	functions := make(map[string]LambdaFunction, len(events))
 	for _, event := range events {
-		l := client.LambdaFunction{
+		l := LambdaFunction{
 			ARN:  event.ARN,
 			Name: event.Name,
 			Tags: map[string]string{
@@ -226,18 +224,18 @@ func mockLambdaClient(events ...UpsertEventPlusMeta) mockLambda {
 }
 
 type mockLambda struct {
-	Functions map[string]client.LambdaFunction
+	Functions map[string]LambdaFunction
 }
 
 var _ LambdaAPIClient = (*mockLambda)(nil)
 
-func (lc mockLambda) ListFunctions(_ context.Context) (map[string]client.LambdaFunction, error) {
+func (lc mockLambda) ListFunctions(_ context.Context) (map[string]LambdaFunction, error) {
 	return lc.Functions, nil
 }
 
-func (lc mockLambda) GetFunction(_ context.Context, arn string) (client.LambdaFunction, error) {
+func (lc mockLambda) GetFunction(_ context.Context, arn string) (LambdaFunction, error) {
 	if fn, ok := lc.Functions[arn]; ok {
 		return fn, nil
 	}
-	return client.LambdaFunction{}, fmt.Errorf("function %s does not exist", arn)
+	return LambdaFunction{}, fmt.Errorf("function %s does not exist", arn)
 }
