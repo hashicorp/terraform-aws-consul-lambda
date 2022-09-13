@@ -1,4 +1,4 @@
-package client
+package extension
 
 import (
 	"bytes"
@@ -8,10 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -22,11 +18,9 @@ const (
 
 // Lambda is a client for interfacing with AWS Lambda APIs.
 type Lambda struct {
-	baseURL      string
-	httpClient   *http.Client
-	extensionID  string
-	lambdaClient *lambda.Client
-	pageSize     int
+	baseURL     string
+	httpClient  *http.Client
+	extensionID string
 }
 
 // RegisterResponse is the body of the response for /register
@@ -59,68 +53,14 @@ const (
 	Shutdown EventType = "SHUTDOWN"
 )
 
-// NewLambda returns a Lambda client
-func NewLambda(cfg *aws.Config) *Lambda {
+// NewLambda returns a Lambda client for interacting with the Lambda runtime extension API.
+func NewLambda() *Lambda {
 	baseURL := fmt.Sprintf(fmtExtensionURL, os.Getenv("AWS_LAMBDA_RUNTIME_API"))
 	l := &Lambda{
 		baseURL:    baseURL,
 		httpClient: &http.Client{},
-		pageSize:   50,
-	}
-	if cfg != nil {
-		l.lambdaClient = lambda.NewFromConfig(*cfg)
 	}
 	return l
-}
-
-type LambdaFunction struct {
-	ARN  string
-	Name string
-	Tags map[string]string
-}
-
-func (c *Lambda) GetFunction(ctx context.Context, arn string) (LambdaFunction, error) {
-	fn, err := c.lambdaClient.GetFunction(ctx, &lambda.GetFunctionInput{
-		FunctionName: &arn,
-	})
-	if err != nil {
-		return LambdaFunction{}, err
-	}
-
-	return LambdaFunction{
-		ARN:  *fn.Configuration.FunctionArn,
-		Name: *fn.Configuration.FunctionName,
-		Tags: fn.Tags,
-	}, nil
-}
-
-// ListFunctions returns a map of LambdaMeta indexed by ARN.
-func (c *Lambda) ListFunctions(ctx context.Context) (map[string]LambdaFunction, error) {
-	var resultErr error
-	params := &lambda.ListFunctionsInput{MaxItems: aws.Int32(int32(c.pageSize))}
-	paginator := lambda.NewListFunctionsPaginator(c.lambdaClient, params)
-	lambdas := make(map[string]LambdaFunction)
-
-	for paginator.HasMorePages() {
-		output, err := paginator.NextPage(ctx)
-		if err != nil {
-			resultErr = multierror.Append(resultErr, err)
-			return nil, resultErr
-		}
-
-		// TODO: fetch Lambda functions concurrently
-		for _, l := range output.Functions {
-			fn, err := c.GetFunction(ctx, *l.FunctionArn)
-			if err != nil {
-				resultErr = multierror.Append(resultErr, err)
-				continue
-			}
-
-			lambdas[fn.ARN] = fn
-		}
-	}
-
-	return lambdas, nil
 }
 
 // ProcessEvents polls the Lambda Extension API for events. Currently all this
