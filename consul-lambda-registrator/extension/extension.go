@@ -19,14 +19,13 @@ import (
 )
 
 type Config struct {
-	MeshGatewayURI      string        `envconfig:"MESH_GATEWAY_URI" required:"true"`
-	ExtensionDataPrefix string        `envconfig:"EXTENSION_DATA_PREFIX" required:"true"`
-	Datacenter          string        `envconfig:"DATACENTER"`
-	ServiceName         string        `envconfig:"SERVICE_NAME"`
-	ServiceNamespace    string        `envconfig:"SERVICE_NAMESPACE"`
-	ServicePartition    string        `envconfig:"SERVICE_PARTITION"`
-	ServiceUpstreams    []string      `envconfig:"SERVICE_UPSTREAMS"`
-	RefreshFrequency    time.Duration `envconfig:"REFRESH_FREQUENCY" default:"5m"`
+	ServiceName         string
+	ServiceNamespace    string        `envconfig:"CONSUL_SERVICE_NAMESPACE"`
+	ServicePartition    string        `envconfig:"CONSUL_SERVICE_PARTITION"`
+	ServiceUpstreams    []string      `envconfig:"CONSUL_SERVICE_UPSTREAMS"`
+	MeshGatewayURI      string        `envconfig:"CONSUL_MESH_GATEWAY_URI" required:"true"`
+	ExtensionDataPrefix string        `envconfig:"CONSUL_EXTENSION_DATA_PREFIX" required:"true"`
+	RefreshFrequency    time.Duration `envconfig:"CONSUL_REFRESH_FREQUENCY" default:"5m"`
 
 	Store  ParamGetter
 	Events EventProcessor
@@ -59,10 +58,9 @@ func NewExtension(cfg *Config) *Extension {
 	ext := &Extension{
 		Config: cfg,
 		service: structs.Service{
-			Datacenter: cfg.Datacenter,
-			Name:       cfg.ServiceName,
-			Namespace:  cfg.ServiceNamespace,
-			Partition:  cfg.ServicePartition,
+			Name:      cfg.ServiceName,
+			Namespace: cfg.ServiceNamespace,
+			Partition: cfg.ServicePartition,
 		},
 	}
 	return ext

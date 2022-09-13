@@ -86,15 +86,12 @@ func configure() (*extension.Config, error) {
 
 	// Load the configuration from the environment.
 	cfg := &extension.Config{}
-	err := envconfig.Process("consul", cfg)
+	err := envconfig.Process("", cfg)
 	if err != nil {
 		return cfg, fmt.Errorf("failed to load configuration from environment: %w", err)
 	}
 
-	if cfg.ServiceName == "" {
-		// If the service name wasn't explicitly configured then default to the Lambda function's name.
-		cfg.ServiceName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-	}
+	cfg.ServiceName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
 
 	sdkConfig, err := config.LoadDefaultConfig(context.Background(), config.WithRetryer(func() aws.Retryer {
 		// Adaptive mode should retry on hitting rate limits.
