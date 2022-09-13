@@ -106,7 +106,7 @@ func configure() (*extension.Config, error) {
 
 	ssmClient := client.NewSSM(&sdkConfig)
 
-	lambdaClient := client.NewLambda(&sdkConfig)
+	lambdaClient := extension.NewLambda()
 	err = lambdaClient.Register(context.Background(), extensionName)
 	if err != nil {
 		return cfg, fmt.Errorf("failed to register Lambda extension: %w", err)
