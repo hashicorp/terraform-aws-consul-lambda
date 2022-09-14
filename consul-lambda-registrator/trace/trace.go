@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type Logger interface {
@@ -17,8 +19,8 @@ var (
 	// performance impact from this package.
 	enabled bool = false
 	// logger is the logger to use to when logging messages.
-	// By default timers will use the log package from the stdlib to log messages.
-	logger Logger = StdLog{}
+	// By default timers will use a null logger.
+	logger Logger = NewHCLog(nil, hclog.NoLevel)
 	// tag is prepended to every trace log message.
 	tag = "trace"
 
@@ -130,7 +132,7 @@ func Start(name string) *Timer {
 // Since logs the time since the timer started. If present the optional args will be appended to the message.
 func (t *Timer) Since(args ...interface{}) {
 	if t.Log == nil {
-		t.Log = StdLog{}
+		t.Log = NewHCLog(nil, hclog.NoLevel)
 	}
 	var msg []interface{}
 	if tag != "" {

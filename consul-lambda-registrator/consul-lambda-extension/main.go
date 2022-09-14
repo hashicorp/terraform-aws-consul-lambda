@@ -30,7 +30,7 @@ func main() {
 		Level: hclog.LevelFromString(getEnvOrDefault("LOG_LEVEL", defaultLogLevel)),
 	})
 
-	trace.SetLogger(trace.HCLog{Logger: logger})
+	trace.SetLogger(trace.NewHCLog(logger, hclog.Info))
 	trace.Enabled(strings.ToLower(getEnvOrDefault("TRACE_ENABLED", "false")) == "true")
 
 	err := realMain(logger.Named(extensionName))
@@ -54,15 +54,15 @@ func realMain(logger hclog.Logger) error {
 
 	// Handle interrupts and shutdown notification
 	ctx, cancel := context.WithCancel(context.Background())
-	shutdownChannel := make(chan struct{})
 	go func() {
 		interruptChannel := make(chan os.Signal, 1)
 		signal.Notify(interruptChannel, syscall.SIGTERM, syscall.SIGINT)
+		defer signal.Stop(interruptChannel)
 
 		select {
 		case s := <-interruptChannel:
 			logger.Info("Received signal, exiting", "signal", s)
-		case <-shutdownChannel:
+		case <-ctx.Done():
 			logger.Info("Received shutdown event, exiting")
 		}
 		// Cancel our context so that all servers and go-routines exit gracefully.
@@ -75,7 +75,7 @@ func realMain(logger hclog.Logger) error {
 	}
 
 	// Signal that it's time to shutdown when the extension returns.
-	shutdownChannel <- struct{}{}
+	cancel()
 
 	return err
 }

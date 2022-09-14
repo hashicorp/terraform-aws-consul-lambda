@@ -19,7 +19,7 @@ import (
 )
 
 type Config struct {
-	ServiceName         string
+	ServiceName         string        `ignored:"true"`
 	ServiceNamespace    string        `envconfig:"CONSUL_SERVICE_NAMESPACE"`
 	ServicePartition    string        `envconfig:"CONSUL_SERVICE_PARTITION"`
 	ServiceUpstreams    []string      `envconfig:"CONSUL_SERVICE_UPSTREAMS"`
@@ -78,26 +78,20 @@ func (ext *Extension) Start(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Cleanup on return. Cancel the context and close the proxy.
-	defer cancel()
 	defer func() {
 		ext.proxyMutex.Lock()
 		defer ext.proxyMutex.Unlock()
 		ext.closeProxy()
 	}()
+	defer cancel()
 
-	proxyErrChan := make(chan error)
-	go ext.runProxy(ctx, proxyErrChan)
+	// Run until either the proxy returns or until the event processing loop returns.
+	errChan := make(chan error)
 
-	eventErrChan := make(chan error)
-	go ext.runEvents(ctx, eventErrChan)
+	go ext.runProxy(ctx, errChan)
+	go ext.runEvents(ctx, errChan)
 
-	// Block until either the proxy returns or until the event processing loop returns.
-	select {
-	case err := <-proxyErrChan:
-		return err
-	case err := <-eventErrChan:
-		return err
-	}
+	return <-errChan
 }
 
 func (ext *Extension) runProxy(ctx context.Context, errChan chan error) {
