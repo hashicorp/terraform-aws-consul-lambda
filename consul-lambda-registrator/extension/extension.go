@@ -66,12 +66,12 @@ func NewExtension(cfg *Config) *Extension {
 	return ext
 }
 
-// Serve executes the main processing loop for the extension.
+// Start executes the main processing loop for the extension.
 // It initializes and starts the proxy server and starts monitoring for incoming
 // events from the Lambda runtime.
 // It periodically retrieves the extension data from the parameter store and updates
 // the proxy configuration for the configured upstreams as necessary.
-func (ext *Extension) Serve(ctx context.Context) error {
+func (ext *Extension) Start(ctx context.Context) error {
 	trace.Enter()
 	defer trace.Exit()
 
@@ -299,7 +299,7 @@ func (ext *Extension) parseUpstreams() ([]structs.Service, error) {
 
 	u := make([]structs.Service, 0, len(ext.ServiceUpstreams))
 	for _, s := range ext.ServiceUpstreams {
-		up, err := structs.ParseService(s)
+		up, err := structs.ParseUpstream(s)
 		if err != nil {
 			return u, fmt.Errorf("failed to parse upstream: %w", err)
 		}

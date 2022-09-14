@@ -23,8 +23,8 @@ type Service struct {
 	Subset      string
 }
 
-// ParseService parses a string in unlabeled upstream format into a Service instance.
-func ParseService(s string) (Service, error) {
+// ParseUpstream parses a string in unlabeled upstream format into a Service instance.
+func ParseUpstream(s string) (Service, error) {
 	var upstream Service
 	var err error
 

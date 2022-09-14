@@ -69,7 +69,7 @@ func realMain(logger hclog.Logger) error {
 		cancel()
 	}()
 
-	err = ext.Serve(ctx)
+	err = ext.Start(ctx)
 	if err != nil {
 		logger.Error("processing failed with an error", "error", err)
 	}
