@@ -2,64 +2,114 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
+	"github.com/kelseyhightower/envconfig"
+
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
 )
+
+// Config holds the configuration from the environment.
+type Config struct {
+	// NodeName is the Consul node name that will have all Lambda services registered to it.
+	NodeName string `envconfig:"NODE_NAME" required:"true"`
+
+	// Region is the AWS region Lambda registrator is running in.
+	Region string `envconfig:"AWS_REGION"`
+
+	// Datacenter is the Consul datacenter that the Lambda registrator manages.
+	// If not set, Lambda registrator will manage Lambda services for all datacenters in this region.
+	Datacenter string `envconfig:"DATACENTER"`
+
+	// IsEnterprise is used to determine if Consul is OSS or Enterprise.
+	IsEnterprise bool `envconfig:"ENTERPRISE" default:"false"`
+
+	// RawPartitions is the raw, comma-separated string list of partitions.
+	RawPartitions []string `envconfig:"PARTITIONS"`
+
+	// Partitions specifies the Admin Partitions that Lambda registrator manages.
+	Partitions map[string]struct{} `ignored:"true"`
+
+	// LogLevel is the configured logging level.
+	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+
+	// ConsulCACertPath is the path to the Consul CA cert in Parameter Store.
+	ConsulCACertPath string `envconfig:"CONSUL_CACERT_PATH"`
+
+	// ConsulHTTPToken is the path to the Consul HTTP token in Parameter Store.
+	ConsulHTTPTokenPath string `envconfig:"CONSUL_HTTP_TOKEN_PATH"`
+
+	// ExtensionDataPath is the path in Parameter Store where extension data will be written.
+	ExtensionDataPath string `envconfig:"EXTENSION_DATA_PATH"`
+
+	// PageSize is the maximum number of Lambda functions per page when querying the Lambda API.
+	PageSize int `envconfig:"PAGE_SIZE" default:"50"`
+}
+
+// initPartitions converts the raw slice of partitions into a map.
+func (c *Config) initPartitions() {
+	c.Partitions = make(map[string]struct{}, len(c.RawPartitions))
+	for _, p := range c.RawPartitions {
+		c.Partitions[p] = struct{}{}
+	}
+}
+
+// ParamStore is an interface for reading and writing key/value pairs to a data store.
+type ParamStore interface {
+	Delete(ctx context.Context, k string) error
+	Get(ctx context.Context, k string) (string, error)
+	Set(ctx context.Context, k, v string) error
+}
+
+// LambdaAPIClient is an interface for retrieving information about Lambda functions.
+type LambdaAPIClient interface {
+	GetFunction(context.Context, string) (LambdaFunction, error)
+	ListFunctions(context.Context) (map[string]LambdaFunction, error)
+}
 
 // Environment contains all of Lambda registrator's dependencies.
 type Environment struct {
-	// Lambda is the Lambda client that will reconcile state with Consul.
-	Lambda LambdaAPIClient
+	Config
 
-	// NodeName is the Consul node name that will have all Lambda services
-	// registered to it.
-	NodeName string
-
-	// ConsulClient is the consul client that will be kept in sync with Lambda's
-	// APIs.
+	// ConsulClient is the Consul client that will be kept in sync with managed Lambda state.
 	ConsulClient *api.Client
 
-	// Region is the AWS region Lambda registrator is running in.
-	Region string
+	// Lambda is the Lambda client used to interact with the Lambda API.
+	Lambda LambdaAPIClient
 
-	// IsEnterprise is used to determine if Consul is OSS or Enterprise.
-	IsEnterprise bool
-
-	// Partitions specifies the Admin Partitions that Lambda registrator manages.
-	Partitions map[string]struct{}
-
+	// Logger is used to log messages.
 	Logger hclog.Logger
-}
 
-const (
-	nodeNameEnvironment     string = "NODE_NAME"
-	awsRegionEnvironment    string = "AWS_REGION"
-	enterpriseEnvironment   string = "ENTERPRISE"
-	partitionsEnvironment   string = "PARTITIONS"
-	logLevelEnvironment     string = "LOG_LEVEL"
-	consulCAPathEnvironment string = "CONSUL_CACERT_PATH"
-	consulHTTPTokenPath     string = "CONSUL_HTTP_TOKEN_PATH"
-)
+	// Store is data store client used to read and write configuration data.
+	Store ParamStore
+}
 
 const (
 	caCertPath string = "/tmp/consul-ca-cert.pem"
 )
 
-// SetupEnvironment constructs Environment based on environment variables
+// SetupEnvironment constructs the processing Environment based on environment variables
 // and Parameter Store.
 func SetupEnvironment(ctx context.Context) (Environment, error) {
 	var env Environment
+
+	err := envconfig.Process("", &env)
+	if err != nil {
+		return env, err
+	}
+	env.initPartitions()
+
+	env.Logger = hclog.New(
+		&hclog.LoggerOptions{
+			Level: hclog.LevelFromString(env.LogLevel),
+		},
+	)
 
 	sdkConfig, err := config.LoadDefaultConfig(ctx, config.WithRetryer(func() aws.Retryer {
 		// Adaptive mode should retry on hitting rate limits.
@@ -69,118 +119,62 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 		return env, err
 	}
 
-	ssmClient := ssm.NewFromConfig(sdkConfig)
+	env.Store = client.NewSSM(&sdkConfig)
+	env.Lambda = NewLambdaClient(&sdkConfig, env.PageSize)
 
-	nodeName := os.Getenv(nodeNameEnvironment)
-	region := os.Getenv(awsRegionEnvironment)
-	isEnterprise := os.Getenv(enterpriseEnvironment) == "true"
-	partitionsRaw := os.Getenv(partitionsEnvironment)
-
-	partitions := make(map[string]struct{})
-	for _, p := range strings.Split(partitionsRaw, ",") {
-		partitions[p] = struct{}{}
-	}
-
-	logLevel := "info"
-	if level := os.Getenv(logLevelEnvironment); level != "" {
-		logLevel = level
-	}
-	logger := hclog.New(
-		&hclog.LoggerOptions{
-			Level: hclog.LevelFromString(logLevel),
-		},
-	)
-
-	err = setConsulHTTPToken(ctx, ssmClient)
+	err = setConsulHTTPToken(ctx, env.Store, env.ConsulHTTPTokenPath)
 	if err != nil {
 		return env, err
 	}
 
-	err = setConsulCACert(ctx, ssmClient)
+	err = setConsulCACert(ctx, env.Store, env.ConsulCACertPath)
 	if err != nil {
 		return env, err
 	}
 
-	consulConfig := api.DefaultConfig()
-	consulClient, err := api.NewClient(consulConfig)
-
+	env.ConsulClient, err = api.NewClient(api.DefaultConfig())
 	if err != nil {
 		return env, err
 	}
 
-	return Environment{
-		Lambda:       lambda.NewFromConfig(sdkConfig),
-		NodeName:     nodeName,
-		ConsulClient: consulClient,
-		Region:       region,
-		IsEnterprise: isEnterprise,
-		Partitions:   partitions,
-		Logger:       logger,
-	}, nil
+	return env, nil
 }
 
-type GetParameterAPIClient interface {
-	GetParameter(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+// IsManagingTLS indicates whether the Environment is configured to retrieve mTLS data from Consul and
+// write it to the parameter store.
+func (e Environment) IsManagingTLS() bool {
+	return len(e.ExtensionDataPath) > 0
 }
 
-type LambdaAPIClient interface {
-	lambda.GetFunctionAPIClient
-	lambda.ListFunctionsAPIClient
-}
-
-func setConsulCACert(ctx context.Context, ssmClient GetParameterAPIClient) error {
-	path := os.Getenv(consulCAPathEnvironment)
-
+func setConsulCACert(ctx context.Context, store ParamStore, key string) error {
+	path := os.Getenv(key)
 	if path == "" {
 		return nil
 	}
 
-	paramValue, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           &path,
-		WithDecryption: true,
-	})
-
+	cert, err := store.Get(ctx, path)
 	if err != nil {
 		return err
 	}
 
-	value := paramValue.Parameter.Value
-	if value == nil {
-		return errors.New("no parameter store value for conusl cacert arn")
-	}
-
-	err = os.WriteFile(caCertPath, []byte(*value), 0666)
+	err = os.WriteFile(caCertPath, []byte(cert), 0666)
 	if err != nil {
 		return err
 	}
 
-	os.Setenv("CONSUL_CACERT", caCertPath)
-
-	return nil
+	return os.Setenv("CONSUL_CACERT", caCertPath)
 }
 
-func setConsulHTTPToken(ctx context.Context, ssmClient GetParameterAPIClient) error {
-	path := os.Getenv(consulHTTPTokenPath)
-
+func setConsulHTTPToken(ctx context.Context, store ParamStore, key string) error {
+	path := os.Getenv(key)
 	if path == "" {
 		return nil
 	}
 
-	paramValue, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           &path,
-		WithDecryption: true,
-	})
-
+	token, err := store.Get(ctx, path)
 	if err != nil {
 		return err
 	}
 
-	value := paramValue.Parameter.Value
-	if value == nil {
-		return errors.New("no parameter store value for for conusl http token")
-	}
-
-	os.Setenv("CONSUL_HTTP_TOKEN", *value)
-
-	return nil
+	return os.Setenv("CONSUL_HTTP_TOKEN", token)
 }

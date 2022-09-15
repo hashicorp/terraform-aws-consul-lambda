@@ -49,7 +49,7 @@ module "preexisting-lambda" {
   name   = "preexisting_${local.suffix}"
   tags = {
     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true",
-    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough" : "true",
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough" : "true",
   }
   region = var.region
 }

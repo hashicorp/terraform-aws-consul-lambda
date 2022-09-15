@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,19 +28,19 @@ func TestUpsertAndDelete(t *testing.T) {
 
 	env := mockEnvironment(mockLambdaClient(), consulClient)
 	type caseData struct {
-		EnterpriseMeta *EnterpriseMeta
+		EnterpriseMeta *structs.EnterpriseMeta
 	}
 	cases := make(map[string]caseData)
 
 	if enterprise {
 		cases["default partition and namespace"] = caseData{
-			EnterpriseMeta: &EnterpriseMeta{
+			EnterpriseMeta: &structs.EnterpriseMeta{
 				Namespace: "default",
 				Partition: "default",
 			},
 		}
 		cases["partitions and namespaces"] = caseData{
-			EnterpriseMeta: &EnterpriseMeta{
+			EnterpriseMeta: &structs.EnterpriseMeta{
 				Namespace: "ns1",
 				Partition: "ap1",
 			},
@@ -57,12 +58,11 @@ func TestUpsertAndDelete(t *testing.T) {
 
 	for n, c := range cases {
 		upsertEvent := UpsertEvent{
+			Service:            structs.Service{Name: serviceName, EnterpriseMeta: c.EnterpriseMeta},
 			PayloadPassthrough: true,
-			ServiceName:        serviceName,
 			ARN:                "arn",
-			EnterpriseMeta:     c.EnterpriseMeta,
 		}
-		deleteEvent := DeleteEvent{ServiceName: serviceName, EnterpriseMeta: c.EnterpriseMeta}
+		deleteEvent := DeleteEvent{structs.Service{Name: serviceName, EnterpriseMeta: c.EnterpriseMeta}}
 
 		t.Run(n, func(t *testing.T) {
 			t.Run("Creating the service", func(t *testing.T) {
@@ -90,22 +90,15 @@ func TestUpsertAndDelete(t *testing.T) {
 }
 
 func assertConsulState(t *testing.T, consulClient *api.Client, env Environment, event UpsertEvent, count int) {
-	var queryOptions *api.QueryOptions
-	if event.EnterpriseMeta != nil {
-		queryOptions = &api.QueryOptions{
-			Partition: event.EnterpriseMeta.Partition,
-			Namespace: event.EnterpriseMeta.Namespace,
-		}
-	}
-	services, _, err := consulClient.Catalog().Service(event.ServiceName, "", queryOptions)
+	services, _, err := consulClient.Catalog().Service(event.Name, "", QueryOptions(event.Service))
 	require.NoError(t, err)
 	require.Len(t, services, count)
 
-	entries, _, err := consulClient.ConfigEntries().List(api.ServiceDefaults, queryOptions)
+	entries, _, err := consulClient.ConfigEntries().List(api.ServiceDefaults, QueryOptions(event.Service))
 	require.NoError(t, err)
 	require.Len(t, entries, count)
 	if count == 1 {
-		require.Equal(t, event.ServiceName, entries[0].GetName())
+		require.Equal(t, event.Name, entries[0].GetName())
 	}
 }
 
