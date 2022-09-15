@@ -57,7 +57,7 @@ func TestSetupEnvironment(t *testing.T) {
 	require.Equal(t, envVars[awsRegionEnvironment], env.Region)
 	require.Equal(t, envVars[datacenterEnvironment], env.Datacenter)
 	require.Equal(t, envVars[logLevelEnvironment], env.LogLevel)
-	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPath)
+	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPrefix)
 	require.NotNil(t, env.Lambda)
 	require.NotNil(t, env.ConsulClient)
 	require.NotNil(t, env.Logger)
