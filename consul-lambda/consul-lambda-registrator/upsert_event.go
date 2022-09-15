@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
 const managedLambdaTag = "managed-by-lambda-registrator"

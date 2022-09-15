@@ -1,4 +1,4 @@
-package extension_test
+package main_test
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
-	ext "github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/extension"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
+	ext "github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/consul-lambda-extension"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
 func TestExtension(t *testing.T) {

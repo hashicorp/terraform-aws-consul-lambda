@@ -1,4 +1,4 @@
-package extension
+package main
 
 import (
 	"bytes"

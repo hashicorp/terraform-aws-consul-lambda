@@ -8,7 +8,7 @@ jobs:
     name: "Determine Go toolchain version"
     defaults:
       run:
-        working-directory: ./consul-lambda-registrator
+        working-directory: ./consul-lambda/consul-lambda-registrator
     runs-on: ubuntu-latest
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
@@ -17,8 +17,8 @@ jobs:
       - name: Determine Go version
         id: get-go-version
         run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat ./consul-lambda-registrator/.go-version)"
+          echo "Building with Go $(cat ../.go-version)"
+          echo "::set-output name=go-version::$(cat ./consul-lambda/.go-version)"
 
   get-product-version:
     defaults:
@@ -35,14 +35,14 @@ jobs:
         id: get-product-version
         run: |
           echo "::set-output name=product-version::$(make version)"
-          echo "::set-output name=ldflags::-s -w -X github.com/hashicorp/terraform-aws-consul-lambda-registrator/version.GitCommit=$(git rev-parse --short HEAD)"
+          echo "::set-output name=ldflags::-s -w -X github.com/hashicorp/terraform-aws-consul-lambda/version.GitCommit=$(git rev-parse --short HEAD)"
           echo "::set-output name=git-short-sha::$(git rev-parse --short HEAD)"
 
   generate-metadata-file:
     needs: get-product-version
     defaults:
       run:
-        working-directory: ./consul-lambda-registrator
+        working-directory: ./consul-lambda/consul-lambda-registrator
     runs-on: ubuntu-latest
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -64,7 +64,7 @@ jobs:
   build-linux:
     defaults:
       run:
-        working-directory: ./consul-lambda-registrator
+        working-directory: ./consul-lambda/consul-lambda-registrator
     env:
       GOOS: linux
       GOARCH: amd64
@@ -97,7 +97,7 @@ jobs:
   build-docker-default:
     defaults:
       run:
-        working-directory: ./consul-lambda-registrator
+        working-directory: ./consul-lambda/consul-lambda-registrator
     name: Docker default release build
     needs:
       - get-product-version
@@ -118,7 +118,7 @@ jobs:
           bin_name: ${{ env.PKG_NAME }}
           version: ${{ env.version }}
           target: release-default
-          workdir: ./consul-lambda-registrator
+          workdir: ./consul-lambda/consul-lambda-registrator
           arch: ${{ env.arch }}
           tags: |
             docker.io/hashicorp/${{ env.PKG_NAME }}:${{ env.version }}

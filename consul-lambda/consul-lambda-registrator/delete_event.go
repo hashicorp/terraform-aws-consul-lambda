@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
 type DeleteEvent struct {

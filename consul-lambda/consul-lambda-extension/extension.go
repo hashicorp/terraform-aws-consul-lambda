@@ -1,4 +1,4 @@
-package extension
+package main
 
 import (
 	"context"
@@ -13,9 +13,9 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/proxy"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/trace"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/proxy"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/trace"
 )
 
 type Config struct {

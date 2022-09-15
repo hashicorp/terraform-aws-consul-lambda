@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/proxy"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/proxy"
 )
 
 // TestProxyHTTP tests that the proxy can successfully and correctly proxy L7 HTTP requests.

@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance
+module github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance
 
 go 1.18
 

@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/config"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/flags"
+	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/config"
+	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/flags"
 )
 
 // DefaultExecs holds the default external executables that are required to
