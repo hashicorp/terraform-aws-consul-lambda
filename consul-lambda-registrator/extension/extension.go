@@ -19,14 +19,13 @@ import (
 )
 
 type Config struct {
-	MeshGatewayURI      string        `envconfig:"MESH_GATEWAY_URI" required:"true"`
-	ExtensionDataPrefix string        `envconfig:"EXTENSION_DATA_PREFIX" required:"true"`
-	Datacenter          string        `envconfig:"DATACENTER"`
-	ServiceName         string        `envconfig:"SERVICE_NAME"`
-	ServiceNamespace    string        `envconfig:"SERVICE_NAMESPACE"`
-	ServicePartition    string        `envconfig:"SERVICE_PARTITION"`
-	ServiceUpstreams    []string      `envconfig:"SERVICE_UPSTREAMS"`
-	RefreshFrequency    time.Duration `envconfig:"REFRESH_FREQUENCY" default:"5m"`
+	ServiceName         string        `ignored:"true"`
+	ServiceNamespace    string        `envconfig:"CONSUL_SERVICE_NAMESPACE"`
+	ServicePartition    string        `envconfig:"CONSUL_SERVICE_PARTITION"`
+	ServiceUpstreams    []string      `envconfig:"CONSUL_SERVICE_UPSTREAMS"`
+	MeshGatewayURI      string        `envconfig:"CONSUL_MESH_GATEWAY_URI" required:"true"`
+	ExtensionDataPrefix string        `envconfig:"CONSUL_EXTENSION_DATA_PREFIX" required:"true"`
+	RefreshFrequency    time.Duration `envconfig:"CONSUL_REFRESH_FREQUENCY" default:"5m"`
 
 	Store  ParamGetter
 	Events EventProcessor
@@ -59,45 +58,38 @@ func NewExtension(cfg *Config) *Extension {
 	return &Extension{
 		Config: cfg,
 		service: structs.Service{
-			Datacenter:     cfg.Datacenter,
 			Name:           cfg.ServiceName,
 			EnterpriseMeta: structs.NewEnterpriseMeta(cfg.ServicePartition, cfg.ServiceNamespace),
 		},
 	}
 }
 
-// Serve executes the main processing loop for the extension.
+// Start executes the main processing loop for the extension.
 // It initializes and starts the proxy server and starts monitoring for incoming
 // events from the Lambda runtime.
 // It periodically retrieves the extension data from the parameter store and updates
 // the proxy configuration for the configured upstreams as necessary.
-func (ext *Extension) Serve(ctx context.Context) error {
+func (ext *Extension) Start(ctx context.Context) error {
 	trace.Enter()
 	defer trace.Exit()
 
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Cleanup on return. Cancel the context and close the proxy.
-	defer cancel()
 	defer func() {
 		ext.proxyMutex.Lock()
 		defer ext.proxyMutex.Unlock()
 		ext.closeProxy()
 	}()
+	defer cancel()
 
-	proxyErrChan := make(chan error)
-	go ext.runProxy(ctx, proxyErrChan)
+	// Run until either the proxy returns or until the event processing loop returns.
+	errChan := make(chan error)
 
-	eventErrChan := make(chan error)
-	go ext.runEvents(ctx, eventErrChan)
+	go ext.runProxy(ctx, errChan)
+	go ext.runEvents(ctx, errChan)
 
-	// Block until either the proxy returns or until the event processing loop returns.
-	select {
-	case err := <-proxyErrChan:
-		return err
-	case err := <-eventErrChan:
-		return err
-	}
+	return <-errChan
 }
 
 func (ext *Extension) runProxy(ctx context.Context, errChan chan error) {
@@ -299,7 +291,7 @@ func (ext *Extension) parseUpstreams() ([]structs.Service, error) {
 
 	u := make([]structs.Service, 0, len(ext.ServiceUpstreams))
 	for _, s := range ext.ServiceUpstreams {
-		up, err := structs.ParseService(s)
+		up, err := structs.ParseUpstream(s)
 		if err != nil {
 			return u, fmt.Errorf("failed to parse upstream: %w", err)
 		}

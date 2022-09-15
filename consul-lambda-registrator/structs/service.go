@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -42,8 +40,8 @@ type Service struct {
 	Subset      string
 }
 
-// ParseService parses a string in unlabeled upstream format into a Service instance.
-func ParseService(s string) (Service, error) {
+// ParseUpstream parses a string in unlabeled upstream format into a Service instance.
+func ParseUpstream(s string) (Service, error) {
 	var upstream Service
 	var err error
 
@@ -146,24 +144,6 @@ func (s Service) SpiffeID() string {
 
 func (s Service) ExtensionPath() string {
 	return fmt.Sprintf("/%s/%s/%s", s.PartitionOrDefault(), s.NamespaceOrDefault(), s.Name)
-}
-
-func (s Service) QueryOptions() *api.QueryOptions {
-	opts := &api.QueryOptions{Datacenter: s.Datacenter}
-	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
-	}
-	return opts
-}
-
-func (s Service) WriteOptions() *api.WriteOptions {
-	opts := &api.WriteOptions{Datacenter: s.Datacenter}
-	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
-	}
-	return opts
 }
 
 func dotJoin(parts ...string) string {

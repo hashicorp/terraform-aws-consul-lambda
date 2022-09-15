@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -17,7 +16,6 @@ type LambdaFunction struct {
 
 // Lambda is a client for interfacing with the AWS Lambda API.
 type Lambda struct {
-	httpClient   *http.Client
 	lambdaClient *lambda.Client
 	pageSize     int
 }
@@ -25,7 +23,6 @@ type Lambda struct {
 // NewLambdaClient returns a Lambda client
 func NewLambdaClient(cfg *aws.Config, pageSize int) *Lambda {
 	return &Lambda{
-		httpClient:   &http.Client{},
 		lambdaClient: lambda.NewFromConfig(*cfg),
 		pageSize:     pageSize,
 	}

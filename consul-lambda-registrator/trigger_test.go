@@ -65,12 +65,12 @@ func TestAWSEventToEvents(t *testing.T) {
 
 func TestGetLambdaData(t *testing.T) {
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
-	makeService := func(enterprise bool, alias string) UpsertEvent {
+	makeService := func(enterprise bool, alias, dc string) UpsertEvent {
 		e := UpsertEvent{
 			ARN:                arn,
 			PayloadPassthrough: true,
 			InvocationMode:     asynchronousInvocationMode,
-			Service:            structs.Service{Name: "lambda-1234"},
+			Service:            structs.Service{Name: "lambda-1234", Datacenter: dc},
 		}
 		if enterprise {
 			e.EnterpriseMeta = &structs.EnterpriseMeta{Namespace: "n", Partition: "p"}
@@ -81,34 +81,30 @@ func TestGetLambdaData(t *testing.T) {
 		}
 		return e
 	}
-	disabledService := makeService(false, "")
-	serviceWithInvalidInvocationMode := makeService(false, "")
+	disabledService := makeService(false, "", "")
+	serviceWithInvalidInvocationMode := makeService(false, "", "")
 	serviceWithInvalidInvocationMode.InvocationMode = "invalid"
 
 	cases := map[string]struct {
 		arn          string
 		upsertEvents []UpsertEventPlusMeta
 		expected     []Event
-		getErr       bool
+		expectErr    bool
 		err          bool
 		enterprise   bool
 		partitions   []string
+		datacenter   string
 	}{
 		"Invalid arn": {
-			arn:    "1234",
-			getErr: true,
+			arn:       "1234",
+			expectErr: true,
 		},
 		"Enterprise meta is passed without enterprise Consul": {
 			arn: arn,
 			err: true,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent: UpsertEvent{
-						ARN: arn,
-						Service: structs.Service{
-							Name:           "lambda-1234",
-							EnterpriseMeta: &structs.EnterpriseMeta{Namespace: "n", Partition: "p"}},
-					},
+					UpsertEvent: makeService(true, "", ""),
 				},
 			},
 		},
@@ -117,13 +113,13 @@ func TestGetLambdaData(t *testing.T) {
 			err: false,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent:   makeService(true, ""),
+					UpsertEvent:   makeService(true, "", ""),
 					CreateService: true,
 				},
 			},
 			enterprise: true,
 			expected: []Event{
-				makeService(true, ""),
+				makeService(true, "", ""),
 			},
 			partitions: []string{"p"},
 		},
@@ -132,11 +128,22 @@ func TestGetLambdaData(t *testing.T) {
 			err: false,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent: makeService(true, ""),
+					UpsertEvent: makeService(true, "", ""),
 				},
 			},
 			enterprise: true,
 			partitions: []string{},
+		},
+		"Ignoring unhandled datacenter": {
+			arn: arn,
+			err: false,
+			upsertEvents: []UpsertEventPlusMeta{
+				{
+					UpsertEvent: makeService(false, "", "dc2"),
+				},
+			},
+			enterprise: false,
+			datacenter: "dc1",
 		},
 		"Removing disabled services": {
 			arn: arn,
@@ -155,13 +162,13 @@ func TestGetLambdaData(t *testing.T) {
 			err: false,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent:   makeService(false, ""),
+					UpsertEvent:   makeService(false, "", ""),
 					CreateService: true,
 				},
 			},
 			enterprise: false,
 			expected: []Event{
-				makeService(false, ""),
+				makeService(false, "", ""),
 			},
 		},
 		"Invalid invocation mode": {
@@ -179,16 +186,16 @@ func TestGetLambdaData(t *testing.T) {
 			err: false,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
-					UpsertEvent:   makeService(false, ""),
+					UpsertEvent:   makeService(false, "", ""),
 					Aliases:       []string{"a1", "a2"},
 					CreateService: true,
 				},
 			},
 			enterprise: false,
 			expected: []Event{
-				makeService(false, ""),
-				makeService(false, "a1"),
-				makeService(false, "a2"),
+				makeService(false, "", ""),
+				makeService(false, "a1", ""),
+				makeService(false, "a2", ""),
 			},
 		},
 	}
@@ -198,13 +205,14 @@ func TestGetLambdaData(t *testing.T) {
 			ctx := context.Background()
 			lambda := mockLambdaClient(c.upsertEvents...)
 			env := mockEnvironment(lambda, nil)
+			env.Datacenter = c.datacenter
 			env.IsEnterprise = c.enterprise
 			for _, p := range c.partitions {
 				env.Partitions[p] = struct{}{}
 			}
 
 			fn, err := lambda.GetFunction(ctx, arn)
-			if c.getErr {
+			if c.expectErr {
 				require.Error(t, err)
 				return
 			} else {
@@ -262,6 +270,9 @@ func TestFullSyncData(t *testing.T) {
 		CreateService: true,
 	}
 
+	otherDCService1 := service1
+	otherDCService1.Datacenter = "dc2"
+
 	type caseData struct {
 		// Set up consul state
 		SeedConsulState []UpsertEventPlusMeta
@@ -269,6 +280,7 @@ func TestFullSyncData(t *testing.T) {
 		SeedLambdaState []UpsertEventPlusMeta
 		ExpectedEvents  []Event
 		Partitions      []string
+		Datacenter      string
 	}
 
 	cases := map[string]*caseData{
@@ -287,6 +299,11 @@ func TestFullSyncData(t *testing.T) {
 		"Ignore Lambdas without create service meta": {
 			SeedLambdaState: []UpsertEventPlusMeta{disabledService1},
 			ExpectedEvents:  []Event{},
+		},
+		"Ignore Lambdas in other datacenters": {
+			SeedLambdaState: []UpsertEventPlusMeta{otherDCService1},
+			ExpectedEvents:  []Event{},
+			Datacenter:      "dc1",
 		},
 		"With aliases": {
 			SeedLambdaState: []UpsertEventPlusMeta{service1WithAlias},
@@ -335,6 +352,7 @@ func TestFullSyncData(t *testing.T) {
 			}
 
 			env := mockEnvironment(mockLambdaClient(c.SeedLambdaState...), consulClient)
+			env.Datacenter = c.Datacenter
 			env.IsEnterprise = enterprise
 			for _, p := range c.Partitions {
 				env.Partitions[p] = struct{}{}

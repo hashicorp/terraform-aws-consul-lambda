@@ -90,16 +90,11 @@ func TestUpsertAndDelete(t *testing.T) {
 }
 
 func assertConsulState(t *testing.T, consulClient *api.Client, env Environment, event UpsertEvent, count int) {
-	queryOptions := &api.QueryOptions{Datacenter: event.Datacenter}
-	if event.EnterpriseMeta != nil {
-		queryOptions.Partition = event.EnterpriseMeta.Partition
-		queryOptions.Namespace = event.EnterpriseMeta.Namespace
-	}
-	services, _, err := consulClient.Catalog().Service(event.Name, "", queryOptions)
+	services, _, err := consulClient.Catalog().Service(event.Name, "", QueryOptions(event.Service))
 	require.NoError(t, err)
 	require.Len(t, services, count)
 
-	entries, _, err := consulClient.ConfigEntries().List(api.ServiceDefaults, queryOptions)
+	entries, _, err := consulClient.ConfigEntries().List(api.ServiceDefaults, QueryOptions(event.Service))
 	require.NoError(t, err)
 	require.Len(t, entries, count)
 	if count == 1 {

@@ -30,7 +30,7 @@ func main() {
 		Level: hclog.LevelFromString(getEnvOrDefault("LOG_LEVEL", defaultLogLevel)),
 	})
 
-	trace.SetLogger(trace.HCLog{Logger: logger})
+	trace.SetLogger(trace.NewHCLog(logger, hclog.Info))
 	trace.Enabled(strings.ToLower(getEnvOrDefault("TRACE_ENABLED", "false")) == "true")
 
 	err := realMain(logger.Named(extensionName))
@@ -54,28 +54,28 @@ func realMain(logger hclog.Logger) error {
 
 	// Handle interrupts and shutdown notification
 	ctx, cancel := context.WithCancel(context.Background())
-	shutdownChannel := make(chan struct{})
 	go func() {
 		interruptChannel := make(chan os.Signal, 1)
 		signal.Notify(interruptChannel, syscall.SIGTERM, syscall.SIGINT)
+		defer signal.Stop(interruptChannel)
 
 		select {
 		case s := <-interruptChannel:
 			logger.Info("Received signal, exiting", "signal", s)
-		case <-shutdownChannel:
+		case <-ctx.Done():
 			logger.Info("Received shutdown event, exiting")
 		}
 		// Cancel our context so that all servers and go-routines exit gracefully.
 		cancel()
 	}()
 
-	err = ext.Serve(ctx)
+	err = ext.Start(ctx)
 	if err != nil {
 		logger.Error("processing failed with an error", "error", err)
 	}
 
 	// Signal that it's time to shutdown when the extension returns.
-	shutdownChannel <- struct{}{}
+	cancel()
 
 	return err
 }
@@ -86,15 +86,12 @@ func configure() (*extension.Config, error) {
 
 	// Load the configuration from the environment.
 	cfg := &extension.Config{}
-	err := envconfig.Process("consul", cfg)
+	err := envconfig.Process("", cfg)
 	if err != nil {
 		return cfg, fmt.Errorf("failed to load configuration from environment: %w", err)
 	}
 
-	if cfg.ServiceName == "" {
-		// If the service name wasn't explicitly configured then default to the Lambda function's name.
-		cfg.ServiceName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-	}
+	cfg.ServiceName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
 
 	sdkConfig, err := config.LoadDefaultConfig(context.Background(), config.WithRetryer(func() aws.Retryer {
 		// Adaptive mode should retry on hitting rate limits.

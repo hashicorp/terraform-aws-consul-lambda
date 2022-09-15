@@ -1,8 +1,8 @@
 package extension_test
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"sync"
@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ext "github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/extension"
+	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
 )
 
 func TestExtension(t *testing.T) {
@@ -48,7 +49,7 @@ func TestExtension(t *testing.T) {
 	e := ext.NewExtension(cfg)
 
 	go func() {
-		err := e.Serve(ctx)
+		err := e.Start(ctx)
 		if err != nil {
 			// If serve failed with an error, then we need to explicitly call wg.Done
 			// to end the test.
@@ -116,11 +117,14 @@ func generateExtensionData(t *testing.T, name, trustDomain string) string {
 	})
 	require.NoError(t, err)
 
-	caPEM := bytes.ReplaceAll([]byte(ca), []byte{10}, []byte("\\n"))
-	pkPEM := bytes.ReplaceAll([]byte(pk), []byte{10}, []byte("\\n"))
-	certPEM := bytes.ReplaceAll([]byte(cert), []byte{10}, []byte("\\n"))
+	ed := structs.ExtensionData{
+		PrivateKeyPEM: pk,
+		CertPEM:       cert,
+		RootCertPEM:   ca,
+		TrustDomain:   trustDomain,
+	}
 
-	edFmt := `{"privateKeyPEM":"%s","certPEM":"%s","rootCertPEM":"%s","trustDomain":"%s"}`
-
-	return fmt.Sprintf(edFmt, pkPEM, certPEM, caPEM, trustDomain)
+	edJSON, err := json.Marshal(ed)
+	require.NoError(t, err)
+	return string(edJSON)
 }

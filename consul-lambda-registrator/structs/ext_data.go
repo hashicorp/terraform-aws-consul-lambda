@@ -13,6 +13,7 @@ type ExtensionData struct {
 	// TrustDomain is the trusted domain that the service belongs to.
 	TrustDomain string `json:"trustDomain"`
 	// Peers is the list of peers.
+	// TODO: Add support for cluster peering.
 	Peers []Peer `json:"peers,omitempty"`
 }
 

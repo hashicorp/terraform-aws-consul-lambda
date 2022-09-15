@@ -55,7 +55,7 @@ func (env Environment) registerService(e UpsertEvent) error {
 		},
 	}
 
-	_, err := env.ConsulClient.Catalog().Register(registration, e.WriteOptions())
+	_, err := env.ConsulClient.Catalog().Register(registration, WriteOptions(e.Service))
 	return err
 }
 
@@ -74,7 +74,7 @@ func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 
 	// There is no need for CAS because we are completely regenerating the service
 	// defaults config entry.
-	_, _, err := env.ConsulClient.ConfigEntries().Set(serviceDefaults, e.WriteOptions())
+	_, _, err := env.ConsulClient.ConfigEntries().Set(serviceDefaults, WriteOptions(e.Service))
 
 	return err
 }
@@ -107,7 +107,7 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	}
 
 	// Retrieve the leaf for this service
-	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, e.QueryOptions())
+	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, QueryOptions(e.Service))
 	if err != nil {
 		return fmt.Errorf("failed to retrieve leaf cert for %s: %w", e.Name, err)
 	}
@@ -144,4 +144,22 @@ func (e UpsertEvent) AddAlias(alias string) UpsertEvent {
 	e.Name = fmt.Sprintf("%s-%s", e.Name, alias)
 	e.ARN = fmt.Sprintf("%s:%s", e.ARN, alias)
 	return e
+}
+
+func QueryOptions(s structs.Service) *api.QueryOptions {
+	opts := &api.QueryOptions{Datacenter: s.Datacenter}
+	if s.EnterpriseMeta != nil {
+		opts.Partition = s.EnterpriseMeta.Partition
+		opts.Namespace = s.EnterpriseMeta.Namespace
+	}
+	return opts
+}
+
+func WriteOptions(s structs.Service) *api.WriteOptions {
+	opts := &api.WriteOptions{Datacenter: s.Datacenter}
+	if s.EnterpriseMeta != nil {
+		opts.Partition = s.EnterpriseMeta.Partition
+		opts.Namespace = s.EnterpriseMeta.Namespace
+	}
+	return opts
 }

@@ -10,25 +10,12 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/trace"
 )
 
-func TestTraceStdLog(t *testing.T) {
-	trace.Enabled(false)
-	require.False(t, trace.IsEnabled())
-	trace.Enabled(true)
-	require.True(t, trace.IsEnabled())
-	trace.SetTag("trace")
-	Func1()
-	Func2()
-	Both()
-	trace.SetTag("")
-	Func1()
-}
-
 func TestTraceHCLog(t *testing.T) {
 	trace.Enabled(false)
 	require.False(t, trace.IsEnabled())
 	trace.Enabled(true)
 	require.True(t, trace.IsEnabled())
-	trace.SetLogger(trace.HCLog{Logger: hclog.Default()})
+	trace.SetLogger(trace.NewHCLog(hclog.Default(), hclog.Info))
 	trace.SetTag("trace")
 
 	Func1()
