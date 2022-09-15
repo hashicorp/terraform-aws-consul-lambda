@@ -29,6 +29,7 @@ func TestExtension(t *testing.T) {
 		Events:              MockEventProcessor{Wait: &wg},
 		Logger:              hclog.Default(),
 		RefreshFrequency:    10 * time.Millisecond,
+		ProxyTimeout:        time.Millisecond,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

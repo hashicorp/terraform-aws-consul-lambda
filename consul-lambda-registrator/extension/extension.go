@@ -26,6 +26,7 @@ type Config struct {
 	MeshGatewayURI      string        `envconfig:"CONSUL_MESH_GATEWAY_URI" required:"true"`
 	ExtensionDataPrefix string        `envconfig:"CONSUL_EXTENSION_DATA_PREFIX" required:"true"`
 	RefreshFrequency    time.Duration `envconfig:"CONSUL_REFRESH_FREQUENCY" default:"5m"`
+	ProxyTimeout        time.Duration `envconfig:"CONSUL_EXTENSION_PROXY_TIMEOUT" default:"3s"`
 
 	Store  ParamGetter
 	Events EventProcessor
@@ -83,26 +84,45 @@ func (ext *Extension) Start(ctx context.Context) error {
 	}()
 	defer cancel()
 
-	// Run until either the proxy returns or until the event processing loop returns.
 	errChan := make(chan error)
 
-	go ext.runProxy(ctx, errChan)
+	// The first time the proxy starts we need to wait for it to be completely
+	// initialized and ready to accept connections before we start event processing.
+	// Starting the event processing loop signals to the Lambda runtime that the extension
+	// has completed its initialization.
+	// The runProxy func will close the readyChan once the proxy is initialized and ready.
+	readyChan := make(chan struct{})
+	go ext.runProxy(ctx, readyChan, errChan)
+	<-readyChan
+
 	go ext.runEvents(ctx, errChan)
 
+	// Run until either the proxy returns or until the event processing loop returns.
 	return <-errChan
 }
 
-func (ext *Extension) runProxy(ctx context.Context, errChan chan error) {
+func (ext *Extension) runProxy(ctx context.Context, readyChan chan struct{}, errChan chan error) {
+	// Fire up the proxy for the first time.
+	pErrChan := make(chan error)
+	err := ext.startProxy(ctx, pErrChan)
+
+	// After startProxy returns, all listeners are initialized and the proxy is ready to accept connections.
+	close(readyChan)
+	if err != nil {
+		errChan <- fmt.Errorf("failed to start proxy: %w", err)
+		return
+	}
+
 	refresh := time.NewTicker(ext.RefreshFrequency)
 	defer refresh.Stop()
 
-	pErrChan := make(chan error)
 	for {
 		select {
 		case <-ctx.Done():
 			errChan <- nil
 			return
 		case <-refresh.C:
+			// The refresh interval has expired so reconfigure and restart the proxy if necessary.
 			err := ext.startProxy(ctx, pErrChan)
 			if err != nil {
 				errChan <- fmt.Errorf("failed to start proxy: %w", err)
@@ -162,9 +182,10 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	// Get the lambda extension configuration data for this service.
 	extData, err := ext.getExtensionData(ctx)
 	if err != nil {
-		// TODO: We need to handle the case where the data used to exist but it was deleted because
-		// this Lambda function was removed from the service mesh. In that case we should shut down
-		// the proxy server so the function can't make any more outgoing calls.
+		// TODO: Handle the distinction between transient errors from parameter store and the case where the
+		// the function's mTLS material has been deleted because the function was removed from the mesh.
+		// For transient errors we should just attempt to use the existing extension data and log any failures.
+		// For now we just err out to make sure that the function can't make any more outgoing calls.
 		return fmt.Errorf(errFmt, err)
 	}
 
@@ -172,6 +193,9 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	if extData.Equals(ext.data) {
 		return nil
 	}
+
+	// Update the extension data.
+	ext.data = extData
 
 	ext.Logger.Info("starting proxy server")
 
@@ -188,7 +212,8 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	proxyConfigs := make([]*proxy.Config, len(ext.upstreams))
 	for i, upstream := range ext.upstreams {
 		// Create the listener config.
-		cfg, err := ext.proxyConfig(upstream, extData)
+		ext.Logger.Debug("configuring upstream", "SNI", upstream.SNI(), "port", upstream.Port)
+		cfg, err := ext.proxyConfig(upstream)
 		if err != nil {
 			return fmt.Errorf(errFmt, err)
 		}
@@ -210,6 +235,16 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 		errChan <- ext.proxy.Serve()
 	}(errChan)
 
+	// Wait for the proxy to be ready to serve requests before returning
+	timeout := time.NewTicker(ext.ProxyTimeout)
+	defer timeout.Stop()
+	select {
+	case <-ext.proxy.Wait():
+		ext.Logger.Info("proxy server ready")
+	case <-timeout.C:
+		return fmt.Errorf("timeout waiting for proxy to start")
+	}
+
 	return nil
 }
 
@@ -222,16 +257,16 @@ func (ext *Extension) closeProxy() {
 	}
 }
 
-func (ext *Extension) proxyConfig(upstream structs.Service, extData structs.ExtensionData) (*proxy.Config, error) {
+func (ext *Extension) proxyConfig(upstream structs.Service) (*proxy.Config, error) {
 	trace.Enter()
 	defer trace.Exit()
 
 	cfg := &proxy.Config{}
 
 	roots := x509.NewCertPool()
-	roots.AppendCertsFromPEM([]byte(extData.RootCertPEM))
+	roots.AppendCertsFromPEM([]byte(ext.data.RootCertPEM))
 
-	cert, err := tls.X509KeyPair([]byte(extData.CertPEM), []byte(extData.PrivateKeyPEM))
+	cert, err := tls.X509KeyPair([]byte(ext.data.CertPEM), []byte(ext.data.PrivateKeyPEM))
 	if err != nil {
 		return cfg, err
 	}
