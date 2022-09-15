@@ -55,15 +55,13 @@ type Extension struct {
 
 // NewExtension returns an instance of the Extension from the given configuration.
 func NewExtension(cfg *Config) *Extension {
-	ext := &Extension{
+	return &Extension{
 		Config: cfg,
 		service: structs.Service{
-			Name:      cfg.ServiceName,
-			Namespace: cfg.ServiceNamespace,
-			Partition: cfg.ServicePartition,
+			Name:           cfg.ServiceName,
+			EnterpriseMeta: structs.NewEnterpriseMeta(cfg.ServicePartition, cfg.ServiceNamespace),
 		},
 	}
-	return ext
 }
 
 // Start executes the main processing loop for the extension.

@@ -13,11 +13,28 @@ const (
 	internalVersion = internal + "-" + version
 )
 
+type EnterpriseMeta struct {
+	Namespace string
+	Partition string
+}
+
+func NewEnterpriseMeta(ap, ns string) *EnterpriseMeta {
+	if ap == "" && ns == "" {
+		return nil
+	}
+	if ap == "" {
+		ap = "default"
+	}
+	if ns == "" {
+		ns = "default"
+	}
+	return &EnterpriseMeta{Namespace: ns, Partition: ap}
+}
+
 type Service struct {
+	*EnterpriseMeta
 	Name        string
 	Port        int
-	Namespace   string
-	Partition   string
 	Datacenter  string
 	TrustDomain string
 	Subset      string
@@ -43,7 +60,10 @@ func ParseUpstream(s string) (Service, error) {
 	qname := strings.Split(parts[0], ".")
 	upstream.Name = qname[0]
 	if len(qname) > 1 {
-		upstream.Namespace = qname[1]
+		upstream.EnterpriseMeta = &EnterpriseMeta{
+			Namespace: qname[1],
+			Partition: "default",
+		}
 	}
 	if len(qname) > 2 {
 		upstream.Partition = qname[2]
@@ -57,73 +77,73 @@ func ParseUpstream(s string) (Service, error) {
 	return upstream, nil
 }
 
-func (u Service) SNI() string {
-	ns := u.NamespaceOrDefault()
-	ap := u.PartitionOrDefault()
-	dc := u.DatacenterOrDefault()
+func (s Service) SNI() string {
+	ns := s.NamespaceOrDefault()
+	ap := s.PartitionOrDefault()
+	dc := s.DatacenterOrDefault()
 
 	switch ap {
 	case "default":
-		if u.Subset == "" {
-			return dotJoin(u.Name, ns, dc, internal, u.TrustDomain)
+		if s.Subset == "" {
+			return dotJoin(s.Name, ns, dc, internal, s.TrustDomain)
 		} else {
-			return dotJoin(u.Subset, u.Name, ns, dc, internal, u.TrustDomain)
+			return dotJoin(s.Subset, s.Name, ns, dc, internal, s.TrustDomain)
 		}
 	default:
-		if u.Subset == "" {
-			return dotJoin(u.Name, ns, ap, dc, internalVersion, u.TrustDomain)
+		if s.Subset == "" {
+			return dotJoin(s.Name, ns, ap, dc, internalVersion, s.TrustDomain)
 		} else {
-			return dotJoin(u.Subset, u.Name, ns, ap, dc, internalVersion, u.TrustDomain)
+			return dotJoin(s.Subset, s.Name, ns, ap, dc, internalVersion, s.TrustDomain)
 		}
 	}
 }
 
-func (u Service) DatacenterOrDefault() string {
-	if u.Datacenter == "" {
+func (s Service) DatacenterOrDefault() string {
+	if s.Datacenter == "" {
 		return "dc1"
 	}
-	return u.Datacenter
+	return s.Datacenter
 }
 
-func (u Service) NamespaceOrDefault() string {
-	if u.Namespace == "" {
-		return "default"
+func (s Service) NamespaceOrDefault() string {
+	if s.EnterpriseMeta != nil && s.Namespace != "" {
+		return s.Namespace
 	}
-	return u.Namespace
+	return "default"
 }
 
-func (u Service) PartitionOrDefault() string {
-	if u.Partition == "" {
-		return "default"
+func (s Service) PartitionOrDefault() string {
+	if s.EnterpriseMeta != nil && s.Partition != "" {
+		return s.Partition
 	}
-	return u.Partition
+	return "default"
 }
 
-func (u Service) SpiffeID() string {
+func (s Service) SpiffeID() string {
 	path := fmt.Sprintf("/ns/%s/dc/%s/svc/%s",
-		u.NamespaceOrDefault(),
-		u.DatacenterOrDefault(),
-		u.Name,
+		s.NamespaceOrDefault(),
+		s.DatacenterOrDefault(),
+		s.Name,
 	)
 
 	// Although OSS has no support for partitions, it still needs to be able to
 	// handle exportedPartition from peered Consul Enterprise clusters in order
 	// to generate the correct SpiffeID.
 	// We intentionally avoid using pbpartition.DefaultName here to be OSS friendly.
-	if ap := u.PartitionOrDefault(); ap != "" && ap != "default" {
+	if ap := s.PartitionOrDefault(); ap != "default" {
 		path = "/ap/" + ap + path
 	}
 
 	id := &url.URL{
 		Scheme: "spiffe",
-		Host:   u.TrustDomain,
+		Host:   s.TrustDomain,
 		Path:   path,
 	}
 	return id.String()
 }
 
-func (u Service) ExtensionPath() string {
-	return fmt.Sprintf("/%s/%s/%s", u.PartitionOrDefault(), u.NamespaceOrDefault(), u.Name)
+func (s Service) ExtensionPath() string {
+	return fmt.Sprintf("/%s/%s/%s", s.PartitionOrDefault(), s.NamespaceOrDefault(), s.Name)
 }
 
 func dotJoin(parts ...string) string {
