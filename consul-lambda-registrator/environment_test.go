@@ -25,7 +25,7 @@ const (
 	logLevelEnvironment      string = "LOG_LEVEL"
 	consulCAPathEnvironment  string = "CONSUL_CACERT_PATH"
 	consulHTTPTokenPath      string = "CONSUL_HTTP_TOKEN_PATH"
-	extensionPathEnvironment string = "EXTENSION_DATA_PATH"
+	extensionPathEnvironment string = "CONSUL_EXTENSION_DATA_PREFIX"
 )
 
 func TestSetupEnvironment(t *testing.T) {
