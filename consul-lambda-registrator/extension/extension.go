@@ -108,6 +108,13 @@ func (ext *Extension) refreshExtensionData(ctx context.Context, errChan chan err
 	trace.Enter()
 	defer trace.Exit()
 
+	// Fetch the initial extension data.
+	err := ext.getExtensionData(ctx)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
 	refresh := time.NewTicker(ext.RefreshFrequency)
 	defer refresh.Stop()
 
