@@ -49,9 +49,10 @@ type Extension struct {
 	*Config
 	service   structs.Service
 	proxy     *proxy.Server
-	dataMutex sync.Mutex
+	dataMutex sync.RWMutex
 	data      structs.ExtensionData
-	upstreams []structs.Service
+	dataInit  bool
+	upstreams []*structs.Service
 }
 
 // NewExtension returns an instance of the Extension from the given configuration.
@@ -153,10 +154,19 @@ func (ext *Extension) getExtensionData(ctx context.Context) error {
 	trace.Enter()
 	defer trace.Exit()
 
-	// Lock the extension data mutex so that the proxy's dial func will wait for this
-	// update to complete before attempting to dial out.
-	ext.dataMutex.Lock()
-	defer ext.dataMutex.Unlock()
+	// If the extension data has not yet been initialized then we need to lock the
+	// extension data mutex so that the proxy's dial func will wait for the initial
+	// fetch to complete before attempting to dial out.
+	if !ext.dataInit {
+		ext.dataMutex.Lock()
+		defer ext.dataMutex.Unlock()
+
+		// Defer setting ext.dataInit to true until after the func exits so we don't
+		// deadlock when updating the extension data below.
+		defer func() {
+			ext.dataInit = true
+		}()
+	}
 
 	ext.Logger.Info("retrieving extension data")
 
@@ -179,6 +189,10 @@ func (ext *Extension) getExtensionData(ctx context.Context) error {
 
 	// If the extension data has changed then update the cached copy.
 	if !extData.Equals(ext.data) {
+		if ext.dataInit {
+			ext.dataMutex.Lock()
+			defer ext.dataMutex.Unlock()
+		}
 		ext.data = extData
 
 		// We get the trust domain from the extension data so update the trust domain for each upstream.
@@ -231,7 +245,7 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	return nil
 }
 
-func (ext *Extension) proxyConfig(upstream structs.Service) *proxy.Config {
+func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 	trace.Enter()
 	defer trace.Exit()
 
@@ -247,8 +261,8 @@ func (ext *Extension) proxyConfig(upstream structs.Service) *proxy.Config {
 		// Get the lock for the extension data to ensure that this func picks up the
 		// latest config. This also ensures that the extension data doesn't get updated
 		// while we are dialing out.
-		ext.dataMutex.Lock()
-		defer ext.dataMutex.Unlock()
+		ext.dataMutex.RLock()
+		defer ext.dataMutex.RUnlock()
 
 		roots := x509.NewCertPool()
 		roots.AppendCertsFromPEM([]byte(ext.data.RootCertPEM))
@@ -306,13 +320,13 @@ func (ext *Extension) parseUpstreams() error {
 	trace.Enter()
 	defer trace.Exit()
 
-	ext.upstreams = make([]structs.Service, 0, len(ext.ServiceUpstreams))
+	ext.upstreams = make([]*structs.Service, 0, len(ext.ServiceUpstreams))
 	for _, s := range ext.ServiceUpstreams {
 		up, err := structs.ParseUpstream(s)
 		if err != nil {
 			return fmt.Errorf("failed to parse upstream: %w", err)
 		}
-		ext.upstreams = append(ext.upstreams, up)
+		ext.upstreams = append(ext.upstreams, &up)
 	}
 	return nil
 }
