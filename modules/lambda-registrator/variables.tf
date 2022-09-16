@@ -8,6 +8,12 @@ variable "consul_http_addr" {
   type        = string
 }
 
+variable "consul_datacenter" {
+  description = "The Consul datacenter that the Lambda registrator is part of."
+  type        = string
+  default     = ""
+}
+
 variable "consul_ca_cert_path" {
   description = "The Parameter Store path containing the Consul server CA certificate."
   type        = string
@@ -16,6 +22,12 @@ variable "consul_ca_cert_path" {
 
 variable "consul_http_token_path" {
   description = "The Parameter Store path containing the Consul ACL token."
+  type        = string
+  default     = ""
+}
+
+variable "consul_extension_data_prefix" {
+  description = "The path within Parameter Store where Lambda registrator will write the Consul Lambda extension data. If this is unset, Lambda registrator will not write Consul data to Parameter Store."
   type        = string
   default     = ""
 }
@@ -77,4 +89,10 @@ variable "security_group_ids" {
   description = "List of security group IDs associated with Lambda registrator"
   type        = list(string)
   default     = []
+}
+
+variable "tags" {
+  description = "Additional tags to set on the Lambda registrator."
+  type        = map(string)
+  default     = {}
 }
