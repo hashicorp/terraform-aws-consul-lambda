@@ -47,11 +47,11 @@ type EventProcessor interface {
 
 type Extension struct {
 	*Config
-	service    structs.Service
-	proxy      *proxy.Server
-	proxyMutex sync.Mutex
-	data       structs.ExtensionData
-	upstreams  []structs.Service
+	service   structs.Service
+	proxy     *proxy.Server
+	dataMutex sync.Mutex
+	data      structs.ExtensionData
+	upstreams []structs.Service
 }
 
 // NewExtension returns an instance of the Extension from the given configuration.
@@ -76,42 +76,37 @@ func (ext *Extension) Start(ctx context.Context) error {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	// Cleanup on return. Cancel the context and close the proxy.
-	defer func() {
-		ext.proxyMutex.Lock()
-		defer ext.proxyMutex.Unlock()
-		ext.closeProxy()
-	}()
+	// Cancel the context when this func returns to trigger resource cleanup.
 	defer cancel()
+
+	// Parse the upstreams configuration.
+	err := ext.parseUpstreams()
+	if err != nil {
+		return err
+	}
 
 	errChan := make(chan error)
 
-	// The first time the proxy starts we need to wait for it to be completely
-	// initialized and ready to accept connections before we start event processing.
-	// Starting the event processing loop signals to the Lambda runtime that the extension
-	// has completed its initialization.
-	// The runProxy func will close the readyChan once the proxy is initialized and ready.
-	readyChan := make(chan struct{})
-	go ext.runProxy(ctx, readyChan, errChan)
-	<-readyChan
+	// Start the proxy server and initialize all the upstream listeners so that the extension
+	// is ready to accept connections from the Lambda function as soon as it starts.
+	// The proxy server runs in a go-routine and reports any asynchronous errors via the
+	// errChan.
+	err = ext.startProxy(ctx, errChan)
+	if err != nil {
+		return err
+	}
 
+	go ext.refreshExtensionData(ctx, errChan)
 	go ext.runEvents(ctx, errChan)
 
-	// Run until either the proxy returns or until the event processing loop returns.
+	// Run until either the proxy returns, the event processing loop returns, or
+	// the extension data refresh loop returns.
 	return <-errChan
 }
 
-func (ext *Extension) runProxy(ctx context.Context, readyChan chan struct{}, errChan chan error) {
-	// Fire up the proxy for the first time.
-	pErrChan := make(chan error)
-	err := ext.startProxy(ctx, pErrChan)
-
-	// After startProxy returns, all listeners are initialized and the proxy is ready to accept connections.
-	close(readyChan)
-	if err != nil {
-		errChan <- fmt.Errorf("failed to start proxy: %w", err)
-		return
-	}
+func (ext *Extension) refreshExtensionData(ctx context.Context, errChan chan error) {
+	trace.Enter()
+	defer trace.Exit()
 
 	refresh := time.NewTicker(ext.RefreshFrequency)
 	defer refresh.Stop()
@@ -122,15 +117,10 @@ func (ext *Extension) runProxy(ctx context.Context, readyChan chan struct{}, err
 			errChan <- nil
 			return
 		case <-refresh.C:
-			// The refresh interval has expired so reconfigure and restart the proxy if necessary.
-			err := ext.startProxy(ctx, pErrChan)
+			// The refresh interval has expired so update the extension data.
+			err := ext.getExtensionData(ctx)
 			if err != nil {
-				errChan <- fmt.Errorf("failed to start proxy: %w", err)
-				return
-			}
-		case err := <-pErrChan:
-			if err != nil {
-				errChan <- fmt.Errorf("proxy failed with an error: %w", err)
+				errChan <- err
 				return
 			}
 		}
@@ -138,6 +128,9 @@ func (ext *Extension) runProxy(ctx context.Context, readyChan chan struct{}, err
 }
 
 func (ext *Extension) runEvents(ctx context.Context, errChan chan error) {
+	trace.Enter()
+	defer trace.Exit()
+
 	ext.Logger.Info("processing events")
 	err := ext.Events.ProcessEvents(ctx)
 	if err != nil {
@@ -148,24 +141,46 @@ func (ext *Extension) runEvents(ctx context.Context, errChan chan error) {
 	errChan <- nil
 }
 
-func (ext *Extension) getExtensionData(ctx context.Context) (structs.ExtensionData, error) {
+// getExtensionData asynchronously retrieves the extension data and updates the local cache.
+func (ext *Extension) getExtensionData(ctx context.Context) error {
 	trace.Enter()
 	defer trace.Exit()
 
-	var extData structs.ExtensionData
+	// Lock the extension data mutex so that the proxy's dial func will wait for this
+	// update to complete before attempting to dial out.
+	ext.dataMutex.Lock()
+	defer ext.dataMutex.Unlock()
+
+	ext.Logger.Info("retrieving extension data")
 
 	// Retrieve the data.
 	key := fmt.Sprintf("%s%s", ext.ExtensionDataPrefix, ext.service.ExtensionPath())
 	d, err := ext.Store.Get(ctx, key)
 	if err != nil {
-		return extData, fmt.Errorf("failed to get extension data for %s: %w", key, err)
+		// TODO: Handle the distinction between transient errors from parameter store and the case where the
+		// the function's mTLS material has been deleted because the function was removed from the mesh.
+		// For transient errors we should just attempt to use the existing extension data and log any failures.
+		// For now we just err out to make sure that the function can't make any more outgoing calls.
+		return fmt.Errorf("failed to get extension data for %s: %w", key, err)
 	}
 
 	// Unmarshal.
+	var extData structs.ExtensionData
 	if err := json.Unmarshal([]byte(d), &extData); err != nil {
-		return extData, fmt.Errorf("failed to unmarshal extension data for %s: %w", key, err)
+		return fmt.Errorf("failed to unmarshal extension data for %s: %w", key, err)
 	}
-	return extData, nil
+
+	// If the extension data has changed then update the cached copy.
+	if !extData.Equals(ext.data) {
+		ext.data = extData
+
+		// We get the trust domain from the extension data so update the trust domain for each upstream.
+		for idx := range ext.upstreams {
+			ext.upstreams[idx].TrustDomain = ext.data.TrustDomain
+		}
+	}
+
+	return nil
 }
 
 // startProxy starts, or restarts, the extension's proxy server.
@@ -177,68 +192,29 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	trace.Enter()
 	defer trace.Exit()
 
-	const errFmt = "failed to init proxy: %w"
-
-	// Get the lambda extension configuration data for this service.
-	extData, err := ext.getExtensionData(ctx)
-	if err != nil {
-		// TODO: Handle the distinction between transient errors from parameter store and the case where the
-		// the function's mTLS material has been deleted because the function was removed from the mesh.
-		// For transient errors we should just attempt to use the existing extension data and log any failures.
-		// For now we just err out to make sure that the function can't make any more outgoing calls.
-		return fmt.Errorf(errFmt, err)
-	}
-
-	// If the extension data has not changed then the proxy is already configured.
-	if extData.Equals(ext.data) {
-		return nil
-	}
-
-	// Update the extension data.
-	ext.data = extData
-
 	ext.Logger.Info("starting proxy server")
-
-	// Parse the configured list of upstreams. The upstreams are configured as part of the environment
-	// so we only do this on the first time through.
-	if len(ext.upstreams) == 0 {
-		ext.upstreams, err = ext.parseUpstreams()
-		if err != nil {
-			return fmt.Errorf(errFmt, err)
-		}
-	}
 
 	// Create a proxy listener configuration for each upstream.
 	proxyConfigs := make([]*proxy.Config, len(ext.upstreams))
 	for i, upstream := range ext.upstreams {
 		// Create the listener config.
-		ext.Logger.Debug("configuring upstream", "SNI", upstream.SNI(), "port", upstream.Port)
-		cfg, err := ext.proxyConfig(upstream)
-		if err != nil {
-			return fmt.Errorf(errFmt, err)
-		}
-		proxyConfigs[i] = cfg
+		ext.Logger.Debug("configuring upstream", "name", upstream.Name, "port", upstream.Port)
+		proxyConfigs[i] = ext.proxyConfig(upstream)
 	}
 
-	// Drain and close the existing proxy.
-	ext.closeProxy()
-
-	// Create the proxy server.
+	// Create and start the proxy server.
 	ext.proxy = proxy.New(ext.Logger, proxyConfigs...)
-
 	go func(errChan chan error) {
-		// Get the lock for the proxy mutex. This go routine will exit and release
-		// the lock when the proxy's Close method is called. The lock ensures that
-		// we never attempt to start a new proxy server until the old one has exited.
-		ext.proxyMutex.Lock()
-		defer ext.proxyMutex.Unlock()
+		defer ext.proxy.Close()
 		errChan <- ext.proxy.Serve()
 	}(errChan)
 
-	// Wait for the proxy to be ready to serve requests before returning
+	// Wait for the proxy to be ready to serve requests before returning.
 	timeout := time.NewTicker(ext.ProxyTimeout)
 	defer timeout.Stop()
 	select {
+	case <-ctx.Done():
+		ext.Logger.Info("context closed while waiting for proxy to start.")
 	case <-ext.proxy.Wait():
 		ext.Logger.Info("proxy server ready")
 	case <-timeout.C:
@@ -248,28 +224,11 @@ func (ext *Extension) startProxy(ctx context.Context, errChan chan error) error 
 	return nil
 }
 
-func (ext *Extension) closeProxy() {
-	trace.Enter()
-	defer trace.Exit()
-
-	if ext.proxy != nil {
-		ext.proxy.Close()
-	}
-}
-
-func (ext *Extension) proxyConfig(upstream structs.Service) (*proxy.Config, error) {
+func (ext *Extension) proxyConfig(upstream structs.Service) *proxy.Config {
 	trace.Enter()
 	defer trace.Exit()
 
 	cfg := &proxy.Config{}
-
-	roots := x509.NewCertPool()
-	roots.AppendCertsFromPEM([]byte(ext.data.RootCertPEM))
-
-	cert, err := tls.X509KeyPair([]byte(ext.data.CertPEM), []byte(ext.data.PrivateKeyPEM))
-	if err != nil {
-		return cfg, err
-	}
 
 	// Listen on the upstream's port on all interfaces.
 	cfg.ListenFunc = func() (net.Listener, error) {
@@ -278,6 +237,22 @@ func (ext *Extension) proxyConfig(upstream structs.Service) (*proxy.Config, erro
 
 	// Wrap the outgoing request in an mTLS session and dial the mesh gateway.
 	cfg.DialFunc = func() (net.Conn, error) {
+		// Get the lock for the extension data to ensure that this func picks up the
+		// latest config. This also ensures that the extension data doesn't get updated
+		// while we are dialing out.
+		ext.dataMutex.Lock()
+		defer ext.dataMutex.Unlock()
+
+		roots := x509.NewCertPool()
+		roots.AppendCertsFromPEM([]byte(ext.data.RootCertPEM))
+
+		cert, err := tls.X509KeyPair([]byte(ext.data.CertPEM), []byte(ext.data.PrivateKeyPEM))
+		if err != nil {
+			return nil, err
+		}
+
+		ext.Logger.Debug("dialing upstream", "sni", upstream.SNI(), "port", upstream.Port)
+
 		return tls.Dial("tcp", ext.MeshGatewayURI, &tls.Config{
 			RootCAs:            roots,
 			Certificates:       []tls.Certificate{cert},
@@ -317,21 +292,20 @@ func (ext *Extension) proxyConfig(upstream structs.Service) (*proxy.Config, erro
 		})
 	}
 
-	return cfg, nil
+	return cfg
 }
 
-func (ext *Extension) parseUpstreams() ([]structs.Service, error) {
+func (ext *Extension) parseUpstreams() error {
 	trace.Enter()
 	defer trace.Exit()
 
-	u := make([]structs.Service, 0, len(ext.ServiceUpstreams))
+	ext.upstreams = make([]structs.Service, 0, len(ext.ServiceUpstreams))
 	for _, s := range ext.ServiceUpstreams {
 		up, err := structs.ParseUpstream(s)
 		if err != nil {
-			return u, fmt.Errorf("failed to parse upstream: %w", err)
+			return fmt.Errorf("failed to parse upstream: %w", err)
 		}
-		up.TrustDomain = ext.data.TrustDomain
-		u = append(u, up)
+		ext.upstreams = append(ext.upstreams, up)
 	}
-	return u, nil
+	return nil
 }
