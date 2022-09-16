@@ -57,7 +57,7 @@ func (env Environment) deleteTLSData(e DeleteEvent) error {
 
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
-	return env.Store.Delete(context.Background(), fmt.Sprintf("%s%s", env.ExtensionDataPath, e.ExtensionPath()))
+	return env.Store.Delete(context.Background(), fmt.Sprintf("%s%s", env.ExtensionDataPrefix, e.ExtensionPath()))
 }
 
 func (e DeleteEvent) writeOptions() *api.WriteOptions {
