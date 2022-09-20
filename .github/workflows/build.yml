@@ -1,6 +1,7 @@
 name: build
 on: [workflow_dispatch, push]
 env:
+  PRD_NAME: "consul-lambda"
   PKG_NAME: "consul-lambda-registrator"
   EXT_NAME: "consul-lambda-extension"
 
@@ -55,7 +56,7 @@ jobs:
         uses: hashicorp/actions-generate-metadata@v1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
-          product: "consul-lambda"
+          product: ${{ env.PRD_NAME }}
           repositoryOwner: "hashicorp"
       - uses: actions/upload-artifact@v2
         with:
