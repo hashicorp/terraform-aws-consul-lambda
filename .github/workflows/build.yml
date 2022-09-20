@@ -2,13 +2,14 @@ name: build
 on: [workflow_dispatch, push]
 env:
   PKG_NAME: "consul-lambda-registrator"
+  EXT_NAME: "consul-lambda-extension"
 
 jobs:
   get-go-version:
     name: "Determine Go toolchain version"
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        working-directory: ./consul-lambda
     runs-on: ubuntu-latest
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
@@ -17,13 +18,13 @@ jobs:
       - name: Determine Go version
         id: get-go-version
         run: |
-          echo "Building with Go $(cat ../.go-version)"
-          echo "::set-output name=go-version::$(cat ./../.go-version)"
+          echo "Building with Go $(cat ./go-version)"
+          echo "::set-output name=go-version::$(cat ./.go-version)"
 
   get-product-version:
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        working-directory: ./consul-lambda
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
@@ -35,7 +36,7 @@ jobs:
         id: get-product-version
         run: |
           echo "::set-output name=product-version::$(make version)"
-          echo "::set-output name=ldflags::-s -w -X github.com/hashicorp/terraform-aws-consul-lambda/version.GitCommit=$(git rev-parse --short HEAD)"
+          echo "::set-output name=ldflags::-s -w"
           echo "::set-output name=git-short-sha::$(git rev-parse --short HEAD)"
 
   generate-metadata-file:
@@ -54,7 +55,7 @@ jobs:
         uses: hashicorp/actions-generate-metadata@v1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
-          product: ${{ env.PKG_NAME }}
+          product: "consul-lambda"
           repositoryOwner: "hashicorp"
       - uses: actions/upload-artifact@v2
         with:
@@ -64,7 +65,7 @@ jobs:
   build-linux:
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        working-directory: ./consul-lambda
     env:
       GOOS: linux
       GOARCH: amd64
@@ -85,20 +86,33 @@ jobs:
 
       - name: Build
         run: |
-          mkdir dist out
-          go build -ldflags="$LDFLAGS" -o dist/ .
+          mkdir dist out extensions
+          cd consul-lambda-registrator
+          go build -ldflags="$LDFLAGS" -o ../dist/ .
+          cd ..
+          cd consul-lambda-extension
+          go build -ldflags="$LDFLAGS" -o ../extensions/ .
+          cd ..
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip dist/
+          zip -r out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip extensions/
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload consul-lambda-registrator
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
-          path: ./consul-lambda/consul-lambda-registrator/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: ./consul-lambda/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+
+      - name: Upload consul-lambda-extension
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: ./consul-lambda/out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
   build-docker-default:
     defaults:
       run:
         working-directory: ./consul-lambda/consul-lambda-registrator
-    name: Docker default release build
+    name: Docker consul-lambda-registrator build
     needs:
       - get-product-version
       - build-linux
