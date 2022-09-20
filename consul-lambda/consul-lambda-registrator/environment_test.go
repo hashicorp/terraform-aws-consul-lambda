@@ -25,7 +25,7 @@ const (
 	logLevelEnvironment      string = "LOG_LEVEL"
 	consulCAPathEnvironment  string = "CONSUL_CACERT_PATH"
 	consulHTTPTokenPath      string = "CONSUL_HTTP_TOKEN_PATH"
-	extensionPathEnvironment string = "EXTENSION_DATA_PATH"
+	extensionPathEnvironment string = "CONSUL_EXTENSION_DATA_PREFIX"
 )
 
 func TestSetupEnvironment(t *testing.T) {
@@ -57,7 +57,7 @@ func TestSetupEnvironment(t *testing.T) {
 	require.Equal(t, envVars[awsRegionEnvironment], env.Region)
 	require.Equal(t, envVars[datacenterEnvironment], env.Datacenter)
 	require.Equal(t, envVars[logLevelEnvironment], env.LogLevel)
-	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPath)
+	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPrefix)
 	require.NotNil(t, env.Lambda)
 	require.NotNil(t, env.ConsulClient)
 	require.NotNil(t, env.Logger)

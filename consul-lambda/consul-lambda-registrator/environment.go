@@ -45,8 +45,8 @@ type Config struct {
 	// ConsulHTTPToken is the path to the Consul HTTP token in Parameter Store.
 	ConsulHTTPTokenPath string `envconfig:"CONSUL_HTTP_TOKEN_PATH"`
 
-	// ExtensionDataPath is the path in Parameter Store where extension data will be written.
-	ExtensionDataPath string `envconfig:"EXTENSION_DATA_PATH"`
+	// ExtensionDataPrefix is the path in Parameter Store where extension data will be written.
+	ExtensionDataPrefix string `envconfig:"CONSUL_EXTENSION_DATA_PREFIX"`
 
 	// PageSize is the maximum number of Lambda functions per page when querying the Lambda API.
 	PageSize int `envconfig:"PAGE_SIZE" default:"50"`
@@ -143,7 +143,7 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 // IsManagingTLS indicates whether the Environment is configured to retrieve mTLS data from Consul and
 // write it to the parameter store.
 func (e Environment) IsManagingTLS() bool {
-	return len(e.ExtensionDataPath) > 0
+	return len(e.ExtensionDataPrefix) > 0
 }
 
 func setConsulCACert(ctx context.Context, store ParamStore, key string) error {

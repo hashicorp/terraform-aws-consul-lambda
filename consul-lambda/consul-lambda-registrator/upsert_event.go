@@ -133,7 +133,7 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 		service.Namespace = e.EnterpriseMeta.Namespace
 		service.Partition = e.EnterpriseMeta.Partition
 	}
-	path := fmt.Sprintf("%s%s", env.ExtensionDataPath, service.ExtensionPath())
+	path := fmt.Sprintf("%s%s", env.ExtensionDataPrefix, service.ExtensionPath())
 
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
