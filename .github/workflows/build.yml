@@ -92,7 +92,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
-          path: consul-lambda-registrator/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
   build-docker-default:
     defaults:
