@@ -27,8 +27,9 @@ func TestExtension(t *testing.T) {
 		ServiceName:         "lambda-function",
 		ServiceUpstreams:    []string{"upstream-1:1234", "upstream-2:1235"},
 		Events:              MockEventProcessor{Wait: &wg},
-		Logger:              hclog.Default(),
+		Logger:              hclog.NewNullLogger(),
 		RefreshFrequency:    10 * time.Millisecond,
+		ProxyTimeout:        time.Millisecond,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
