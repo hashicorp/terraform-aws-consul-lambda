@@ -23,7 +23,7 @@ jobs:
   get-product-version:
     defaults:
       run:
-        working-directory: ./consul-lambda-registrator
+        working-directory: ./consul-lambda/consul-lambda-registrator
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
