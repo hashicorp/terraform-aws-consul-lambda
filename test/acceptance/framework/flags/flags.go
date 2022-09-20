@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/config"
+	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/config"
 )
 
 const (

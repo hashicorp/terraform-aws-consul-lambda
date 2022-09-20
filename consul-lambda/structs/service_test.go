@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
 const (

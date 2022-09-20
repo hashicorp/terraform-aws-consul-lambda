@@ -1,6 +1,6 @@
 schema = "1"
 
-project "terraform-aws-consul-lambda-registrator" {
+project "terraform-aws-consul-lambda" {
   // the team key is not used by CRT currently
   team = "consul-ecs"
   slack {
@@ -8,7 +8,7 @@ project "terraform-aws-consul-lambda-registrator" {
   }
   github {
     organization = "hashicorp"
-    repository = "terraform-aws-consul-lambda-registrator"
+    repository = "terraform-aws-consul-lambda"
     release_branches = [
       "main",
       "release/0.1.x",
@@ -25,7 +25,7 @@ event "build" {
   depends = ["merge"]
   action "build" {
     organization = "hashicorp"
-    repository = "terraform-aws-consul-lambda-registrator"
+    repository = "terraform-aws-consul-lambda"
     workflow = "build"
   }
 }

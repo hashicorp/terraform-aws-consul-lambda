@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/structs"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
 func TestAWSEventToEvents(t *testing.T) {
