@@ -1,4 +1,5 @@
-consul-lambda-registrator/consul-lambda-registrator
+consul-lambda/consul-lambda-extension/consul-lambda-extension
+consul-lambda/consul-lambda-registrator/consul-lambda-registrator
 test.tfvars
 .terraform
 terraform.tfstate

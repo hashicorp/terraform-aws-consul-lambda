@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	testsuite "github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/suite"
+	testsuite "github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/suite"
 )
 
 var suite testsuite.Suite

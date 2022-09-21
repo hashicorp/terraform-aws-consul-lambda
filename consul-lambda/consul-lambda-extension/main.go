@@ -15,9 +15,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/extension"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/trace"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/client"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/trace"
 )
 
 const (
@@ -50,7 +49,7 @@ func realMain(logger hclog.Logger) error {
 	}
 
 	cfg.Logger = logger
-	ext := extension.NewExtension(cfg)
+	ext := NewExtension(cfg)
 
 	// Handle interrupts and shutdown notification
 	ctx, cancel := context.WithCancel(context.Background())
@@ -80,12 +79,12 @@ func realMain(logger hclog.Logger) error {
 	return err
 }
 
-func configure() (*extension.Config, error) {
+func configure() (*Config, error) {
 	trace.Enter()
 	defer trace.Exit()
 
 	// Load the configuration from the environment.
-	cfg := &extension.Config{}
+	cfg := &Config{}
 	err := envconfig.Process("", cfg)
 	if err != nil {
 		return cfg, fmt.Errorf("failed to load configuration from environment: %w", err)
@@ -103,7 +102,7 @@ func configure() (*extension.Config, error) {
 
 	ssmClient := client.NewSSM(&sdkConfig)
 
-	lambdaClient := extension.NewLambda()
+	lambdaClient := NewLambda()
 	err = lambdaClient.Register(context.Background(), extensionName)
 	if err != nil {
 		return cfg, fmt.Errorf("failed to register Lambda extension: %w", err)

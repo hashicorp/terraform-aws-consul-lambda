@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/client"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/client"
 )
 
 // Config holds the configuration from the environment.

@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/trace"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/trace"
 )
 
 func TestTraceHCLog(t *testing.T) {

@@ -14,8 +14,8 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/config"
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/test/acceptance/framework/logger"
+	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/config"
+	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
 

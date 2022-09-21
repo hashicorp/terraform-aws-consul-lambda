@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/terraform-aws-consul-lambda-registrator/consul-lambda-registrator/proxy"
+	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/proxy"
 )
 
 func TestCloseErrors(t *testing.T) {
