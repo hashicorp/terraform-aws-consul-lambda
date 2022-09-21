@@ -2,7 +2,7 @@ name: build
 on: [workflow_dispatch, push]
 env:
   PRD_NAME: "consul-lambda"
-  PKG_NAME: "consul-lambda-registrator"
+  REG_NAME: "consul-lambda-registrator"
   EXT_NAME: "consul-lambda-extension"
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
     needs: get-product-version
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        working-directory: ./consul-lambda
     runs-on: ubuntu-latest
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -94,14 +94,14 @@ jobs:
           cd consul-lambda-extension
           go build -ldflags="$LDFLAGS" -o ../extensions/ .
           cd ..
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip dist/
+          zip -r -j out/${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip dist/
           zip -r out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip extensions/
 
       - name: Upload consul-lambda-registrator
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
-          path: ./consul-lambda/out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          name: ${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
+          path: ./consul-lambda/out/${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
       - name: Upload consul-lambda-extension
         uses: actions/upload-artifact@v2
@@ -129,15 +129,15 @@ jobs:
       - name: Docker Build
         uses: hashicorp/actions-docker-build@v1
         with:
-          pkg_name: ${{ env.PKG_NAME }}_${{ env.version }}
-          bin_name: ${{ env.PKG_NAME }}
+          pkg_name: ${{ env.REG_NAME }}_${{ env.version }}
+          bin_name: ${{ env.REG_NAME }}
           version: ${{ env.version }}
           target: release-default
           workdir: ./consul-lambda/consul-lambda-registrator
           arch: ${{ env.arch }}
           tags: |
-            docker.io/hashicorp/${{ env.PKG_NAME }}:${{ env.version }}
-            public.ecr.aws/hashicorp/${{ env.PKG_NAME }}:${{ env.version }}
+            docker.io/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
+            public.ecr.aws/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
           dev_tags: |
-            hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
-            docker.io/hashicorppreview/${{ env.PKG_NAME }}:${{ env.version }}
+            hashicorppreview/${{ env.REG_NAME }}:${{ env.version }}
+            docker.io/hashicorppreview/${{ env.REG_NAME }}:${{ env.version }}
