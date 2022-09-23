@@ -10,7 +10,7 @@ DIST     = dist/$(PLATFORM)
 BIN      = $(DIST)/$(BIN_NAME)
 
 BIN_NAME ?= consul-lambda-registrator
-VERSION ?= $(shell ../build-scripts/version.sh)
+VERSION ?= $(shell ./build-scripts/version.sh)
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_DIRTY ?= $(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
