@@ -139,7 +139,7 @@ terraform init
 terraform apply \
   -var "name=${USER}" \
   -var "region=${AWS_REGION}" \
-  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}"
+  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}" \
   -var "ingress_cidrs=[\"${MY_IP}\"]"
 ```
 
@@ -261,7 +261,7 @@ Use the following command to clean up the resources managed by Terraform.
 terraform destroy \
   -var "name=${USER}" \
   -var "region=${AWS_REGION}" \
-  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}"
+  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}" \
   -var "ingress_cidrs=[\"${MY_IP}\"]"
 ```
 
