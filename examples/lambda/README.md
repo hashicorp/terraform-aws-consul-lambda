@@ -265,7 +265,7 @@ terraform destroy \
   -var "ingress_cidrs=[\"${MY_IP}\"]"
 ```
 
-Answer `yes` when prompted to perform the action. The destroy can take more that 20 minutes to complete.
+Answer `yes` when prompted to perform the action. The destroy can take more than 20 minutes to complete.
 
 Use the following command to delete the private ECR repository.
 
