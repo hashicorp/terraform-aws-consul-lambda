@@ -15,10 +15,6 @@ module "mesh_gateway" {
   lb_vpc_id                     = module.vpc.vpc_id
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
-  // TODO: remove? I think this is only required for ACLs
-  # consul_http_addr              = "http://${module.dev_consul_server.server_dns}:8500"
-  # consul_https_ca_cert_arn      = module.dev_consul_server.ca_cert_arn
-
   log_configuration = {
     logDriver = "awslogs"
     options = {
