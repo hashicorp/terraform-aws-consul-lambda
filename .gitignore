@@ -1,11 +1,14 @@
 consul-lambda/consul-lambda-extension/consul-lambda-extension
 consul-lambda/consul-lambda-registrator/consul-lambda-registrator
+examples/lambda/src/lambda/main
 test.tfvars
 .terraform
 terraform.tfstate
 terraform.tfstate.backup
+.terraform.tfstate.lock.info
 .terraform.lock.hcl
 registration.zip
 dist/
 out/
 *.out
+*.zip

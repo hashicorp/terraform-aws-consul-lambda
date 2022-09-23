@@ -125,14 +125,8 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_lambda_function" "registration" {
-  /* TODO: use image
   image_uri                      = var.ecr_image_uri
   package_type                   = "Image"
-  */
-  filename                       = "../../consul-lambda/consul-lambda-registrator/consul-lambda-registrator.zip"
-  source_code_hash               = filebase64sha256("../../consul-lambda/consul-lambda-registrator/consul-lambda-registrator.zip")
-  handler                        = "main"
-  runtime                        = "go1.x"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
   timeout                        = var.timeout
