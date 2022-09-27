@@ -146,8 +146,7 @@ func (e Environment) IsManagingTLS() bool {
 	return len(e.ExtensionDataPrefix) > 0
 }
 
-func setConsulCACert(ctx context.Context, store ParamStore, key string) error {
-	path := os.Getenv(key)
+func setConsulCACert(ctx context.Context, store ParamStore, path string) error {
 	if path == "" {
 		return nil
 	}
@@ -165,8 +164,7 @@ func setConsulCACert(ctx context.Context, store ParamStore, key string) error {
 	return os.Setenv("CONSUL_CACERT", caCertPath)
 }
 
-func setConsulHTTPToken(ctx context.Context, store ParamStore, key string) error {
-	path := os.Getenv(key)
+func setConsulHTTPToken(ctx context.Context, store ParamStore, path string) error {
 	if path == "" {
 		return nil
 	}
