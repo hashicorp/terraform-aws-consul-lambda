@@ -68,7 +68,6 @@ func TestSetupEnvironment(t *testing.T) {
 func TestSetConsulCACert(t *testing.T) {
 	ctx := context.Background()
 	unsetEverything := func() {
-		os.Unsetenv(consulCAPathEnvironment)
 		os.Unsetenv("CONSUL_CACERT")
 		os.Remove(caCertPath)
 	}
@@ -76,7 +75,7 @@ func TestSetConsulCACert(t *testing.T) {
 	t.Run("Without the environment variable set", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
+		err := setConsulCACert(ctx, ssmClient, "")
 		require.NoError(t, err)
 		_, err = os.Stat(caCertPath)
 		require.Error(t, err)
@@ -85,9 +84,8 @@ func TestSetConsulCACert(t *testing.T) {
 
 	t.Run("With a path that isn't in parameter store", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
-		os.Setenv(consulCAPathEnvironment, "not/real")
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
+		err := setConsulCACert(ctx, ssmClient, "not/real")
 		require.Error(t, err)
 		_, err = os.Stat(caCertPath)
 		require.Error(t, err)
@@ -96,9 +94,8 @@ func TestSetConsulCACert(t *testing.T) {
 
 	t.Run("With a path is in parameter store", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
-		os.Setenv(consulCAPathEnvironment, "real")
 		ssmClient := mockSSMClient(map[string]string{"real": "value"})
-		err := setConsulCACert(ctx, ssmClient, consulCAPathEnvironment)
+		err := setConsulCACert(ctx, ssmClient, "real")
 		require.NoError(t, err)
 		buf, err := os.ReadFile(caCertPath)
 		require.NoError(t, err)
@@ -109,7 +106,6 @@ func TestSetConsulCACert(t *testing.T) {
 func TestSetConsulHTTPToken(t *testing.T) {
 	ctx := context.Background()
 	unsetEverything := func() {
-		os.Unsetenv(consulHTTPTokenPath)
 		os.Unsetenv("CONSUL_HTTP_TOKEN")
 		os.Remove(caCertPath)
 	}
@@ -117,25 +113,23 @@ func TestSetConsulHTTPToken(t *testing.T) {
 	t.Run("Without the environment variable set", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
+		err := setConsulHTTPToken(ctx, ssmClient, "")
 		require.NoError(t, err)
 		require.Equal(t, "", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})
 
 	t.Run("With a path that isn't in parameter store", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
-		os.Setenv(consulHTTPTokenPath, "not/real")
 		ssmClient := mockSSMClient(map[string]string{})
-		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
+		err := setConsulHTTPToken(ctx, ssmClient, "not/real")
 		require.Error(t, err)
 		require.Equal(t, "", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})
 
 	t.Run("With a path is in parameter store", func(t *testing.T) {
 		t.Cleanup(unsetEverything)
-		os.Setenv(consulHTTPTokenPath, "real")
 		ssmClient := mockSSMClient(map[string]string{"real": "value"})
-		err := setConsulHTTPToken(ctx, ssmClient, consulHTTPTokenPath)
+		err := setConsulHTTPToken(ctx, ssmClient, "real")
 		require.NoError(t, err)
 		require.Equal(t, "value", os.Getenv("CONSUL_HTTP_TOKEN"))
 	})

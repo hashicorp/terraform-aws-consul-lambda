@@ -220,8 +220,8 @@ func (e Environment) FullSyncData(ctx context.Context) ([]Event, error) {
 	return append(events, e.constructDeleteEvents(lambdas, consulServices)...), nil
 }
 
-type eventMap map[*structs.EnterpriseMeta]map[string]Event
-type serviceMap map[*structs.EnterpriseMeta]map[string]struct{}
+type eventMap map[structs.EnterpriseMeta]map[string]Event
+type serviceMap map[structs.EnterpriseMeta]map[string]struct{}
 
 // getLambdas makes requests to the AWS APIs to get data about every Lambda and
 // constructs events to register or deregister those Lambdas with Consul.
@@ -245,16 +245,24 @@ func (e Environment) getLambdas(ctx context.Context) (eventMap, error) {
 		for _, event := range events {
 			switch e := event.(type) {
 			case UpsertEvent:
-				if lambdas[e.EnterpriseMeta] == nil {
-					lambdas[e.EnterpriseMeta] = make(map[string]Event)
+				var em structs.EnterpriseMeta
+				if e.EnterpriseMeta != nil {
+					em = *e.EnterpriseMeta
 				}
-				lambdas[e.EnterpriseMeta][e.Name] = event
+				if lambdas[em] == nil {
+					lambdas[em] = make(map[string]Event)
+				}
+				lambdas[em][e.Name] = event
 
 			case DeleteEvent:
-				if lambdas[e.EnterpriseMeta] == nil {
-					lambdas[e.EnterpriseMeta] = make(map[string]Event)
+				var em structs.EnterpriseMeta
+				if e.EnterpriseMeta != nil {
+					em = *e.EnterpriseMeta
 				}
-				lambdas[e.EnterpriseMeta][e.Name] = event
+				if lambdas[em] == nil {
+					lambdas[em] = make(map[string]Event)
+				}
+				lambdas[em][e.Name] = event
 			}
 		}
 	}
@@ -264,8 +272,8 @@ func (e Environment) getLambdas(ctx context.Context) (eventMap, error) {
 
 // getEnterpriseMetas determines which Consul partitions will be synced.
 // A slice with one nil entry is used to indicate OSS Consul.
-func (e Environment) getEnterpriseMetas() ([]*structs.EnterpriseMeta, error) {
-	var enterpriseMetas []*structs.EnterpriseMeta
+func (e Environment) getEnterpriseMetas() ([]structs.EnterpriseMeta, error) {
+	var enterpriseMetas []structs.EnterpriseMeta
 	if e.IsEnterprise {
 		for partition := range e.Partitions {
 			namespaces, _, err := e.ConsulClient.Namespaces().List(&api.QueryOptions{Partition: partition})
@@ -274,25 +282,25 @@ func (e Environment) getEnterpriseMetas() ([]*structs.EnterpriseMeta, error) {
 			}
 
 			for _, namespace := range namespaces {
-				enterpriseMetas = append(enterpriseMetas, &structs.EnterpriseMeta{
+				enterpriseMetas = append(enterpriseMetas, structs.EnterpriseMeta{
 					Partition: partition,
 					Namespace: namespace.Name,
 				})
 			}
 		}
 	} else {
-		enterpriseMetas = append(enterpriseMetas, nil)
+		enterpriseMetas = append(enterpriseMetas, structs.EnterpriseMeta{})
 	}
 
 	return enterpriseMetas, nil
 }
 
 // getConsulServices retrieves all Consul services that are managed by Lambda registrator.
-func (e Environment) getConsulServices(enterpriseMetas []*structs.EnterpriseMeta) (serviceMap, error) {
+func (e Environment) getConsulServices(enterpriseMetas []structs.EnterpriseMeta) (serviceMap, error) {
 	consulServices := make(serviceMap)
 	for _, em := range enterpriseMetas {
 		var queryOptions *api.QueryOptions
-		if em != nil {
+		if em.Partition != "" && em.Namespace != "" {
 			queryOptions = &api.QueryOptions{
 				Partition: em.Partition,
 				Namespace: em.Namespace,
@@ -354,7 +362,9 @@ func (e Environment) constructDeleteEvents(lambdas eventMap, consulServices serv
 	// Constructing delete events for services that need to be deregistered in Consul
 	for enterpriseMeta, consulService := range consulServices {
 		for serviceName := range consulService {
-			deleteEvent := DeleteEvent{structs.Service{Name: serviceName, EnterpriseMeta: enterpriseMeta}}
+			deleteEvent := DeleteEvent{structs.Service{
+				Name:           serviceName,
+				EnterpriseMeta: structs.NewEnterpriseMeta(enterpriseMeta.Partition, enterpriseMeta.Namespace)}}
 			if lambdaEvents, ok := lambdas[enterpriseMeta]; ok {
 				if _, ok := lambdaEvents[serviceName]; !ok {
 					events = append(events, deleteEvent)

@@ -32,7 +32,7 @@ The following prerequisites are needed to run the acceptance tests:
 1. To run the tests, use `go test` from the `test/acceptance` directory:
 
    ```sh
-   go test ./... -p 1 -timeout 30m -v -failfast
+   go test ./... -p 1 -timeout 90m -v -failfast
    ```
 
    You may want to add the `-no-cleanup-on-failure` flag if you're debugging
@@ -42,4 +42,6 @@ The following prerequisites are needed to run the acceptance tests:
 ### Cleanup
 
 If the tests haven't cleaned up after themselves you must run `terraform destroy`
-in each directory, e.g. `test/acceptance/tests/basic/terraform/basic-install`.
+in each directory, e.g.:
+- `test/acceptance/tests/basic/terraform/lambda`
+- `test/acceptance/tests/basic/terraform/setup`
