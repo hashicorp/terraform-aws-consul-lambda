@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -487,49 +486,4 @@ func UnmarshalTF(tfDir string, cfg interface{}) error {
 		return err
 	}
 	return json.Unmarshal(configJSON, cfg)
-}
-
-// TFVars converts the given struct to a map[string]interface that
-// is suitable for supplying to terraform ... -var=...
-// It iterates over the fields in the struct and creates a key for each field with a json tag.
-//
-// ignoreVars is optional and if provided any matching fields will be
-// not be returned in the map.
-//
-// The argument i must be a struct value or a pointer to a struct; otherwise,
-// the function will panic.
-func TFVars(i interface{}, ignoreVars ...string) map[string]interface{} {
-	v := reflect.ValueOf(i)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	t := v.Type()
-	if t.Kind() != reflect.Struct {
-		panic("input must be a struct or pointer to a struct")
-	}
-
-	vars := make(map[string]interface{})
-	structVars(i, vars)
-	for _, v := range ignoreVars {
-		delete(vars, v)
-	}
-	return vars
-}
-
-func structVars(i interface{}, m map[string]interface{}) {
-	v := reflect.ValueOf(i)
-	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if f.Type.Kind() == reflect.Ptr || f.Type.Kind() == reflect.Struct {
-			// if the embedded field is a ptr or a struct recurse it
-			structVars(v.Field(i).Interface(), m)
-		} else {
-			tag := t.Field(i).Tag.Get("json")
-			if tag != "" {
-				name := strings.Split(tag, ",")
-				m[name[0]] = v.Field(i).Interface()
-			}
-		}
-	}
 }

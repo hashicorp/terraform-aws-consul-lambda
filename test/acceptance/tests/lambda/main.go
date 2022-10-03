@@ -88,11 +88,6 @@ func (l UpstreamResponseList) Len() int           { return len(l) }
 func (l UpstreamResponseList) Less(i, j int) bool { return l[i].Name < l[j].Name }
 func (l UpstreamResponseList) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
-type Response struct {
-	StatusCode int                  `json:"statusCode"`
-	Body       UpstreamResponseList `json:"body"`
-}
-
 // lambdaToMesh handles the case of a Lambda function calling into to services within
 // the Consul service mesh. It returns the responses from the upstream services in
 // its response body.
