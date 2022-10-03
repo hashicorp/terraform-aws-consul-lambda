@@ -8,6 +8,7 @@ terraform {
 }
 
 provider "aws" {
+  alias  = "provider"
   region = var.region
 }
 
@@ -40,16 +41,14 @@ resource "aws_cloudwatch_log_group" "log_group" {
 }
 
 resource "aws_ecs_cluster" "cluster" {
-  name               = local.name
-  capacity_providers = ["FARGATE"]
+  name = local.name
 }
 
-module "preexisting-lambda" {
-  source = "../tests/lambda"
-  name   = "preexisting_${local.suffix}"
-  tags = {
-    "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true",
-    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passhthrough" : "true",
+resource "aws_ecs_cluster_capacity_providers" "this" {
+  cluster_name       = aws_ecs_cluster.cluster.name
+  capacity_providers = ["FARGATE"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
   }
-  region = var.region
 }

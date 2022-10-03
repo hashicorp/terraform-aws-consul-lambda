@@ -12,8 +12,10 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  family = "test_client_${var.suffix}"
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  version = "0.5.1"
+  family  = "test_client_${var.suffix}"
+  port    = "9090"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -21,7 +23,21 @@ module "test_client" {
     environment = [
       {
         name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
+        value = var.consul_partition == "" ? "http://localhost:1234,http://localhost:1235,http://localhost:1236,http://localhost:2345" : "http://localhost:1234,http://localhost:1235,http://localhost:1236"
+      },
+      {
+        # We need to configure the fake-service so that it does not append the original request headers
+        # to the upstream request. If the original request headers are appended, this invalidates
+        # the AWS signature that Envoy calculates in the request that it makes to Lambda.
+        name  = "HTTP_CLIENT_APPEND_REQUEST"
+        value = "false"
+      }
+    ]
+    portMappings = [
+      {
+        containerPort = 9090
+        hostPort      = 9090
+        protocol      = "tcp"
       }
     ]
     linuxParameters = {
@@ -31,19 +47,19 @@ module "test_client" {
   retry_join = [module.dev_consul_server.server_dns]
   upstreams = [
     {
-      destinationName      = "example_${var.suffix}"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}"
       localBindPort        = 1234
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
     },
     {
-      destinationName      = "example_${var.suffix}-dev"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}-dev"
       localBindPort        = 1235
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
     },
     {
-      destinationName      = "example_${var.suffix}-prod"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}-prod"
       localBindPort        = 1236
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
@@ -61,17 +77,15 @@ module "test_client" {
       awslogs-stream-prefix = "test_client_${var.suffix}"
     }
   }
-  outbound_only = true
 
-  consul_image                   = var.consul_image
-  consul_server_ca_cert_arn      = module.dev_consul_server.ca_cert_arn
-  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
-  consul_namespace               = var.consul_namespace
-  consul_partition               = var.consul_partition
+  consul_image     = var.consul_image
+  consul_http_addr = local.consul_http_addr
+  consul_namespace = var.consul_namespace
+  consul_partition = var.consul_partition
 
   additional_task_role_policies = [
-    aws_iam_policy.execute-command.arn,
-    aws_iam_policy.invoke-lambda.arn
+    aws_iam_policy.execute_command.arn,
+    aws_iam_policy.invoke_lambda.arn
   ]
   consul_agent_configuration = <<-EOT
   log_level = "debug"
@@ -79,14 +93,16 @@ module "test_client" {
     enable_serverless_plugin = true
   }
   EOT
-  acls                       = var.secure
-  acl_secret_name_prefix     = var.suffix
-  tls                        = var.secure
-  gossip_key_secret_arn      = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+
+  tls                       = true
+  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn
+  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
+  acls                      = var.secure
+  gossip_key_secret_arn     = var.secure ? module.dev_consul_server.gossip_key_arn : ""
 }
 
 // Policy to allow `aws execute-command`
-resource "aws_iam_policy" "execute-command" {
+resource "aws_iam_policy" "execute_command" {
   name   = "ecs-execute-command-${var.suffix}"
   path   = "/"
   policy = <<EOF
@@ -110,7 +126,7 @@ resource "aws_iam_policy" "execute-command" {
 EOF
 }
 
-resource "aws_iam_policy" "invoke-lambda" {
+resource "aws_iam_policy" "invoke_lambda" {
   name   = "ecs-invoke-lambda-${var.suffix}"
   path   = "/"
   policy = <<EOF
@@ -146,8 +162,9 @@ resource "aws_iam_role" "execution" {
 }
 
 module "acl_controller" {
-  count  = var.secure ? 1 : 0
-  source = "hashicorp/consul-ecs/aws//modules/acl-controller"
+  count   = var.secure ? 1 : 0
+  source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
+  version = "0.5.1"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -158,7 +175,7 @@ module "acl_controller" {
   }
   launch_type                       = "FARGATE"
   consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.dev_consul_server.server_dns}:8501"
+  consul_server_http_addr           = local.consul_http_addr
   consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region

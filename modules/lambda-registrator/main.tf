@@ -81,6 +81,16 @@ resource "aws_iam_policy" "policy" {
       "Effect": "Allow"
     },
 %{endif~}
+%{if var.consul_extension_data_prefix != ""~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:PutParameter",
+        "ssm:DeleteParameter"
+      ],
+      "Resource": "arn:aws:ssm:*:*:parameter${var.consul_extension_data_prefix}/*"
+    },
+%{endif~}
     {
       "Action": [
         "logs:CreateLogGroup",
@@ -122,7 +132,7 @@ resource "aws_lambda_function" "registration" {
   timeout                        = var.timeout
   reserved_concurrent_executions = var.reserved_concurrent_executions
   layers                         = []
-  tags                           = {}
+  tags                           = var.tags
   environment {
     variables = merge(
       {
@@ -139,6 +149,9 @@ resource "aws_lambda_function" "registration" {
       var.consul_ca_cert_path != "" ? {
         CONSUL_CACERT_PATH = var.consul_ca_cert_path
         CONSUL_HTTP_SSL    = "true"
+      } : {},
+      var.consul_extension_data_prefix != "" ? {
+        CONSUL_EXTENSION_DATA_PREFIX = var.consul_extension_data_prefix
       } : {}
     )
   }
@@ -201,14 +214,14 @@ module "eventbridge" {
   }
 }
 
-resource "aws_lambda_permission" "cloudtrail-invoke" {
+resource "aws_lambda_permission" "cloudtrail_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"
   source_arn    = module.eventbridge.eventbridge_rule_arns[local.lambda_events_key]
 }
 
-resource "aws_lambda_permission" "cron-invoke" {
+resource "aws_lambda_permission" "cron_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.registration.function_name
   principal     = "events.amazonaws.com"

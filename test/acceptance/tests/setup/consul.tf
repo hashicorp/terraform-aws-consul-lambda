@@ -19,7 +19,8 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 module "dev_consul_server" {
   consul_image                = var.consul_image
   name                        = "${local.short_name}-consul-server"
-  source                      = "github.com/hashicorp/terraform-aws-consul-ecs?ref=8be26cc880dbb50c691daf594a806b5b741b7dcb//modules/dev-server"
+  source                      = "hashicorp/consul-ecs/aws//modules/dev-server"
+  version                     = "0.5.1"
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.private_subnets
   vpc_id                      = var.vpc_id
@@ -34,11 +35,14 @@ module "dev_consul_server" {
       awslogs-stream-prefix = "consul-server"
     }
   }
-  launch_type           = "FARGATE"
-  tls                   = var.secure
-  acls                  = var.secure
-  gossip_key_secret_arn = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  consul_license        = var.consul_license
+  launch_type                    = "FARGATE"
+  tls                            = true
+  acls                           = var.secure
+  gossip_encryption_enabled      = var.secure
+  generate_gossip_encryption_key = false
+  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  consul_license                 = var.consul_license
+
 }
 
 data "aws_security_group" "vpc_default" {

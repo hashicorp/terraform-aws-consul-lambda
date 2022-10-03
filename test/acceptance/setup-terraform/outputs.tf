@@ -2,6 +2,10 @@ output "vpc_id" {
   value = module.vpc.vpc_id
 }
 
+output "security_group_id" {
+  value = module.vpc.default_security_group_id
+}
+
 output "ecs_cluster_arn" {
   value = aws_ecs_cluster.cluster.arn
 }
@@ -28,4 +32,8 @@ output "ecr_image_uri" {
 
 output "suffix" {
   value = random_string.suffix.result
+}
+
+output "consul_lambda_extension_arn" {
+  value = aws_lambda_layer_version.consul_lambda_extension.arn
 }

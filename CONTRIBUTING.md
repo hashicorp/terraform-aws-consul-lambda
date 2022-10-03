@@ -10,9 +10,9 @@ information to effectively respond to your bug report or contribution.
 
 We welcome users to report issues or suggest features.
 
-If you're suggesting a new feature (i.e., functionality that doesn't exist yet), please use our [issue template](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator/issues).  This will prompt you to answer a few questions that will help us figure out what you're looking for.  The template will also tag incoming issues with "Enhancement".  This gives us a way to filter the community-opened issues quickly so we can review as a team.
+If you're suggesting a new feature (i.e., functionality that doesn't exist yet), please use our [issue template](https://github.com/hashicorp/terraform-aws-consul-lambda/issues).  This will prompt you to answer a few questions that will help us figure out what you're looking for.  The template will also tag incoming issues with "Enhancement".  This gives us a way to filter the community-opened issues quickly so we can review as a team.
 
-Check for duplicates when filing an issue. Please check [existing open](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator/issues), or [recently closed](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator/issues?q=is%3Aissue+is%3Aclosed) issues to make sure somebody else hasn't already reported the issue.
+Check for duplicates when filing an issue. Please check [existing open](https://github.com/hashicorp/terraform-aws-consul-lambda/issues), or [recently closed](https://github.com/hashicorp/terraform-aws-consul-lambda/issues?q=is%3Aissue+is%3Aclosed) issues to make sure somebody else hasn't already reported the issue.
 
 
 If you're reporting what you think is a bug (i.e., something isn't right with an existing feature), please try to include as much information as you can. Details like these are incredibly useful:
@@ -25,6 +25,6 @@ If you're reporting what you think is a bug (i.e., something isn't right with an
 
 ## Licensing
 
-See the [LICENSE](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator/blob/main/LICENSE.md) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](https://github.com/hashicorp/terraform-aws-consul-lambda/blob/main/LICENSE.md) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
 If you want to contribute to this project, we may ask you to sign a **[Contributor License Agreement (CLA)](https://www.hashicorp.com/cla)**.

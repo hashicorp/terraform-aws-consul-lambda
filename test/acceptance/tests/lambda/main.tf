@@ -3,27 +3,32 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "4.14.0"
+
+      configuration_aliases = [aws.provider]
     }
   }
 }
 
-provider "aws" {
-  region = var.region
-}
-
 locals {
   example_path = "${path.module}/example.zip"
+  env          = length(var.env) > 0 ? [{ "variables" = var.env }] : []
 }
 
 resource "aws_lambda_function" "example" {
-  filename         = local.example_path
-  source_code_hash = filebase64sha256(local.example_path)
-  function_name    = var.name
-  role             = aws_iam_role.example.arn
-  handler          = "example"
-  runtime          = "go1.x"
-  tags             = merge(var.tags, { time = timestamp() })
-  // publish          = true
+  filename      = local.example_path
+  function_name = var.name
+  role          = aws_iam_role.example.arn
+  handler       = "main"
+  runtime       = "go1.x"
+  tags          = merge(var.tags, { time = timestamp() })
+  layers        = var.layers
+
+  dynamic "environment" {
+    for_each = local.env
+    content {
+      variables = environment.value.variables
+    }
+  }
 }
 
 resource "aws_lambda_alias" "example-prod" {
@@ -54,6 +59,13 @@ resource "aws_iam_policy" "lambda_logging" {
         "logs:PutLogEvents"
       ],
       "Resource": "arn:aws:logs:*:*:*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "ssm:GetParameter"
+      ],
+      "Resource": "arn:aws:ssm:*:*:parameter/*",
       "Effect": "Allow"
     }
   ]
