@@ -533,23 +533,3 @@ func structVars(i interface{}, m map[string]interface{}) {
 		}
 	}
 }
-
-func execCommand(t *testing.T, testConfig *config.TestConfig, taskARN, container, cf, ef string) {
-	fmt.Printf(">>> Looking to exec commands in %s. Will exit when %s exists\n", cf, ef)
-	for {
-		_, err := os.Stat(ef)
-		if err == nil {
-			defer func() {
-				os.Remove(cf)
-				os.Remove(ef)
-			}()
-			break
-		}
-		if cmd, err := os.ReadFile(cf); err == nil {
-			fmt.Println(">>> executing command:", string(cmd))
-			ExecuteRemoteCommand(t, testConfig, taskARN, container, string(cmd))
-			os.Remove(cf)
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-}

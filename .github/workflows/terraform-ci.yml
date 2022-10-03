@@ -4,6 +4,10 @@ on:
     branches:
       - 'main'
       - 'release/**'
+  pull_request:
+    branches:
+      - 'main'
+      - 'release/**'
 env:
   GO_VERSION: '1.18'
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
