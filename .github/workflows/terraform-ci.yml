@@ -75,18 +75,13 @@ jobs:
         curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
         sudo dpkg -i session-manager-plugin.deb
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: "${{ secrets.AWS_ACCESS_KEY_ID }}"
-        aws-secret-access-key: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-        aws-region: us-west-2
-        role-to-assume: "${{ secrets.AWS_ROLE_ARN }}"
       # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
-      # run: |
-      #   aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
-      #   aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-      #   aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
-      #   aws configure set source_profile lambda_user
+      run: |
+        aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
+        aws configure set region us-west-2
+        aws configure set source_profile lambda_user
     - name: terraform init & apply
       run: |
         cd setup-terraform
