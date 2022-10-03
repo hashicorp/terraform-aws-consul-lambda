@@ -90,10 +90,10 @@ func TestBasic(t *testing.T) {
 
 			clientServiceName := fmt.Sprintf("test_client_%s", suffix)
 			preexistingLambdaServiceName := fmt.Sprintf("preexisting_%s", setupSuffix)
-			mtlServiceName := fmt.Sprintf("mtl_example_%s", suffix)
-			prodLambdaServiceName := fmt.Sprintf("mtl_example_%s-prod", suffix)
-			devLambdaServiceName := fmt.Sprintf("mtl_example_%s-dev", suffix)
-			ltmServiceName := fmt.Sprintf("ltm_example_%s", suffix)
+			meshToLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s", suffix)
+			prodLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-prod", suffix)
+			devLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-dev", suffix)
+			lambdaToMeshServiceName := fmt.Sprintf("lambda_to_mesh_example_%s", suffix)
 
 			var consulServerTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
@@ -153,29 +153,29 @@ func TestBasic(t *testing.T) {
 				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
 			}
 
-			mtlTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./mtl",
+			meshToLambdaTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: "./mesh-to-lambda",
 				NoColor:      true,
 				Vars: map[string]interface{}{
 					"tags":   tags,
-					"name":   mtlServiceName,
+					"name":   meshToLambdaServiceName,
 					"region": config.Region,
 				},
 			})
 
 			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping resource cleanup for ./mtl because -no-cleanup-on-failure=true")
+					logger.Log(t, "skipping resource cleanup for ./mesh-to-lambda because -no-cleanup-on-failure=true")
 				} else {
-					terraform.Destroy(t, mtlTerraformOptions)
+					terraform.Destroy(t, meshToLambdaTerraformOptions)
 				}
 			})
 
-			terraform.InitAndApply(t, mtlTerraformOptions)
+			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Create Lambda function that calls the test_client
-			ltmAP := ""
-			ltmNS := ""
+			lambdaToMeshAP := ""
+			lambdaToMeshNS := ""
 			env := map[string]string{
 				"CONSUL_EXTENSION_DATA_PREFIX": "/" + suffix,
 				"CONSUL_MESH_GATEWAY_URI":      setupCfg.MeshGatewayURI,
@@ -198,20 +198,20 @@ func TestBasic(t *testing.T) {
 				//	request targets partition "ap1" which does not match agent partition "default"
 				//
 				// So we can't get a service cert for a Lambda function in a non-default partition :(
-				ltmAP = "default"
-				ltmNS = "default"
-				env["CONSUL_SERVICE_PARTITION"] = ltmAP
-				env["CONSUL_SERVICE_NAMESPACE"] = ltmNS
+				lambdaToMeshAP = "default"
+				lambdaToMeshNS = "default"
+				env["CONSUL_SERVICE_PARTITION"] = lambdaToMeshAP
+				env["CONSUL_SERVICE_NAMESPACE"] = lambdaToMeshNS
 			}
 
-			ltmTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./ltm",
+			lambdaToMeshTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: "./lambda-to-mesh",
 				NoColor:      true,
 				Vars: map[string]interface{}{
 					"tags": map[string]string{
 						"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
 					},
-					"name":   ltmServiceName,
+					"name":   lambdaToMeshServiceName,
 					"region": config.Region,
 					"env":    env,
 					"layers": []string{suite.Config().ExtensionARN},
@@ -220,22 +220,20 @@ func TestBasic(t *testing.T) {
 
 			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping resource cleanup for ./ltm because -no-cleanup-on-failure=true")
+					logger.Log(t, "skipping resource cleanup for ./lambda-to-mesh because -no-cleanup-on-failure=true")
 				} else {
-					terraform.Destroy(t, ltmTerraformOptions)
+					terraform.Destroy(t, lambdaToMeshTerraformOptions)
 				}
 			})
 
-			terraform.InitAndApply(t, ltmTerraformOptions)
-
-			//execCommand(t, suite.Config(), consulServerTaskARN, "consul-server", "cmd.txt", "eoc")
+			terraform.InitAndApply(t, lambdaToMeshTerraformOptions)
 
 			lambdas := []struct {
 				name               string
 				inDefaultPartition bool
 			}{
 				{
-					name: mtlServiceName,
+					name: meshToLambdaServiceName,
 				},
 				{
 					name: devLambdaServiceName,
@@ -248,7 +246,7 @@ func TestBasic(t *testing.T) {
 					inDefaultPartition: c.enterprise,
 				},
 				{
-					name:               ltmServiceName,
+					name:               lambdaToMeshServiceName,
 					inDefaultPartition: c.enterprise,
 				},
 			}
@@ -283,7 +281,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildIntention(ltmServiceName, ltmAP, ltmNS, clientServiceName, partition, namespace)),
+							buildIntention(lambdaToMeshServiceName, lambdaToMeshAP, lambdaToMeshNS, clientServiceName, partition, namespace)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")
@@ -300,7 +298,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildExport(clientServiceName, partition, namespace, ltmAP)),
+							buildExport(clientServiceName, partition, namespace, lambdaToMeshAP)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")
@@ -324,7 +322,7 @@ func TestBasic(t *testing.T) {
 						"--region",
 						suite.Config().Region,
 						"--function-name",
-						ltmServiceName,
+						lambdaToMeshServiceName,
 						"--payload",
 						base64.StdEncoding.EncodeToString([]byte(`{"lambda-to-mesh":true}`)),
 						outFile.Name(),
@@ -351,14 +349,14 @@ func TestBasic(t *testing.T) {
 				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code)
 			})
 
-			mtlTerraformOptions.Vars = map[string]interface{}{
+			meshToLambdaTerraformOptions.Vars = map[string]interface{}{
 				"tags": map[string]string{
 					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "false",
 				},
-				"name":   mtlServiceName,
+				"name":   meshToLambdaServiceName,
 				"region": config.Region,
 			}
-			terraform.InitAndApply(t, mtlTerraformOptions)
+			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Lambda doesn't exists
 			retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
@@ -368,7 +366,7 @@ func TestBasic(t *testing.T) {
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, mtlServiceName, queryString),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, meshToLambdaServiceName, queryString),
 					&services,
 				)
 				r.Check(err)

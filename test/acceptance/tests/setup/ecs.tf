@@ -47,19 +47,19 @@ module "test_client" {
   retry_join = [module.dev_consul_server.server_dns]
   upstreams = [
     {
-      destinationName      = "mtl_example_${var.suffix}"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}"
       localBindPort        = 1234
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
     },
     {
-      destinationName      = "mtl_example_${var.suffix}-dev"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}-dev"
       localBindPort        = 1235
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
     },
     {
-      destinationName      = "mtl_example_${var.suffix}-prod"
+      destinationName      = "mesh_to_lambda_example_${var.suffix}-prod"
       localBindPort        = 1236
       destinationPartition = var.consul_partition
       destinationNamespace = var.consul_namespace
