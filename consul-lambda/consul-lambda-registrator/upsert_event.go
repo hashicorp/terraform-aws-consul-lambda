@@ -130,8 +130,7 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 		TrustDomain: caRootList.TrustDomain,
 	}
 	if e.EnterpriseMeta != nil {
-		service.Namespace = e.EnterpriseMeta.Namespace
-		service.Partition = e.EnterpriseMeta.Partition
+		service.EnterpriseMeta = e.EnterpriseMeta
 	}
 	path := fmt.Sprintf("%s%s", env.ExtensionDataPrefix, service.ExtensionPath())
 

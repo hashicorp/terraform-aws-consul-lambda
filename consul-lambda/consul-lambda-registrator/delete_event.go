@@ -55,9 +55,19 @@ func (env Environment) deleteTLSData(e DeleteEvent) error {
 
 	env.Logger.Debug("deleting mTLS data", "service", e.Name)
 
+	// Create the info for this service
+	service := structs.Service{
+		Name:       e.Name,
+		Datacenter: e.Datacenter,
+	}
+	if e.EnterpriseMeta != nil {
+		service.EnterpriseMeta = e.EnterpriseMeta
+	}
+
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
-	return env.Store.Delete(context.Background(), fmt.Sprintf("%s%s", env.ExtensionDataPrefix, e.ExtensionPath()))
+	return env.Store.Delete(context.Background(),
+		fmt.Sprintf("%s%s", env.ExtensionDataPrefix, service.ExtensionPath()))
 }
 
 func (e DeleteEvent) writeOptions() *api.WriteOptions {
