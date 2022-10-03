@@ -26,7 +26,7 @@ dist:
 	mkdir -p $(DIST)
 
 dev: dist
-	GOARCH=$(ARCH) GOOS=$(OS) go build -ldflags "$(LD_FLAGS)" -o $(BIN)
+	cd consul-lambda-registrator && GOARCH=$(ARCH) GOOS=$(OS) go build -ldflags "$(LD_FLAGS)" -o $(BIN)
 .PHONY: dev
 
 # Docker Stuff.
@@ -43,5 +43,5 @@ FLAGS      = --target $(TARGET) --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
 docker: OS = linux
 docker: TARGET = release-default
 docker: dev  # TODO
-	export DOCKER_BUILDKIT=1; docker build $(FLAGS) .
+	export DOCKER_BUILDKIT=1; docker build $(FLAGS) ./consul-lambda-registrator
 .PHONY: docker

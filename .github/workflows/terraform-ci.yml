@@ -4,6 +4,10 @@ on:
     branches:
       - 'main'
       - 'release/**'
+  pull_request:
+    branches:
+      - 'main'
+      - 'release/**'
 env:
   GO_VERSION: '1.18'
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
@@ -16,7 +20,7 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
-        terraform_version: v1.1.9
+        terraform_version: v1.3.1
     - name: Validate
       run: terraform fmt -check -recursive .
   go-test-lint:
@@ -76,6 +80,7 @@ jobs:
         aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
         aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
+        aws configure set region us-west-2
         aws configure set source_profile lambda_user
     - name: terraform init & apply
       run: |

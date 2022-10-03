@@ -35,6 +35,10 @@ variable "vpc_id" {
   type = string
 }
 
+variable "security_group_id" {
+  type = string
+}
+
 variable "consul_image" {
   type = string
 }
@@ -56,4 +60,8 @@ variable "consul_namespace" {
 variable "consul_partition" {
   type    = string
   default = ""
+}
+
+variable "consul_lambda_extension_arn" {
+  type = string
 }

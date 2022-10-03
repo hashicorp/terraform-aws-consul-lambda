@@ -12,3 +12,4 @@ dist/
 out/
 *.out
 *.zip
+test/acceptance/tests/lambda/main

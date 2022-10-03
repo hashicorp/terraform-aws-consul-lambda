@@ -3,8 +3,11 @@ module github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance
 go 1.18
 
 require (
+	github.com/aws/aws-lambda-go v1.13.3
 	github.com/gruntwork-io/terratest v0.40.8
-	github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance v0.0.0-20220503211910-517a3e38ea59
+	github.com/hashicorp/consul/api v1.12.0
+	github.com/hashicorp/consul/sdk v0.9.0
+	github.com/stretchr/testify v1.7.0
 )
 
 require (
@@ -21,8 +24,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
-	github.com/hashicorp/consul/api v1.12.0 // indirect
-	github.com/hashicorp/consul/sdk v0.9.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-getter v1.5.9 // indirect
@@ -48,7 +49,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tmccombs/hcl2json v0.3.3 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/zclconf/go-cty v1.9.1 // indirect

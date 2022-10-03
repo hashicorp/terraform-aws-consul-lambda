@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +21,10 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
+
+type SetupConfig struct {
+	MeshGatewayURI string `json:"mesh_gateway_uri"`
+}
 
 func TestBasic(t *testing.T) {
 	cases := map[string]struct {
@@ -78,11 +85,15 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, setupTerraformOptions)
 
+			var setupCfg SetupConfig
+			require.NoError(t, UnmarshalTF("./setup", &setupCfg))
+
 			clientServiceName := fmt.Sprintf("test_client_%s", suffix)
 			preexistingLambdaServiceName := fmt.Sprintf("preexisting_%s", setupSuffix)
-			lambdaServiceName := fmt.Sprintf("example_%s", suffix)
-			prodLambdaServiceName := fmt.Sprintf("example_%s-prod", suffix)
-			devLambdaServiceName := fmt.Sprintf("example_%s-dev", suffix)
+			meshToLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s", suffix)
+			prodLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-prod", suffix)
+			devLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-dev", suffix)
+			lambdaToMeshServiceName := fmt.Sprintf("lambda_to_mesh_example_%s", suffix)
 
 			var consulServerTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
@@ -111,40 +122,15 @@ func TestBasic(t *testing.T) {
 				consulServerTaskARN = tasks.TaskARNs[0]
 			})
 
-			// Wait for passing health check for test_server and test_client
+			// Wait for passing health check for test_client
 			tokenHeader := ""
 			if c.secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
-			var clientTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"list-tasks",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--family",
-						clientServiceName,
-					},
-				})
-				r.Check(err)
-
-				var tasks listTasksResponse
-				r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
-				if len(tasks.TaskARNs) != 1 {
-					r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
-					return
-				}
-
-				clientTaskARN = tasks.TaskARNs[0]
-
 				var services []api.CatalogService
-				err = ExecuteRemoteCommandJSON(
+				err := ExecuteRemoteCommandJSON(
 					t,
 					suite.Config(),
 					consulServerTaskARN,
@@ -156,6 +142,7 @@ func TestBasic(t *testing.T) {
 				require.Len(r, services, 1)
 			})
 
+			// Create Lambda functions that are called by the test_client
 			tags := map[string]string{
 				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
 				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
@@ -166,48 +153,100 @@ func TestBasic(t *testing.T) {
 				tags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
 			}
 
-			lambdaTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./lambda",
+			meshToLambdaTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: "./mesh-to-lambda",
 				NoColor:      true,
 				Vars: map[string]interface{}{
 					"tags":   tags,
-					"name":   lambdaServiceName,
+					"name":   meshToLambdaServiceName,
 					"region": config.Region,
 				},
 			})
 
 			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping resource cleanup for ./lambda because -no-cleanup-on-failure=true")
+					logger.Log(t, "skipping resource cleanup for ./mesh-to-lambda because -no-cleanup-on-failure=true")
 				} else {
-					terraform.Destroy(t, lambdaTerraformOptions)
+					terraform.Destroy(t, meshToLambdaTerraformOptions)
 				}
 			})
 
-			terraform.InitAndApply(t, lambdaTerraformOptions)
+			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
+
+			// Create Lambda function that calls the test_client
+			lambdaToMeshAP := ""
+			lambdaToMeshNS := ""
+			env := map[string]string{
+				"CONSUL_EXTENSION_DATA_PREFIX": "/" + suffix,
+				"CONSUL_MESH_GATEWAY_URI":      setupCfg.MeshGatewayURI,
+				"CONSUL_SERVICE_UPSTREAMS":     clientServiceName + ":1234",
+
+				// These vars configure the function itself.
+				"UPSTREAMS":     "http://localhost:1234",
+				"TRACE_ENABLED": "true",
+				"LOG_LEVEL":     "debug",
+			}
+			if c.enterprise {
+				env["CONSUL_SERVICE_UPSTREAMS"] = fmt.Sprintf("%s.%s.%s:1234", clientServiceName, namespace, partition)
+
+				// Lambda functions don't have a Consul client agent so Lambda registrator uses the HTTP API
+				// to retrieve the leaf service certificate for the Lambda function. That works in the default
+				// partition and namespace but it does not work when the Lambda function is in a non-default
+				// ap/ns. The registrator hits the /agent/connect/ca/leaf/:service endpoint on the Consul server
+				// but supplying any non-default partition to this endpoint on the server results in:
+				//
+				//	request targets partition "ap1" which does not match agent partition "default"
+				//
+				// So we can't get a service cert for a Lambda function in a non-default partition :(
+				lambdaToMeshAP = "default"
+				lambdaToMeshNS = "default"
+				env["CONSUL_SERVICE_PARTITION"] = lambdaToMeshAP
+				env["CONSUL_SERVICE_NAMESPACE"] = lambdaToMeshNS
+			}
+
+			lambdaToMeshTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: "./lambda-to-mesh",
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"tags": map[string]string{
+						"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
+					},
+					"name":   lambdaToMeshServiceName,
+					"region": config.Region,
+					"env":    env,
+					"layers": []string{suite.Config().ExtensionARN},
+				},
+			})
+
+			t.Cleanup(func() {
+				if suite.Config().NoCleanupOnFailure && t.Failed() {
+					logger.Log(t, "skipping resource cleanup for ./lambda-to-mesh because -no-cleanup-on-failure=true")
+				} else {
+					terraform.Destroy(t, lambdaToMeshTerraformOptions)
+				}
+			})
+
+			terraform.InitAndApply(t, lambdaToMeshTerraformOptions)
 
 			lambdas := []struct {
-				port               int
 				name               string
 				inDefaultPartition bool
 			}{
 				{
-					port: 1234,
-					name: lambdaServiceName,
+					name: meshToLambdaServiceName,
 				},
 				{
-					port: 1235,
 					name: devLambdaServiceName,
 				},
 				{
-					port: 1236,
 					name: prodLambdaServiceName,
 				},
 				{
-					port: 2345,
-					name: preexistingLambdaServiceName,
-					// This doesn't set up mesh gateways for cross-partition
-					// communication.
+					name:               preexistingLambdaServiceName,
+					inDefaultPartition: c.enterprise,
+				},
+				{
+					name:               lambdaToMeshServiceName,
 					inDefaultPartition: c.enterprise,
 				},
 			}
@@ -229,29 +268,95 @@ func TestBasic(t *testing.T) {
 					)
 					r.Check(err)
 					require.Len(r, services, 1)
-					if !c.inDefaultPartition {
-						out, err := ExecuteRemoteCommand(
-							t,
-							suite.Config(),
-							clientTaskARN,
-							"basic",
-							fmt.Sprintf(`curl -d "{\"name\": \"foo\"}" localhost:%d`, c.port),
-						)
-						expected := "Hello foo!"
-						r.Check(err)
-						require.Contains(r, out, expected)
-					}
 				})
 			}
 
-			lambdaTerraformOptions.Vars = map[string]interface{}{
+			if c.secure {
+				// Create an intention to allow the Lambda function to call the test_client service
+				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+					result, err := ExecuteRemoteCommand(
+						t,
+						suite.Config(),
+						consulServerTaskARN,
+						"consul-server",
+						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
+							tokenHeader,
+							buildIntention(lambdaToMeshServiceName, lambdaToMeshAP, lambdaToMeshNS, clientServiceName, partition, namespace)),
+					)
+					r.Check(err)
+					require.Contains(r, result, "true")
+				})
+			}
+
+			if c.enterprise {
+				// Export the test_client service so it can be called by the Lambda function.
+				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+					result, err := ExecuteRemoteCommand(
+						t,
+						suite.Config(),
+						consulServerTaskARN,
+						"consul-server",
+						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
+							tokenHeader,
+							buildExport(clientServiceName, partition, namespace, lambdaToMeshAP)),
+					)
+					r.Check(err)
+					require.Contains(r, result, "true")
+				})
+			}
+
+			// Call the "Lambda to mesh" function. It is configured with the test_client as its upstream.
+			// In turn, the test_client will invoke each of the other Lambda functions because they are configured
+			// as upstreams of the test_client.
+			// This way we cover both the Lambda-to-mesh and mesh-to-Lambda use cases in one call.
+			outFile, err := os.CreateTemp("", "lambda-output")
+			require.NoError(t, err)
+			defer os.Remove(outFile.Name())
+
+			retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				_, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"lambda",
+						"invoke",
+						"--region",
+						suite.Config().Region,
+						"--function-name",
+						lambdaToMeshServiceName,
+						"--payload",
+						base64.StdEncoding.EncodeToString([]byte(`{"lambda-to-mesh":true}`)),
+						outFile.Name(),
+					}},
+				)
+				r.Check(err)
+
+				// The test_client will only return 200 when all upstreams return 200's.
+				// Check for a 200 from the test_client response body.
+				result, err := os.ReadFile(outFile.Name())
+				r.Check(err)
+
+				obs := struct {
+					Body []struct {
+						Body struct {
+							Code int `json:"code"`
+						} `json:"body"`
+					} `json:"body"`
+				}{}
+				err = json.Unmarshal(result, &obs)
+				r.Check(err)
+
+				require.Len(r, obs.Body, 1)
+				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code)
+			})
+
+			meshToLambdaTerraformOptions.Vars = map[string]interface{}{
 				"tags": map[string]string{
 					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "false",
 				},
-				"name":   lambdaServiceName,
+				"name":   meshToLambdaServiceName,
 				"region": config.Region,
 			}
-			terraform.InitAndApply(t, lambdaTerraformOptions)
+			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Lambda doesn't exists
 			retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
@@ -261,7 +366,7 @@ func TestBasic(t *testing.T) {
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, lambdaServiceName, queryString),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, meshToLambdaServiceName, queryString),
 					&services,
 				)
 				r.Check(err)
@@ -319,4 +424,64 @@ func ExecuteRemoteCommandJSON(t *testing.T, testConfig *config.TestConfig, taskA
 
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
+}
+
+func buildIntention(src, srcAP, srcNS, dst, dstAP, dstNS string) string {
+	var intention string
+	if srcAP == "" && srcNS == "" && dstAP == "" && dstNS == "" {
+		intention = fmt.Sprintf(`{"Kind":"service-intentions","Name":"%s","Sources":[{"Action":"allow","Name":"%s"}]}`,
+			dst, src)
+	} else {
+		intention = fmt.Sprintf(`{"Kind":"service-intentions","Name":"%s","Partition":"%s","Namespace":"%s","Sources":[{"Action":"allow","Name":"%s","Partition":"%s","Namespace":"%s"}]}`,
+			dst, dstAP, dstNS, src, srcAP, srcNS)
+	}
+	return strings.ReplaceAll(intention, `"`, `\"`)
+}
+
+func buildExport(dst, ap, ns, srcAP string) string {
+	export := fmt.Sprintf(`{"Kind":"exported-services","Name":"%s","Partition":"%s","Services":[{"Name":"%s","Namespace":"%s","Consumers":[{"Partition":"%s"}]}]}`,
+		ap, ap, dst, ns, srcAP)
+	return strings.ReplaceAll(export, `"`, `\"`)
+}
+
+// UnmarshalTF populates the cfg struct with the Terraform outputs
+// from the given tfDir directory. The cfg arg must be a pointer to
+// a value that can be populated by json.Unmarshal based on the output
+// of the `terraform output -json` command.
+func UnmarshalTF(tfDir string, cfg interface{}) error {
+	type tfOutputItem struct {
+		Value interface{}
+		Type  interface{}
+	}
+	// We use tfOutput to parse the terraform output.
+	// We then read the parsed output and put into tfOutputValues,
+	// extracting only Values from the output.
+	var tfOutput map[string]tfOutputItem
+	tfOutputValues := make(map[string]interface{})
+
+	// Get terraform output as JSON.
+	cmd := exec.Command("terraform", "output", "-state", fmt.Sprintf("%s/terraform.tfstate", tfDir), "-json")
+	cmdOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	// Parse terraform output into tfOutput map.
+	err = json.Unmarshal(cmdOutput, &tfOutput)
+	if err != nil {
+		return err
+	}
+
+	// Extract Values from the parsed output into a separate map.
+	for k, v := range tfOutput {
+		tfOutputValues[k] = v.Value
+	}
+
+	// Marshal the resulting map back into JSON so that
+	// we can unmarshal it into the target struct directly.
+	configJSON, err := json.Marshal(tfOutputValues)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(configJSON, cfg)
 }
