@@ -20,7 +20,7 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
-        terraform_version: v1.1.9
+        terraform_version: v1.3.1
     - name: Validate
       run: terraform fmt -check -recursive .
   go-test-lint:
