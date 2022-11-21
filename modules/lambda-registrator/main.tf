@@ -9,7 +9,12 @@ locals {
   }] : []
   cron_key          = "${var.name}-cron"
   lambda_events_key = "${var.name}-lambda_events"
+  image_tag     = split(":", var.consul_lambda_registrator_image)[1]
+  ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
+  //See comment in line 157 for explanation
+//  ecr_image_uri_pull-through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/ecr-public/hashicorp/${var.private_repo_name}:${local.image_tag}"
 }
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "registration" {
   name = var.name
@@ -127,8 +132,54 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
+resource "aws_ecr_repository" "lambda-registrator" {
+  name = var.private_repo_name
+  force_delete = true
+}
+
+resource "null_resource" "pull_and_republish_ecr_image" {
+  count = var.pull_through ? 0 : 1
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = <<EOF
+    aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com
+    docker pull ${var.consul_lambda_registrator_image}
+    docker tag ${var.consul_lambda_registrator_image}  ${local.ecr_image_uri}
+    docker push ${local.ecr_image_uri}
+    EOF
+  }
+
+  depends_on = [
+    aws_ecr_repository.lambda-registrator
+  ]
+}
+
+// Was able to get the pull through cache running via command line using the same aws-docker login as in line 145 and doing a modified pull using ecr pull-through variable in locals above
+// through the command line - but unable to replicate that behavior here. Paul was paired with me when we made this breakthrough so may be valuable to ping him for clearer explanation.
+// Commenting out below resource for now.
+#resource "null_resource" "ecr_pull_through_cache" {
+#  count = var.pull_through ? 1 : 0
+#  triggers = {
+#    always_run = timestamp()
+#  }
+#
+#  provisioner "local-exec" {
+#    command = <<EOF
+#    aws ecr create-pull-through-cache-rule \
+#     --ecr-repository-prefix ecr-public \
+#     --upstream-registry-url public.ecr.aws \
+#     --region ${var.region}
+#    EOF
+#  }
+  //Need to find a way to force delete the created pull through rule, otherwise error will be thrown if this is run multiple times sans delete
+  //since pull through rule already exists from previous apply
+#}
+
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri
+  image_uri                      = local.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
@@ -168,6 +219,11 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
+
+  depends_on = [
+    null_resource.pull_and_republish_ecr_image
+  ]
+  //Once pull through is properly configured, need to add null_resource.ecr_pull_through_cache into depends_on array
 }
 
 module "eventbridge" {
