@@ -3,9 +3,10 @@ variable "name" {
   type        = string
 }
 
-variable "ecr_image_uri" {
-  description = "The private ECR image URI for consul-lambda-registrator."
+variable "lambda_registrator_image" {
+  description = "The Consul Lambda Registrator image for consul-lambda-registrator."
   type        = string
+  default = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta2"
 }
 
 variable "region" {

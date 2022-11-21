@@ -62,16 +62,11 @@ variable "reserved_concurrent_executions" {
   default     = -1
 }
 
-variable "ecr_image_uri" {
-  description = <<-EOT
-  The ECR image URI for consul-lambda-registrator. The image must be in the
-  same AWS region and in a private ECR repository. Due to these constraints,
-  the public ECR images (https://gallery.ecr.aws/hashicorp/consul-lambda-registrator)
-  cannot be used directly. We recommend either creating and using a new ECR
-  repository or configuring pull through cache rules (https://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html).
-  EOT
-  type        = string
-}
+#variable "image_uri" {
+#  description = "The image URI for consul-lambda-registrator."
+#  type        = string
+#  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta2"
+#}
 
 variable "sync_frequency_in_minutes" {
   description = "The interval EventBridge is configured to trigger full synchronizations."
@@ -95,4 +90,28 @@ variable "tags" {
   description = "Additional tags to set on the Lambda registrator."
   type        = map(string)
   default     = {}
+}
+variable "region" {
+  type = string
+  description = "AWS region for private repository"
+  default     = "us-east-2"
+}
+
+variable "private_repo_name" {
+  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
+  type = string
+  default = "consul-lambda-registrator"
+}
+
+variable "pull_through" {
+  description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
+  type = bool
+  default = false
+}
+
+
+variable "consul_lambda_registrator_image"{
+  description = "The Lambda registrator image to be used, either the latest L.R. image or a user specified prior version"
+  type = string
+  default = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta2"
 }
