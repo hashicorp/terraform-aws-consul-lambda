@@ -58,9 +58,11 @@ func TestUpsertAndDelete(t *testing.T) {
 
 	for n, c := range cases {
 		upsertEvent := UpsertEvent{
-			Service:            structs.Service{Name: serviceName, EnterpriseMeta: c.EnterpriseMeta},
-			PayloadPassthrough: true,
-			ARN:                "arn",
+			Service: structs.Service{Name: serviceName, EnterpriseMeta: c.EnterpriseMeta},
+			LambdaArguments: LambdaArguments{
+				PayloadPassthrough: true,
+				ARN:                "arn",
+			},
 		}
 		deleteEvent := DeleteEvent{structs.Service{Name: serviceName, EnterpriseMeta: c.EnterpriseMeta}}
 
@@ -69,27 +71,27 @@ func TestUpsertAndDelete(t *testing.T) {
 				err := upsertEvent.Reconcile(env)
 				require.NoError(t, err)
 
-				assertConsulState(t, consulClient, env, upsertEvent, 1)
+				assertConsulState(t, consulClient, upsertEvent, 1)
 			})
 
 			t.Run("Enabling the service with meta", func(t *testing.T) {
 				err := upsertEvent.Reconcile(env)
 				require.NoError(t, err)
 
-				assertConsulState(t, consulClient, env, upsertEvent, 1)
+				assertConsulState(t, consulClient, upsertEvent, 1)
 			})
 
 			t.Run("Deleting the service", func(t *testing.T) {
 				err := deleteEvent.Reconcile(env)
 				require.NoError(t, err)
 
-				assertConsulState(t, consulClient, env, upsertEvent, 0)
+				assertConsulState(t, consulClient, upsertEvent, 0)
 			})
 		})
 	}
 }
 
-func assertConsulState(t *testing.T, consulClient *api.Client, env Environment, event UpsertEvent, count int) {
+func assertConsulState(t *testing.T, consulClient *api.Client, event UpsertEvent, count int) {
 	services, _, err := consulClient.Catalog().Service(event.Name, "", QueryOptions(event.Service))
 	require.NoError(t, err)
 	require.Len(t, services, count)

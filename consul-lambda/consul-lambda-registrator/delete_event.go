@@ -8,14 +8,17 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
 )
 
+// DeleteEvent struct holds data for an event that triggers the deletion of a Lambda function.
 type DeleteEvent struct {
 	structs.Service
 }
 
+// Identifier returns the name of the lambda function being deleted.
 func (e DeleteEvent) Identifier() string {
 	return e.Name
 }
 
+// Reconcile reconciles lambda with the state of Consul and performs the necessary steps to delete a Lambda.
 func (e DeleteEvent) Reconcile(env Environment) error {
 	env.Logger.Info("Deleting Lambda service from Consul", "service-name", e.Name)
 
@@ -79,6 +82,8 @@ func (e DeleteEvent) writeOptions() *api.WriteOptions {
 	return writeOptions
 }
 
+// AddAlias returns a new DeleteEvent for a Lambda function with an alias so that it can be removed from Consul
+// when Reconcile is called.
 func (e DeleteEvent) AddAlias(alias string) DeleteEvent {
 	e.Name = fmt.Sprintf("%s-%s", e.Name, alias)
 	return e

@@ -20,9 +20,6 @@ type Config struct {
 	// NodeName is the Consul node name that will have all Lambda services registered to it.
 	NodeName string `envconfig:"NODE_NAME" required:"true"`
 
-	// Region is the AWS region Lambda registrator is running in.
-	Region string `envconfig:"AWS_REGION"`
-
 	// Datacenter is the Consul datacenter that the Lambda registrator manages.
 	// If not set, Lambda registrator will manage Lambda services for all datacenters in this region.
 	Datacenter string `envconfig:"DATACENTER"`
@@ -142,8 +139,8 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 
 // IsManagingTLS indicates whether the Environment is configured to retrieve mTLS data from Consul and
 // write it to the parameter store.
-func (e Environment) IsManagingTLS() bool {
-	return len(e.ExtensionDataPrefix) > 0
+func (env Environment) IsManagingTLS() bool {
+	return len(env.ExtensionDataPrefix) > 0
 }
 
 func setConsulCACert(ctx context.Context, store ParamStore, path string) error {
