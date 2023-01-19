@@ -51,7 +51,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.12.1"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.0"
 
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
@@ -61,7 +61,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.12.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.0"
 			}
 
 			setupSuffix := tfVars["suffix"]
@@ -344,9 +344,8 @@ func TestBasic(t *testing.T) {
 				}{}
 				err = json.Unmarshal(result, &obs)
 				r.Check(err)
-
-				require.Len(r, obs.Body, 1)
-				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code)
+				require.Len(r, obs.Body, 1, fmt.Sprintf("result included %s", string(result)))
+				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code, fmt.Sprintf("result included %s", string(result)))
 			})
 
 			meshToLambdaTerraformOptions.Vars = map[string]interface{}{

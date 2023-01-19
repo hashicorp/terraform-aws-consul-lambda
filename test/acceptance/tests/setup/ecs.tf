@@ -13,7 +13,7 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  version = "0.5.1"
+  version = "0.5.2"
   family  = "test_client_${var.suffix}"
   port    = "9090"
   container_definitions = [{
@@ -89,9 +89,6 @@ module "test_client" {
   ]
   consul_agent_configuration = <<-EOT
   log_level = "debug"
-  connect {
-    enable_serverless_plugin = true
-  }
   EOT
 
   tls                       = true
@@ -164,7 +161,7 @@ resource "aws_iam_role" "execution" {
 module "acl_controller" {
   count   = var.secure ? 1 : 0
   source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
-  version = "0.5.1"
+  version = "0.5.2"
   log_configuration = {
     logDriver = "awslogs"
     options = {
