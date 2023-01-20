@@ -17,4 +17,4 @@ We want to create a strong community around Consul on Lambda. We will take all P
 
 ## License
 
-This code is released under the Mozilla Public License 2.0. Please see [LICENSE](https://github.com/hashicorp/terraform-aws-consul-lambda/blob/main/LICENSE) for more details.
+ This code is released under the Mozilla Public License 2.0. Please see [LICENSE](https://github.com/hashicorp/terraform-aws-consul-lambda/blob/main/LICENSE) for more details.
