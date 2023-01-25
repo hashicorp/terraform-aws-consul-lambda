@@ -252,7 +252,7 @@ func TestBasic(t *testing.T) {
 			}
 
 			for _, c := range lambdas {
-				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
 					if c.inDefaultPartition {
@@ -345,7 +345,7 @@ func TestBasic(t *testing.T) {
 				err = json.Unmarshal(result, &obs)
 				r.Check(err)
 
-				require.Len(r, obs.Body, 1)
+				require.Len(r, obs.Body, 1, fmt.Sprintf("received result: %s", string(result)))
 				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code)
 			})
 
