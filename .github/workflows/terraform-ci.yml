@@ -91,8 +91,6 @@ jobs:
       run: |
         mkdir -p $TEST_RESULTS
         gotestsum \
-          --rerun-fails=2 \
-          --rerun-fails-max-failures=2 \
           --rerun-fails-report "$TEST_RESULTS/gotestsum-rerun-fails" \
           --packages "./..." \
           --junitfile "$TEST_RESULTS/gotestsum-report.xml" \
