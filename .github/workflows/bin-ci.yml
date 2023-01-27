@@ -3,7 +3,7 @@ on:
   push:
     branches: '**'
 env:
-  GO_VERSION: '1.18'
+  GO_VERSION: '1.19'
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 jobs:
   lint:
@@ -20,7 +20,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
       with:
-        version: v1.45
+        version: v1.50.1
         args: |
           --verbose
         only-new-issues: false
@@ -33,8 +33,8 @@ jobs:
     strategy:
       matrix:
         consul-version:
-        - 1.13.1
-        - 1.13.1+ent
+        - 1.15.0
+        - 1.15.0+ent
     defaults:
       run:
         working-directory: ./consul-lambda/consul-lambda-registrator
