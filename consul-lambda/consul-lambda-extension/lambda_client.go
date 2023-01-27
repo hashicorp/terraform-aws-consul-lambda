@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 )
@@ -138,7 +138,7 @@ func (c *Lambda) next(ctx context.Context) (*NextEventResponse, error) {
 		return nil, fmt.Errorf("request failed with status %s", httpRes.Status)
 	}
 	defer httpRes.Body.Close()
-	body, err := ioutil.ReadAll(httpRes.Body)
+	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}
