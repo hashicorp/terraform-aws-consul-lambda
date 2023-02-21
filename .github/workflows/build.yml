@@ -19,8 +19,8 @@ jobs:
       - name: Determine Go version
         id: get-go-version
         run: |
-          echo "Building with Go $(cat ./go-version)"
-          echo "::set-output name=go-version::$(cat ./.go-version)"
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
 
   get-product-version:
     defaults:
@@ -84,7 +84,6 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-
       - name: Build
         run: |
           mkdir dist out extensions
