@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 FROM public.ecr.aws/lambda/provided:al2 AS release-default
 
 ARG BIN_NAME=consul-lambda-registrator

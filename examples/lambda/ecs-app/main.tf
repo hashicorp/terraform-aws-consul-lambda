@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   upstream_uris = join(",", [for u in var.upstreams : "http://localhost:${u.localBindPort}"])
 

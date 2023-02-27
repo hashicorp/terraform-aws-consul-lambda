@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // Generate a gossip encryption key if a secure installation.
 resource "random_id" "gossip_encryption_key" {
   count       = var.secure ? 1 : 0
