@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "aws_ecs_service" "test_client" {
   name            = "test_client_${var.suffix}"
   cluster         = var.ecs_cluster_arn

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   ecr_repository_name = "lr_${local.suffix}"
   ecr_image_tag       = "latest"
