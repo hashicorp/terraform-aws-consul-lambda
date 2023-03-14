@@ -15,10 +15,13 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  version = "0.5.2"
-  family  = "test_client_${var.suffix}"
-  port    = "9090"
+  //TODO source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  //TODO version = "0.6.0"
+  //TODO remove
+  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  source           = "github.com/hashicorp/terraform-aws-consul-ecs//modules/mesh-task?ref=f118df6ca90fe5c07c4ae4e57de28a54a3263866"
+  family           = "test_client_${var.suffix}"
+  port             = "9090"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -162,9 +165,11 @@ resource "aws_iam_role" "execution" {
 }
 
 module "acl_controller" {
-  count   = var.secure ? 1 : 0
-  source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
-  version = "0.5.2"
+  count = var.secure ? 1 : 0
+  //TODO source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
+  //TODO version = "0.5.2"
+  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  source           = "github.com/hashicorp/terraform-aws-consul-ecs//modules/acl-controller?ref=f118df6ca90fe5c07c4ae4e57de28a54a3263866"
   log_configuration = {
     logDriver = "awslogs"
     options = {

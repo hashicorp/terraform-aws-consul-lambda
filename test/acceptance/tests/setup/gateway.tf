@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 module "mesh_gateway" {
-  source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version                       = "0.5.2"
+  //TODO source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  //TODO version                       = "0.5.2"
+  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  source           = "github.com/hashicorp/terraform-aws-consul-ecs//modules/gateway-task?ref=f118df6ca90fe5c07c4ae4e57de28a54a3263866"
+
   kind                          = "mesh-gateway"
   family                        = "mesh-gateway-${var.suffix}"
   ecs_cluster_arn               = var.ecs_cluster_arn
