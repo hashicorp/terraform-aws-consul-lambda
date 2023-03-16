@@ -1,5 +1,5 @@
 <h1>
-  <img src="./_docs/logo.svg" align="left" height="46px" alt="Consul logo"/>
+  <img src="https://raw.githubusercontent.com/hashicorp/terraform-aws-consul-lambda/main/_docs/logo.svg" align="left" height="46px" alt="Consul logo"/>
   <span>Consul on AWS Lambda</span>
 </h1>
 

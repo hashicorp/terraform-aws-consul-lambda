@@ -12,7 +12,7 @@ The following prerequisites are needed to run the acceptance tests:
    - [Authentication for HCP provider](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs/guides/auth)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (`aws`)
    - [AWS Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
-- [Amazon ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html) (`ecs-cli`)
+- [Amazon ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI.html) (`ecs-cli`)
 
 ### Instructions
 

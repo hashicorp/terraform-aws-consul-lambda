@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   lambda_source_path      = "src/lambda"
   lambda_source_code_hash = filebase64sha256("${local.lambda_source_path}/main.go")

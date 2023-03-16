@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{

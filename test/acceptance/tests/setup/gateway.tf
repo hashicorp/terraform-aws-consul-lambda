@@ -1,6 +1,10 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 module "mesh_gateway" {
-  source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version                       = "0.5.1"
+  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  version = "0.6.0"
+
   kind                          = "mesh-gateway"
   family                        = "mesh-gateway-${var.suffix}"
   ecs_cluster_arn               = var.ecs_cluster_arn
@@ -30,8 +34,5 @@ module "mesh_gateway" {
   }
 
   consul_agent_configuration = <<-EOT
-  connect {
-    enable_serverless_plugin = true
-  }
   EOT
 }

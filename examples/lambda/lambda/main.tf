@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   tags = merge(
     { "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true" },

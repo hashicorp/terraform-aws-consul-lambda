@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 module "mesh_gateway" {
   source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
   version                       = "0.5.1"

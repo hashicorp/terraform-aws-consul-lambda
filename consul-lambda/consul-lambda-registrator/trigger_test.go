@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -17,9 +20,11 @@ func TestAWSEventToEvents(t *testing.T) {
 	ctx := context.Background()
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	s1 := UpsertEvent{
-		Service:        structs.Service{Name: "lambda-1234"},
-		ARN:            arn,
-		InvocationMode: asynchronousInvocationMode,
+		Service: structs.Service{Name: "lambda-1234"},
+		LambdaArguments: LambdaArguments{
+			ARN:            arn,
+			InvocationMode: asynchronousInvocationMode,
+		},
 	}
 	s1WithAliases := UpsertEventPlusMeta{
 		UpsertEvent:   s1,
@@ -67,10 +72,12 @@ func TestGetLambdaData(t *testing.T) {
 	arn := "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
 	makeService := func(enterprise bool, alias, dc string) UpsertEvent {
 		e := UpsertEvent{
-			ARN:                arn,
-			PayloadPassthrough: true,
-			InvocationMode:     asynchronousInvocationMode,
-			Service:            structs.Service{Name: "lambda-1234", Datacenter: dc},
+			LambdaArguments: LambdaArguments{
+				ARN:                arn,
+				PayloadPassthrough: true,
+				InvocationMode:     asynchronousInvocationMode,
+			},
+			Service: structs.Service{Name: "lambda-1234", Datacenter: dc},
 		}
 		if enterprise {
 			e.EnterpriseMeta = &structs.EnterpriseMeta{Namespace: "n", Partition: "p"}
@@ -219,7 +226,7 @@ func TestGetLambdaData(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			events, err := env.GetLambdaEvents(ctx, fn)
+			events, err := env.GetLambdaEvents(fn)
 			if c.err {
 				require.Error(t, err)
 				return
@@ -243,9 +250,11 @@ func TestFullSyncData(t *testing.T) {
 	}
 
 	s1 := UpsertEvent{
-		Service:        structs.Service{Name: "lambda-1234", EnterpriseMeta: enterpriseMeta},
-		ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
-		InvocationMode: "SYNCHRONOUS",
+		Service: structs.Service{Name: "lambda-1234", EnterpriseMeta: enterpriseMeta},
+		LambdaArguments: LambdaArguments{
+			ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+			InvocationMode: "SYNCHRONOUS",
+		},
 	}
 	service1 := UpsertEventPlusMeta{
 		UpsertEvent:   s1,
@@ -255,14 +264,18 @@ func TestFullSyncData(t *testing.T) {
 	disabledService1.CreateService = false
 
 	s1prod := UpsertEvent{
-		Service:        structs.Service{Name: "lambda-1234-prod", EnterpriseMeta: enterpriseMeta},
-		ARN:            s1.ARN + ":prod",
-		InvocationMode: "SYNCHRONOUS",
+		Service: structs.Service{Name: "lambda-1234-prod", EnterpriseMeta: enterpriseMeta},
+		LambdaArguments: LambdaArguments{
+			ARN:            s1.ARN + ":prod",
+			InvocationMode: "SYNCHRONOUS",
+		},
 	}
 	s1dev := UpsertEvent{
-		Service:        structs.Service{Name: "lambda-1234-dev", EnterpriseMeta: enterpriseMeta},
-		ARN:            s1.ARN + ":dev",
-		InvocationMode: "SYNCHRONOUS",
+		Service: structs.Service{Name: "lambda-1234-dev", EnterpriseMeta: enterpriseMeta},
+		LambdaArguments: LambdaArguments{
+			ARN:            s1.ARN + ":dev",
+			InvocationMode: "SYNCHRONOUS",
+		},
 	}
 	service1WithAlias := UpsertEventPlusMeta{
 		UpsertEvent:   s1,

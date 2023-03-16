@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // Generate a gossip encryption key if a secure installation.
 resource "random_id" "gossip_encryption_key" {
   count       = var.secure ? 1 : 0
@@ -20,7 +23,7 @@ module "dev_consul_server" {
   consul_image                = var.consul_image
   name                        = "${local.short_name}-consul-server"
   source                      = "hashicorp/consul-ecs/aws//modules/dev-server"
-  version                     = "0.5.1"
+  version                     = "0.6.0"
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.private_subnets
   vpc_id                      = var.vpc_id

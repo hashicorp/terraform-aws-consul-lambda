@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "name" {
   description = "The name of this Lambda function. This is also the service name that will get registered with Consul."
   type        = string

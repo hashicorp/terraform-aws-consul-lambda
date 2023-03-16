@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -23,8 +26,6 @@ const (
 	datacenterEnvironment    string = "DATACENTER"
 	partitionsEnvironment    string = "PARTITIONS"
 	logLevelEnvironment      string = "LOG_LEVEL"
-	consulCAPathEnvironment  string = "CONSUL_CACERT_PATH"
-	consulHTTPTokenPath      string = "CONSUL_HTTP_TOKEN_PATH"
 	extensionPathEnvironment string = "CONSUL_EXTENSION_DATA_PREFIX"
 )
 
@@ -54,7 +55,6 @@ func TestSetupEnvironment(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, envVars[nodeNameEnvironment], env.NodeName)
-	require.Equal(t, envVars[awsRegionEnvironment], env.Region)
 	require.Equal(t, envVars[datacenterEnvironment], env.Datacenter)
 	require.Equal(t, envVars[logLevelEnvironment], env.LogLevel)
 	require.Equal(t, envVars[extensionPathEnvironment], env.ExtensionDataPrefix)
@@ -166,7 +166,6 @@ func mockEnvironment(lambdaClient LambdaAPIClient, consulClient *api.Client) Env
 	return Environment{
 		Config: Config{
 			NodeName:     "lambdas",
-			Region:       "us-east-1",
 			IsEnterprise: false,
 			Partitions:   make(map[string]struct{}),
 		},
