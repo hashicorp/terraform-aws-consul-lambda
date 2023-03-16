@@ -49,8 +49,8 @@ jobs:
     strategy:
       matrix:
         consul-version:
-        - 1.15.0
-        - 1.15.0+ent
+        - 1.15.1
+        - 1.15.1+ent
     needs:
       - get-go-version
     defaults:

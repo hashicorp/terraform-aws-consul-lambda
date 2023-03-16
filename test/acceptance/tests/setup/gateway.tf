@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 module "mesh_gateway" {
-  source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version                       = "0.5.2"
+  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  version = "0.6.0"
+
   kind                          = "mesh-gateway"
   family                        = "mesh-gateway-${var.suffix}"
   ecs_cluster_arn               = var.ecs_cluster_arn

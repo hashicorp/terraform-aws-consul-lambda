@@ -16,7 +16,7 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  version = "0.5.2"
+  version = "0.6.0"
   family  = "test_client_${var.suffix}"
   port    = "9090"
   container_definitions = [{
@@ -164,7 +164,7 @@ resource "aws_iam_role" "execution" {
 module "acl_controller" {
   count   = var.secure ? 1 : 0
   source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
-  version = "0.5.2"
+  version = "0.6.0"
   log_configuration = {
     logDriver = "awslogs"
     options = {

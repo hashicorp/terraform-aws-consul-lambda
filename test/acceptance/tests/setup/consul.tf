@@ -23,7 +23,7 @@ module "dev_consul_server" {
   consul_image                = var.consul_image
   name                        = "${local.short_name}-consul-server"
   source                      = "hashicorp/consul-ecs/aws//modules/dev-server"
-  version                     = "0.5.2"
+  version                     = "0.6.0"
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.private_subnets
   vpc_id                      = var.vpc_id
