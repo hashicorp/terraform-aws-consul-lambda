@@ -71,6 +71,7 @@ jobs:
       GOOS: linux
       GOARCH: amd64
       LDFLAGS: ${{ needs.get-product-version.outputs.ldflags }}
+      CGO_ENABLED: 0
     needs:
       - get-go-version
       - get-product-version

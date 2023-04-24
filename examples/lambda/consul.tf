@@ -4,7 +4,7 @@
 module "dev_consul_server" {
   name                        = "${var.name}-consul-server"
   source                      = "hashicorp/consul-ecs/aws//modules/dev-server"
-  version                     = "0.5.1"
+  version                     = "0.6.0"
   ecs_cluster_arn             = aws_ecs_cluster.this.arn
   subnet_ids                  = module.vpc.private_subnets
   vpc_id                      = module.vpc.vpc_id
@@ -23,7 +23,7 @@ module "dev_consul_server" {
   }
   launch_type = "FARGATE"
 
-  consul_image = "public.ecr.aws/hashicorp/consul:1.12.4"
+  consul_image = "public.ecr.aws/hashicorp/consul:1.15.2"
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {

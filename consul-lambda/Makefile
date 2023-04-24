@@ -26,7 +26,7 @@ dist:
 	mkdir -p $(DIST)
 
 dev: dist
-	cd consul-lambda-registrator && GOARCH=$(ARCH) GOOS=$(OS) go build -ldflags "$(LD_FLAGS)" -o $(BIN)
+	cd consul-lambda-registrator && GOARCH=$(ARCH) GOOS=$(OS) CGO_ENABLED=0 go build -ldflags "$(LD_FLAGS)" -o $(BIN)
 .PHONY: dev
 
 # Docker Stuff.
