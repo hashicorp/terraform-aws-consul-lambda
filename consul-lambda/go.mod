@@ -9,8 +9,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.5.8
-	github.com/hashicorp/consul v1.11.0-beta1
-	github.com/hashicorp/consul/api v1.10.1-0.20230120175926-25396d81c9ee
+	github.com/hashicorp/consul v1.11.9
+	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/go-hclog v1.2.1
 	github.com/hashicorp/go-multierror v1.1.1
@@ -41,6 +41,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/go-bexpr v0.1.2 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
@@ -81,6 +82,7 @@ require (
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
