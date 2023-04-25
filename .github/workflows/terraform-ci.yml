@@ -11,6 +11,13 @@ on:
 env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 jobs:
+  action-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Lint workflow
+        uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   terraform-lint:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +43,7 @@ jobs:
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
   go-test-lint:
     runs-on: ubuntu-latest
     defaults:
@@ -51,6 +58,7 @@ jobs:
       uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
+        cache-dependency-path: ./test/acceptance/go.sum
     - name: lint-consul-retry
       run: |
         go install github.com/hashicorp/lint-consul-retry@latest
@@ -59,8 +67,7 @@ jobs:
       uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
         version: v1.51
-        args: |
-          --verbose
+        args: "--verbose --enable gofmt --timeout 2m"
         only-new-issues: false
         skip-pkg-cache: true
         skip-build-cache: true
@@ -74,6 +81,7 @@ jobs:
       TEST_RESULTS: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
     needs:
+      - action-lint
       - go-test-lint
       - terraform-lint
       - get-go-version
@@ -82,7 +90,8 @@ jobs:
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     - uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
-        go-version: ${{ steps.get-go-version.outputs.go-version }}
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
+        cache-dependency-path: ./test/acceptance/go.sum
     - name: Setup gotestsum
       shell: bash
       run: |
@@ -109,7 +118,7 @@ jobs:
         terraform apply -auto-approve
     - name: Run acceptance tests
       run: |
-        mkdir -p $TEST_RESULTS
+        mkdir -p "$TEST_RESULTS"
         gotestsum \
           --rerun-fails=2 \
           --rerun-fails-max-failures=2 \

@@ -3,7 +3,7 @@
 
 module "mesh_gateway" {
   source                        = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version                       = "0.5.1"
+  version                       = "0.6.0"
   kind                          = "mesh-gateway"
   family                        = "mesh-gateway"
   ecs_cluster_arn               = aws_ecs_cluster.this.arn
@@ -27,11 +27,5 @@ module "mesh_gateway" {
     }
   }
 
-  consul_image               = "public.ecr.aws/hashicorp/consul:1.12.4"
-  consul_agent_configuration = <<EOF
-connect {
-  enabled = true,
-  enable_serverless_plugin = true
-}
-EOF
+  consul_image = "public.ecr.aws/hashicorp/consul:1.15.2"
 }
