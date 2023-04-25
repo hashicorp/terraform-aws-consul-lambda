@@ -5,8 +5,8 @@ go 1.20
 require (
 	github.com/aws/aws-lambda-go v1.13.3
 	github.com/gruntwork-io/terratest v0.40.8
-	github.com/hashicorp/consul/api v1.10.1-0.20230120175926-25396d81c9ee
-	github.com/hashicorp/consul/sdk v0.13.0
+	github.com/hashicorp/consul/api v1.20.0
+	github.com/hashicorp/consul/sdk v0.13.1
 	github.com/stretchr/testify v1.7.0
 )
 
