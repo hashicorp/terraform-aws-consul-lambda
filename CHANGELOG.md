@@ -1,4 +1,12 @@
+## Unreleased
+
+BUG FIXES:
+* Disable Cgo compilation for Lambda registrator and extension. Compiling without `CGO_ENABLED=0` on Go 1.20 [causes an issue](https://github.com/hashicorp/terraform-aws-consul-lambda/issues/57) that does not allow Lambda registrator or the Lambda extension to execute within the AWS Lambda runtime.
+  [[GH-68]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/68)
+
 ## 0.1.0-beta3 (Mar 16, 2023)
+
+**Note**: The `0.1.0-beta3` release contains a breaking bug that does not allow Lambda registrator or the Lambda extension to execute within the AWS Lambda runtime. For Consul versions >= 1.15.0, use the `0.1.0-beta4` release. For Consul versions < 1.15.0, use the `0.1.0-beta2` release.
 
 BREAKING CHANGES
 * `EnvoyExtensions` configuration was released in Consul 1.15.0 and is now used to configure Lambda functions.
