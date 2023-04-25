@@ -92,8 +92,8 @@ jobs:
     - name: Test
       run: |
         mkdir -p "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json"
-        PACKAGE_NAMES=$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')
-        echo "Testing $(echo "$PACKAGE_NAMES" | wc -w) packages"
+        read -r -a PACKAGE_NAMES <<<"$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')"
+        echo "Testing $(echo "${PACKAGE_NAMES[@]}" | wc -w) packages"
         if echo "${{ matrix.consul-version }}" | grep -q '.*\+ent'; then
           FLAG=-enterprise
         fi
@@ -101,7 +101,7 @@ jobs:
           --format=short-verbose \
           --jsonfile "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json/go-test-race.log" \
           --junitfile "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/gotestsum-report.xml" -- \
-          -race $PACKAGE_NAMES \
+          -race "${PACKAGE_NAMES[@]}" \
           -- "$FLAG"
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
