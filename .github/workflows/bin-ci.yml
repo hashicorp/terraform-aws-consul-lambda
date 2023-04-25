@@ -77,10 +77,14 @@ jobs:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./consul-lambda/go.sum
     - name: Install Consul
-      uses: nickethier/action-setup-hashicorp-tool@main  # TSCCR: no entry for repository "nickethier/action-setup-hashicorp-tool"
-      with:
-        product: consul
-        version: ${{ matrix.consul-version }}
+      shell: bash
+      run: |
+        CONSUL_VERSION="${{ matrix.consul-version }}"
+        FILENAME="consul_${CONSUL_VERSION}_linux_amd64.zip"
+        curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
+          unzip "${FILENAME}" -d /usr/local/bin && \
+          rm "${FILENAME}"
+        consul version
     - name: Build
       run: go build -v ./...
     - name: Setup gotestsum
