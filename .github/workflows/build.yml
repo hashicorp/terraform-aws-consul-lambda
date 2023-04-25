@@ -6,12 +6,20 @@ env:
   EXT_NAME: "consul-lambda-extension"
 
 jobs:
+  action-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Lint workflow
+        uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
     name: "Determine Go toolchain version"
     defaults:
       run:
         working-directory: ./consul-lambda
     runs-on: ubuntu-latest
+    needs: action-lint
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
@@ -20,13 +28,14 @@ jobs:
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
 
   get-product-version:
     defaults:
       run:
         working-directory: ./consul-lambda
     runs-on: ubuntu-latest
+    needs: action-lint
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
       ldflags: ${{ steps.get-product-version.outputs.ldflags }}
@@ -36,16 +45,18 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-          echo "::set-output name=product-version::$(make version)"
-          echo "::set-output name=ldflags::-s -w"
-          echo "::set-output name=git-short-sha::$(git rev-parse --short HEAD)"
+          {
+            echo "product-version=$(make version)"
+            echo "ldflags='-s -w'"
+            echo "git-short-sha=$(git rev-parse --short HEAD)"
+          } >> "$GITHUB_OUTPUT"
 
   generate-metadata-file:
-    needs: get-product-version
     defaults:
       run:
         working-directory: ./consul-lambda
     runs-on: ubuntu-latest
+    needs: [action-lint, get-product-version]
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
