@@ -14,7 +14,7 @@ jobs:
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Determine Go version
         id: get-go-version
         run: |
@@ -29,12 +29,12 @@ jobs:
       - get-go-version
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+    - uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.4.0
+      uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
         version: v1.51
         args: |
@@ -62,13 +62,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+    - uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
 
     - name: Install Consul
-      uses: nickethier/action-setup-hashicorp-tool@main #TODO: update action when migrated to hc org
+      uses: nickethier/action-setup-hashicorp-tool@main  # TSCCR: no entry for repository "nickethier/action-setup-hashicorp-tool"
       with:
         product: consul
         version: ${{ matrix.consul-version }}
@@ -94,7 +94,7 @@ jobs:
           --junitfile $TEST_RESULTS_DIR/${{ matrix.consul-version }}/gotestsum-report.xml -- \
           -race $PACKAGE_NAMES \
           -- $FLAG
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: test-results
         path: ${{ env.TEST_RESULTS_DIR }}/${{ matrix.consul-version }}

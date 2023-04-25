@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
@@ -31,7 +31,7 @@ jobs:
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Determine Go version
         id: get-go-version
         run: |
@@ -46,9 +46,9 @@ jobs:
       - get-go-version
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     - name: Setup go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: lint-consul-retry
@@ -56,7 +56,7 @@ jobs:
         go install github.com/hashicorp/lint-consul-retry@latest
         lint-consul-retry
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.4.0
+      uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
         version: v1.51
         args: |
@@ -79,8 +79,8 @@ jobs:
       - get-go-version
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+    - uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Setup gotestsum
@@ -118,12 +118,12 @@ jobs:
           --junitfile "$TEST_RESULTS/gotestsum-report.xml" \
           --format standard-verbose -- \
           ./... -p 1 -timeout 90m -v -failfast
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       if: always()
       with:
         name: acceptance-test-results
         path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       if: always()
       with:
         name: acceptance-test-flakes

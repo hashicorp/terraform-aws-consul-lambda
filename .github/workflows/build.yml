@@ -15,7 +15,7 @@ jobs:
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Determine Go version
         id: get-go-version
         run: |
@@ -32,7 +32,7 @@ jobs:
       ldflags: ${{ steps.get-product-version.outputs.ldflags }}
       git-short-sha: ${{ steps.get-product-version.outputs.git-short-sha }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: get product version
         id: get-product-version
         run: |
@@ -50,7 +50,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: "Checkout directory"
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -58,7 +58,7 @@ jobs:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PRD_NAME }}
           repositoryOwner: "hashicorp"
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -79,10 +79,10 @@ jobs:
     name: Go build
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Build
@@ -98,13 +98,13 @@ jobs:
           zip -r out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip extensions/
 
       - name: Upload consul-lambda-registrator
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
           path: ./consul-lambda/out/${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
       - name: Upload consul-lambda-extension
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
           path: ./consul-lambda/out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Docker Build
         uses: hashicorp/actions-docker-build@v1
@@ -157,7 +157,7 @@ jobs:
       git-short-sha: ${{ needs.get-product-version.outputs.git-short-sha }}
     steps:
       - name: Download image artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: ${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
       - name: Docker push
