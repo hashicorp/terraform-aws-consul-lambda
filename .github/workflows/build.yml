@@ -47,7 +47,7 @@ jobs:
         run: |
           {
             echo "product-version=$(make version)"
-            echo "ldflags='-s -w'"
+            echo "ldflags=-s -w"
             echo "git-short-sha=$(git rev-parse --short HEAD)"
           } >> "$GITHUB_OUTPUT"
 
