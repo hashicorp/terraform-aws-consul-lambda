@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.0-beta4 (Apr 26, 2023)
 
 BUG FIXES:
 * Disable Cgo compilation for Lambda registrator and extension. Compiling without `CGO_ENABLED=0` on Go 1.20 [causes an issue](https://github.com/hashicorp/terraform-aws-consul-lambda/issues/57) that does not allow Lambda registrator or the Lambda extension to execute within the AWS Lambda runtime.
