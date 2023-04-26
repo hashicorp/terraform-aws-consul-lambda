@@ -119,7 +119,7 @@ This step builds and packages the function that will be deployed to AWS Lambda.
 This Lambda function is used as the source for both `lambda-app-1` and `lambda-app-2`.
 
 ```shell
-(cd src/lambda && GOOS=linux go build -o main && zip function.zip main)
+(cd src/lambda && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o main && zip function.zip main)
 ```
 
 ## Get your IP address
