@@ -1,4 +1,8 @@
-## Unreleased
+## 0.1.0-beta4 (Apr 28, 2023)
+
+IMPROVEMENTS:
+* Pin the version of the `terraform-aws-modules/eventbridge/aws` module to v1.17.3. This ensures the selection of the eventbridge module is deterministic when using the `lambda-registrator` Terraform module.
+  [[GH-70]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/70)
 
 BUG FIXES:
 * Disable Cgo compilation for Lambda registrator and extension. Compiling without `CGO_ENABLED=0` on Go 1.20 [causes an issue](https://github.com/hashicorp/terraform-aws-consul-lambda/issues/57) that does not allow Lambda registrator or the Lambda extension to execute within the AWS Lambda runtime.
