@@ -168,7 +168,8 @@ resource "aws_lambda_function" "registration" {
 }
 
 module "eventbridge" {
-  source = "terraform-aws-modules/eventbridge/aws"
+  source  = "terraform-aws-modules/eventbridge/aws"
+  version = "1.17.3"
 
   create_bus = false
   role_name  = "${var.name}-eventbridge"
