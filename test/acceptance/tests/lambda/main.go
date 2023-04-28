@@ -20,11 +20,13 @@ func main() {
 }
 
 // With payload_passthrough = true
+//
 //	{
 //	  "lambda-to-mesh": true
 //	}
 //
 // With payload_passthrough = false
+//
 //	{
 //	  "body": {
 //	    "lambda-to-mesh": true

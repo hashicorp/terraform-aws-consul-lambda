@@ -44,7 +44,7 @@ resource "aws_ecs_service" "this" {
 
 module "this" {
   source                    = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  version                   = "0.5.1"
+  version                   = "0.6.0"
   family                    = var.name
   port                      = "9090"
   tls                       = true
@@ -98,11 +98,5 @@ module "this" {
 
   additional_task_role_policies = var.additional_task_role_policies
 
-  consul_image               = "public.ecr.aws/hashicorp/consul:1.12.4"
-  consul_agent_configuration = <<EOF
-connect {
-  enabled = true,
-  enable_serverless_plugin = true
-}
-EOF
+  consul_image = "public.ecr.aws/hashicorp/consul:1.15.2"
 }
