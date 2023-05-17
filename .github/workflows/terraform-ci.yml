@@ -24,7 +24,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1 # v2.0.3
       with:
         terraform_version: v1.3.1
     - name: Validate
@@ -120,9 +120,6 @@ jobs:
       run: |
         mkdir -p "$TEST_RESULTS"
         gotestsum \
-          --rerun-fails=2 \
-          --rerun-fails-max-failures=2 \
-          --rerun-fails-report "$TEST_RESULTS/gotestsum-rerun-fails" \
           --packages "./..." \
           --junitfile "$TEST_RESULTS/gotestsum-report.xml" \
           --format standard-verbose -- \
@@ -132,11 +129,6 @@ jobs:
       with:
         name: acceptance-test-results
         path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-      if: always()
-      with:
-        name: acceptance-test-flakes
-        path: ${{ env.TEST_RESULTS }}/gotestsum-rerun-fails
     - name: terraform destroy
       if: always()
       run: |
