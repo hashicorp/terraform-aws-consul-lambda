@@ -180,7 +180,6 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 		env.Logger.Debug("Unable to parse (true, false) setting to standard tier parameter")
 		advancedTier = true
 	}
-
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
 	return env.Store.Set(context.Background(), path, string(extData), advancedTier)
