@@ -52,7 +52,13 @@ func (c *SSMClient) Get(ctx context.Context, key string) (string, error) {
 // Set writes the value for the given key to Parameter Store.
 // It writes the value as an encrypted SecureString.
 // Any existing data for the given key is overwritten.
-func (c *SSMClient) Set(ctx context.Context, key, val string) error {
+func (c *SSMClient) Set(ctx context.Context, key, val string, advancedTier bool) error {
+	tierType := types.ParameterTierStandard
+
+	if advancedTier {
+		tierType = types.ParameterTierAdvanced
+	}
+
 	_, err := c.client.PutParameter(
 		ctx,
 		&ssm.PutParameterInput{
@@ -60,6 +66,7 @@ func (c *SSMClient) Set(ctx context.Context, key, val string) error {
 			Value:     &val,
 			Overwrite: true,
 			Type:      types.ParameterTypeSecureString,
+			Tier:      tierType,
 		},
 	)
 	return err
