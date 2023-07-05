@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -119,7 +120,12 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 		return env, err
 	}
 
-	env.Store = client.NewSSM(&sdkConfig)
+	advancedTier, err := strconv.ParseBool(os.Getenv("CONSUL_ADVANCED_PARAMS"))
+	if err != nil {
+		env.Logger.Debug("Unable to parse (true, false) setting to standard tier parameter")
+	}
+
+	env.Store = client.NewSSM(&sdkConfig, advancedTier)
 	env.Lambda = NewLambdaClient(&sdkConfig, env.PageSize)
 
 	err = setConsulHTTPToken(ctx, env.Store, env.ConsulHTTPTokenPath)

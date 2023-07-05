@@ -7,8 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
@@ -175,13 +173,9 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	}
 	path := fmt.Sprintf("%s%s", env.ExtensionDataPrefix, service.ExtensionPath())
 
-	advancedTier, err = strconv.ParseBool(os.Getenv("CONSUL_ADVANCED_PARAMS"))
-	if err != nil {
-		env.Logger.Debug("Unable to parse (true, false) setting to standard tier parameter")
-	}
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
-	return env.Store.Set(context.Background(), path, string(extData), advancedTier)
+	return env.Store.Set(context.Background(), path, string(extData))
 }
 
 // QueryOptions takes in a structs.Service and returns a pointer to an api.QueryOptions struct.
