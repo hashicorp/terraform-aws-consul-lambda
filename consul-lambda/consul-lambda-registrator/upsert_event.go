@@ -178,7 +178,6 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	advancedTier, err = strconv.ParseBool(os.Getenv("CONSUL_ADVANCED_PARAMS"))
 	if err != nil {
 		env.Logger.Debug("Unable to parse (true, false) setting to standard tier parameter")
-		advancedTier = false
 	}
 	// TODO: do we need to pass a context in here?.. like from the lambda entrypoint
 	// so that this call can be canceled if necessary.
