@@ -60,14 +60,20 @@ func (c *SSMClient) Get(ctx context.Context, key string) (string, error) {
 // It writes the value as an encrypted SecureString.
 // Any existing data for the given key is overwritten.
 func (c *SSMClient) Set(ctx context.Context, key, val string) error {
+	if c.tier == types.ParameterTierAdvanced {
+		if len(val) < 4097 {
+			c.tier = types.ParameterTierStandard
+		}
+	}
+
 	input := &ssm.PutParameterInput{
 		Name:      &key,
 		Value:     &val,
 		Overwrite: true,
 		Type:      types.ParameterTypeSecureString,
-		Tier: c.tier
+		Tier:      c.tier,
 	}
 
-	_, err := c.client.PutParameter(ctx,input)
+	_, err := c.client.PutParameter(ctx, input)
 	return err
 }
