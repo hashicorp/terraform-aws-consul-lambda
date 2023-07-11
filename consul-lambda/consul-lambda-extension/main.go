@@ -103,7 +103,7 @@ func configure() (*Config, error) {
 		return cfg, fmt.Errorf("failed to create AWS SDK configuration: %w", err)
 	}
 
-	ssmClient := client.NewSSM(&sdkConfig)
+	ssmClient := client.NewSSM(&sdkConfig, "")
 
 	lambdaClient := NewLambda()
 	err = lambdaClient.Register(context.Background(), extensionName)

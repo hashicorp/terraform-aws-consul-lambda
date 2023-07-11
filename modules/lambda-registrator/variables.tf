@@ -35,6 +35,16 @@ variable "consul_extension_data_prefix" {
   default     = ""
 }
 
+variable "consul_extension_data_tier" {
+  description = <<-EOT
+  The tier to use for storing data in Parameter Store.
+  Refer to the Parameter Store documentation for applicable values (https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-advanced-parameters.html).
+  If this is unset the default tier will be used.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "node_name" {
   description = "The Consul node that Lambdas will be registered to."
   type        = string
