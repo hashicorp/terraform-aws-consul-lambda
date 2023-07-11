@@ -124,7 +124,7 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 		return env, err
 	}
 
-	env.Store = client.NewSSM(&sdkConfig, env.ExtenstionDataTier)
+	env.Store = client.NewSSM(&sdkConfig, env.ExtensionDataTier)
 	env.Lambda = NewLambdaClient(&sdkConfig, env.PageSize)
 
 	err = setConsulHTTPToken(ctx, env.Store, env.ConsulHTTPTokenPath)
