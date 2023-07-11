@@ -155,6 +155,9 @@ resource "aws_lambda_function" "registration" {
       } : {},
       var.consul_extension_data_prefix != "" ? {
         CONSUL_EXTENSION_DATA_PREFIX = var.consul_extension_data_prefix
+      } : {},
+      var.consul_extension_data_tier != "" ? {
+        CONSUL_EXTENSION_DATA_TIER = var.consul_extension_data_tier
       } : {}
     )
   }
