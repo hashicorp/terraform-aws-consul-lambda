@@ -118,7 +118,6 @@ func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 }
 
 func (env Environment) upsertTLSData(e UpsertEvent) error {
-	var advancedTier bool
 	if !env.IsManagingTLS() {
 		return nil
 	}
