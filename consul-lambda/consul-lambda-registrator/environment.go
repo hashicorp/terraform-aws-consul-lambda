@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -48,6 +47,11 @@ type Config struct {
 
 	// ExtensionDataPrefix is the path in Parameter Store where extension data will be written.
 	ExtensionDataPrefix string `envconfig:"CONSUL_EXTENSION_DATA_PREFIX"`
+
+	// ExtensionDataTier is the tier to use for storing data in Parameter Store.
+	// Refer to the Parameter Store documentation for applicable values.
+	// If this value is not set the default value from the AWS SDK will be used.
+	ExtensionDataTier string `envconfig:"CONSUL_EXTENSION_DATA_TIER"`
 
 	// PageSize is the maximum number of Lambda functions per page when querying the Lambda API.
 	PageSize int `envconfig:"PAGE_SIZE" default:"50"`
@@ -120,12 +124,7 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 		return env, err
 	}
 
-	advancedTier, err := strconv.ParseBool(os.Getenv("CONSUL_ADVANCED_PARAMS"))
-	if err != nil {
-		env.Logger.Debug("Unable to parse (true, false) setting to standard tier parameter")
-	}
-
-	env.Store = client.NewSSM(&sdkConfig, advancedTier)
+	env.Store = client.NewSSM(&sdkConfig, env.ExtenstionDataTier)
 	env.Lambda = NewLambdaClient(&sdkConfig, env.PageSize)
 
 	err = setConsulHTTPToken(ctx, env.Store, env.ConsulHTTPTokenPath)

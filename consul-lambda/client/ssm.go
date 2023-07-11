@@ -6,6 +6,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -15,17 +16,11 @@ import (
 // SSMClient provides an API client for interacting with AWS Systems Manager Parameter Store.
 type SSMClient struct {
 	client *ssm.Client
-	tier   types.ParameterTier
+	tier   string
 }
 
 // NewSSM creates an instance of the SSMClient from the given AWS SDK config.
-func NewSSM(cfg *aws.Config, aTier bool) *SSMClient {
-	var tier = types.ParameterTierStandard
-
-	if aTier {
-		tier = types.ParameterTierAdvanced
-	}
-
+func NewSSM(cfg *aws.Config, tier string) *SSMClient {
 	return &SSMClient{client: ssm.NewFromConfig(*cfg), tier: tier}
 }
 
@@ -60,18 +55,20 @@ func (c *SSMClient) Get(ctx context.Context, key string) (string, error) {
 // It writes the value as an encrypted SecureString.
 // Any existing data for the given key is overwritten.
 func (c *SSMClient) Set(ctx context.Context, key, val string) error {
-	if c.tier == types.ParameterTierAdvanced {
-		if len(val) < 4097 {
-			c.tier = types.ParameterTierStandard
-		}
-	}
-
 	input := &ssm.PutParameterInput{
 		Name:      &key,
 		Value:     &val,
 		Overwrite: true,
 		Type:      types.ParameterTypeSecureString,
-		Tier:      c.tier,
+	}
+
+	// Set the tier if one is provided; otherwise, use the default from the SSM client.
+	if c.tier != "" && len(val) > 4096 {
+		for _, val := range types.ParameterTierStandard.Values() {
+			if strings.EqualFold(c.tier, string(val)) {
+				input.Tier = val
+			}
+		}
 	}
 
 	_, err := c.client.PutParameter(ctx, input)
