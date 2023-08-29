@@ -20,10 +20,10 @@ locals {
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }] : []
-  cron_key          = "${var.name}-cron"
-  lambda_events_key = "${var.name}-lambda_events"
-  image_tag     = split(":", var.consul_lambda_registrator_image)[1]
-  ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
+  cron_key                   = "${var.name}-cron"
+  lambda_events_key          = "${var.name}-lambda_events"
+  image_tag                  = split(":", var.consul_lambda_registrator_image)[1]
+  ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
   ecr_image_uri_pull-through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/ecr-public/hashicorp/${var.private_repo_name}:${local.image_tag}"
 }
 
@@ -149,8 +149,8 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_ecr_repository" "lambda-registrator" {
-  count = var.pull_through ? 0 : 1
-  name = var.private_repo_name
+  count        = var.pull_through ? 0 : 1
+  name         = var.private_repo_name
   force_delete = true
 }
 
@@ -158,30 +158,30 @@ resource "aws_ecr_repository" "lambda-registrator" {
 data "aws_ecr_authorization_token" "ecr_auth" {}
 
 provider "docker" {
-  host = "unix:///var/run/docker.sock"  # Use the appropriate Docker socket for your system
+  host = "unix:///var/run/docker.sock" # Use the appropriate Docker socket for your system
   registry_auth {
     username = data.aws_ecr_authorization_token.ecr_auth.user_name
     password = data.aws_ecr_authorization_token.ecr_auth.password
-    address   = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
   }
 }
 
 
 resource "aws_ecr_pull_through_cache_rule" "pull_through_cache_rule" {
-  count = var.pull_through ? 1 : 0
+  count                 = var.pull_through ? 1 : 0
   ecr_repository_prefix = "ecr-public"
   upstream_registry_url = "public.ecr.aws"
 }
 
 resource "docker_image" "lambda_registrator" {
-  name         = var.pull_through ? local.ecr_image_uri_pull-through : var.consul_lambda_registrator_image
+  name = var.pull_through ? local.ecr_image_uri_pull-through : var.consul_lambda_registrator_image
   depends_on = [
     aws_ecr_pull_through_cache_rule.pull_through_cache_rule
   ]
 }
 
 resource "docker_tag" "lambda_registrator_tag" {
-  count = var.pull_through ? 0 : 1
+  count        = var.pull_through ? 0 : 1
   source_image = docker_image.lambda_registrator.name
   target_image = local.ecr_image_uri
 }
@@ -198,7 +198,7 @@ resource "null_resource" "push_image" {
   ]
 }
 resource "time_sleep" "wait_30_seconds" {
-  count = var.pull_through ? 1 : 0
+  count      = var.pull_through ? 1 : 0
   depends_on = [docker_image.lambda_registrator]
 
   create_duration = "30s"
@@ -248,7 +248,7 @@ resource "aws_lambda_function" "registration" {
     null_resource.push_image,
     time_sleep.wait_30_seconds,
   ]
- 
+
 }
 
 module "eventbridge" {

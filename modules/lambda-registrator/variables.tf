@@ -100,26 +100,26 @@ variable "tags" {
   default     = {}
 }
 variable "region" {
-  type = string
+  type        = string
   description = "AWS region for private repository"
   default     = "us-east-2"
 }
 
 variable "private_repo_name" {
   description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
-  type = string
-  default = "consul-lambda-registrator"
+  type        = string
+  default     = "consul-lambda-registrator"
 }
 
 variable "pull_through" {
   description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 
-variable "consul_lambda_registrator_image"{
+variable "consul_lambda_registrator_image" {
   description = "The Lambda registrator image to be used, either the latest L.R. image or a user specified prior version"
-  type = string
-  default = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
 }
