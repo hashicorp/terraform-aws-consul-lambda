@@ -1,6 +1,19 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.0.2"
+    }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
@@ -11,11 +24,14 @@ locals {
   lambda_events_key = "${var.name}-lambda_events"
   image_tag     = split(":", var.consul_lambda_registrator_image)[1]
   ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
-  //See comment in line 157 for explanation
-//  ecr_image_uri_pull-through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/ecr-public/hashicorp/${var.private_repo_name}:${local.image_tag}"
+  ecr_image_uri_pull-through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/ecr-public/hashicorp/${var.private_repo_name}:${local.image_tag}"
 }
+
 data "aws_caller_identity" "current" {}
 
+provider "aws" {
+  region = var.region
+}
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -133,53 +149,62 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 resource "aws_ecr_repository" "lambda-registrator" {
+  count = var.pull_through ? 0 : 1
   name = var.private_repo_name
   force_delete = true
 }
 
-resource "null_resource" "pull_and_republish_ecr_image" {
-  count = var.pull_through ? 0 : 1
-  triggers = {
-    always_run = timestamp()
-  }
+# Equivalent of aws ecr get-login
+data "aws_ecr_authorization_token" "ecr_auth" {}
 
-  provisioner "local-exec" {
-    command = <<EOF
-    aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com
-    docker pull ${var.consul_lambda_registrator_image}
-    docker tag ${var.consul_lambda_registrator_image}  ${local.ecr_image_uri}
-    docker push ${local.ecr_image_uri}
-    EOF
+provider "docker" {
+  host = "unix:///var/run/docker.sock"  # Use the appropriate Docker socket for your system
+  registry_auth {
+    username = data.aws_ecr_authorization_token.ecr_auth.user_name
+    password = data.aws_ecr_authorization_token.ecr_auth.password
+    address   = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
   }
+}
 
+
+resource "aws_ecr_pull_through_cache_rule" "pull_through_cache_rule" {
+  count = var.pull_through ? 1 : 0
+  ecr_repository_prefix = "ecr-public"
+  upstream_registry_url = "public.ecr.aws"
+}
+
+resource "docker_image" "lambda_registrator" {
+  name         = var.pull_through ? local.ecr_image_uri_pull-through : var.consul_lambda_registrator_image
   depends_on = [
-    aws_ecr_repository.lambda-registrator
+    aws_ecr_pull_through_cache_rule.pull_through_cache_rule
   ]
 }
 
-// Was able to get the pull through cache running via command line using the same aws-docker login as in line 145 and doing a modified pull using ecr pull-through variable in locals above
-// through the command line - but unable to replicate that behavior here. Paul was paired with me when we made this breakthrough so may be valuable to ping him for clearer explanation.
-// Commenting out below resource for now.
-#resource "null_resource" "ecr_pull_through_cache" {
-#  count = var.pull_through ? 1 : 0
-#  triggers = {
-#    always_run = timestamp()
-#  }
-#
-#  provisioner "local-exec" {
-#    command = <<EOF
-#    aws ecr create-pull-through-cache-rule \
-#     --ecr-repository-prefix ecr-public \
-#     --upstream-registry-url public.ecr.aws \
-#     --region ${var.region}
-#    EOF
-#  }
-  //Need to find a way to force delete the created pull through rule, otherwise error will be thrown if this is run multiple times sans delete
-  //since pull through rule already exists from previous apply
-#}
+resource "docker_tag" "lambda_registrator_tag" {
+  count = var.pull_through ? 0 : 1
+  source_image = docker_image.lambda_registrator.name
+  target_image = local.ecr_image_uri
+}
 
+resource "null_resource" "push_image" {
+  count = var.pull_through ? 0 : 1
+
+  provisioner "local-exec" {
+    command = "docker push ${local.ecr_image_uri}"
+  }
+
+  depends_on = [
+    docker_tag.lambda_registrator_tag
+  ]
+}
+resource "time_sleep" "wait_30_seconds" {
+  count = var.pull_through ? 1 : 0
+  depends_on = [docker_image.lambda_registrator]
+
+  create_duration = "30s"
+}
 resource "aws_lambda_function" "registration" {
-  image_uri                      = local.ecr_image_uri
+  image_uri                      = var.pull_through ? local.ecr_image_uri_pull-through : local.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
@@ -219,11 +244,11 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
-
   depends_on = [
-    null_resource.pull_and_republish_ecr_image
+    null_resource.push_image,
+    time_sleep.wait_30_seconds,
   ]
-  //Once pull through is properly configured, need to add null_resource.ecr_pull_through_cache into depends_on array
+ 
 }
 
 module "eventbridge" {

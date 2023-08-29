@@ -75,11 +75,6 @@ variable "reserved_concurrent_executions" {
   default     = -1
 }
 
-#variable "image_uri" {
-#  description = "The image URI for consul-lambda-registrator."
-#  type        = string
-#  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta2"
-#}
 
 variable "sync_frequency_in_minutes" {
   description = "The interval EventBridge is configured to trigger full synchronizations."
@@ -126,5 +121,5 @@ variable "pull_through" {
 variable "consul_lambda_registrator_image"{
   description = "The Lambda registrator image to be used, either the latest L.R. image or a user specified prior version"
   type = string
-  default = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta2"
+  default = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
 }
