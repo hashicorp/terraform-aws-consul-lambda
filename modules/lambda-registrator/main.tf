@@ -1,19 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
-
-terraform {
-  required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "3.0.2"
-    }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
@@ -29,9 +15,6 @@ locals {
 
 data "aws_caller_identity" "current" {}
 
-provider "aws" {
-  region = var.region
-}
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -152,18 +135,6 @@ resource "aws_ecr_repository" "lambda-registrator" {
   count        = var.pull_through ? 0 : 1
   name         = var.private_repo_name
   force_delete = true
-}
-
-# Equivalent of aws ecr get-login
-data "aws_ecr_authorization_token" "ecr_auth" {}
-
-provider "docker" {
-  host = "unix:///var/run/docker.sock" # Use the appropriate Docker socket for your system
-  registry_auth {
-    username = data.aws_ecr_authorization_token.ecr_auth.user_name
-    password = data.aws_ecr_authorization_token.ecr_auth.password
-    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
-  }
 }
 
 
