@@ -39,3 +39,9 @@ variable "consul_lambda_extension_arn" {
   type        = string
   default     = ""
 }
+
+variable "pull_through" {
+  description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
+  type        = bool
+  default     = false
+}
