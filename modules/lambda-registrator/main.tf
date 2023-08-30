@@ -1,5 +1,14 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
+
+terraform {
+  required_providers {
+     docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.0.2"
+    }
+  }
+}
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
@@ -11,6 +20,18 @@ locals {
   image_tag                  = split(":", var.consul_lambda_registrator_image)[1]
   ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
   ecr_image_uri_pull-through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/ecr-public/hashicorp/${var.private_repo_name}:${local.image_tag}"
+}
+
+# Equivalent of aws ecr get-login
+data "aws_ecr_authorization_token" "ecr_auth" {}
+
+provider "docker" {
+  host = "unix:///var/run/docker.sock" # Use the appropriate Docker socket for your system
+  registry_auth {
+    username = data.aws_ecr_authorization_token.ecr_auth.user_name
+    password = data.aws_ecr_authorization_token.ecr_auth.password
+    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+  }
 }
 
 data "aws_caller_identity" "current" {}
