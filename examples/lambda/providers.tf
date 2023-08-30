@@ -15,11 +15,9 @@ terraform {
       source  = "hashicorp/tls"
       version = "4.0.3"
     }
-
   }
 }
 
 provider "aws" {
   region = var.region
 }
-
