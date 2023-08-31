@@ -19,7 +19,7 @@ locals {
   lambda_events_key          = "${var.name}-lambda_events"
   image_parts                = split(":", var.consul_lambda_registrator_image)
   image_tag                  = local.image_parts[1]
-  image_path_parts           = split("/",local.image_parts[0])
+  image_path_parts           = split("/", local.image_parts[0])
   image_username             = local.image_path_parts[1]
   image_name                 = local.image_path_parts[2]
   ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"

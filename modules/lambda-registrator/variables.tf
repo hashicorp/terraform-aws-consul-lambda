@@ -122,7 +122,7 @@ variable "consul_lambda_registrator_image" {
   type        = string
   default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
 
-   validation {
+  validation {
     condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-z0-9_.-]+/[a-z0-9_.-]+:[a-zA-Z0-9_.-]+$", var.consul_lambda_registrator_image))
     error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It should be in the format 'registry/repository:tag'."
   }
@@ -131,17 +131,17 @@ variable "consul_lambda_registrator_image" {
 variable "docker_host" {
   description = "The docker socket for your system"
   type        = string
-  default     =  "unix:///var/run/docker.sock"
+  default     = "unix:///var/run/docker.sock"
 }
 
-variable ecr_repository_prefix {
+variable "ecr_repository_prefix" {
   description = "The repository namespace to use when caching images from the source registry"
   type        = string
-  default     =  "ecr-public"
+  default     = "ecr-public"
 }
 
-variable upstream_registry_url {
+variable "upstream_registry_url" {
   description = "The public registry url"
   type        = string
-  default     =  "public.ecr.aws"
+  default     = "public.ecr.aws"
 }
