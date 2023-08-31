@@ -9,5 +9,6 @@ module "consul_lambda_registrator" {
   subnet_ids                   = module.vpc.private_subnets
   security_group_ids           = [module.vpc.default_security_group_id]
   sync_frequency_in_minutes    = 1
-  pull_through                 = var.pull_through
+  enable_pull_through_cache    = var.enable_pull_through_cache
+  region                       = var.region
 }

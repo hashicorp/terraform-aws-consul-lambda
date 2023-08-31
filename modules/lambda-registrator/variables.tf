@@ -105,7 +105,7 @@ variable "region" {
 }
 
 variable "private_ecr_repo_name" {
-  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created. Note :- If 'pull_through' is true this variable is ignored."
+  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created. Note :- If 'enable_pull_through_cache' is true this variable is ignored."
   type        = string
   default     = "consul-lambda-registrator"
 }
