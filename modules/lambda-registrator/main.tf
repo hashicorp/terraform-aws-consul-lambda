@@ -22,7 +22,7 @@ locals {
   image_path_parts           = split("/",local.image_parts[0])
   image_username             = local.image_path_parts[1]
   image_name                 = local.image_path_parts[2]
-  ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_repo_name}:${local.image_tag}"
+  ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
   ecr_image_uri_pull_through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.ecr_repository_prefix}/${local.image_username}/${local.image_name}:${local.image_tag}"
 }
 
@@ -158,7 +158,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 
 resource "aws_ecr_repository" "lambda-registrator" {
   count        = var.enable_pull_through_cache ? 0 : 1
-  name         = var.private_repo_name
+  name         = var.private_ecr_repo_name
   force_delete = true
 }
 
