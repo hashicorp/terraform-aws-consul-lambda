@@ -101,17 +101,16 @@ variable "tags" {
 }
 variable "region" {
   type        = string
-  description = "AWS region for private repository"
-  default     = "us-east-2"
+  description = "AWS region to deploy Lambda registrator."
 }
 
 variable "private_repo_name" {
-  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
+  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created. Note :- If 'pull_through' is true this variable is ignored."
   type        = string
   default     = "consul-lambda-registrator"
 }
 
-variable "pull_through" {
+variable "enable_pull_through_cache" {
   description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
   type        = bool
   default     = false
@@ -119,7 +118,30 @@ variable "pull_through" {
 
 
 variable "consul_lambda_registrator_image" {
-  description = "The Lambda registrator image to be used, either the latest L.R. image or a user specified prior version"
+  description = "The Lambda registrator image to use. Must be provided as <registry/repository:tag>"
   type        = string
   default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
+
+   validation {
+    condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-z0-9_.-]+/[a-z0-9_.-]+:[a-zA-Z0-9_.-]+$", var.consul_lambda_registrator_image))
+    error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It should be in the format 'registry/repository:tag'."
+  }
+}
+
+variable "docker_host" {
+  description = "The docker socket for your system"
+  type        = string
+  default     =  "unix:///var/run/docker.sock"
+}
+
+variable ecr_repository_prefix {
+  description = "The repository namespace to use when caching images from the source registry"
+  type        = string
+  default     =  "ecr-public"
+}
+
+variable upstream_registry_url {
+  description = "The public registry url"
+  type        = string
+  default     =  "public.ecr.aws"
 }

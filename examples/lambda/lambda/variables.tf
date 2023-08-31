@@ -94,7 +94,7 @@ variable "invocation_mode" {
   default     = "SYNCHRONOUS"
   validation {
     condition     = contains(["SYNCHRONOUS", "ASYNCHRONOUS"], var.invocation_mode)
-    error_message = "Invocation_mode must be one of SYNCHRONOUS or ASYNCHRONOUS."
+    error_message = "Variable invocation_mode must be one of SYNCHRONOUS or ASYNCHRONOUS."
   }
 }
 

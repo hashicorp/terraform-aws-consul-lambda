@@ -69,7 +69,7 @@ This example Terraform workspace will use the zip package to deploy the `consul-
 add it to the `lambda-app-2` function so that it can call services within the Consul service mesh.
 
 ```shell
-curl -o consul-lambda-extension.zip "https://releases.hashicorp.com/consul-lambda-extension/${VERSION}-beta4/consul-lambda-extension_${VERSION}-beta4_linux_amd64.zip"
+curl -o consul-lambda-extension.zip "https://releases.hashicorp.com/consul-lambda-extension/${VERSION}/consul-lambda-extension_${VERSION}-beta4_linux_amd64.zip"
 ```
 
 ## Build the example Lambda function
