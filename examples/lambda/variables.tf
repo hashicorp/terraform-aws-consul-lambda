@@ -6,9 +6,10 @@ variable "name" {
   type        = string
 }
 
-variable "ecr_image_uri" {
-  description = "The private ECR image URI for consul-lambda-registrator."
+variable "lambda_registrator_image" {
+  description = "The Consul Lambda Registrator image for consul-lambda-registrator."
   type        = string
+  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
 }
 
 variable "region" {
@@ -37,4 +38,10 @@ variable "consul_lambda_extension_arn" {
   description = "The ARN of the Consul Lambda extension. If empty the function will not use the extension."
   type        = string
   default     = ""
+}
+
+variable "enable_pull_through_cache" {
+  description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
+  type        = bool
+  default     = false
 }
