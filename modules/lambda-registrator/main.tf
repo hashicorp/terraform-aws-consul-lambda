@@ -1,15 +1,44 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.0.2"
+    }
+  }
+}
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }] : []
-  cron_key          = "${var.name}-cron"
-  lambda_events_key = "${var.name}-lambda_events"
+  cron_key                   = "${var.name}-cron"
+  lambda_events_key          = "${var.name}-lambda_events"
+  image_parts                = split(":", var.consul_lambda_registrator_image)
+  image_tag                  = local.image_parts[1]
+  image_path_parts           = split("/", local.image_parts[0])
+  image_username             = local.image_path_parts[1]
+  image_name                 = local.image_path_parts[2]
+  ecr_image_uri              = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
+  ecr_image_uri_pull_through = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.ecr_repository_prefix}/${local.image_username}/${local.image_name}:${local.image_tag}"
 }
+
+# Equivalent of aws ecr get-login
+data "aws_ecr_authorization_token" "ecr_auth" {}
+
+provider "docker" {
+  host = var.docker_host
+  registry_auth {
+    username = data.aws_ecr_authorization_token.ecr_auth.user_name
+    password = data.aws_ecr_authorization_token.ecr_auth.password
+    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+  }
+}
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "registration" {
   name = var.name
@@ -127,8 +156,51 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
+resource "aws_ecr_repository" "lambda-registrator" {
+  count        = var.enable_pull_through_cache ? 0 : 1
+  name         = var.private_ecr_repo_name
+  force_delete = true
+}
+
+
+resource "aws_ecr_pull_through_cache_rule" "pull_through_cache_rule" {
+  count                 = var.enable_pull_through_cache ? 1 : 0
+  ecr_repository_prefix = var.ecr_repository_prefix
+  upstream_registry_url = var.upstream_registry_url
+}
+
+resource "docker_image" "lambda_registrator" {
+  name = var.enable_pull_through_cache ? local.ecr_image_uri_pull_through : var.consul_lambda_registrator_image
+  depends_on = [
+    aws_ecr_pull_through_cache_rule.pull_through_cache_rule
+  ]
+}
+
+resource "docker_tag" "lambda_registrator_tag" {
+  count        = var.enable_pull_through_cache ? 0 : 1
+  source_image = docker_image.lambda_registrator.name
+  target_image = local.ecr_image_uri
+}
+
+resource "null_resource" "push_image" {
+  count = var.enable_pull_through_cache ? 0 : 1
+
+  provisioner "local-exec" {
+    command = "docker push ${local.ecr_image_uri}"
+  }
+
+  depends_on = [
+    docker_tag.lambda_registrator_tag
+  ]
+}
+resource "time_sleep" "wait_30_seconds" {
+  count      = var.enable_pull_through_cache ? 1 : 0
+  depends_on = [docker_image.lambda_registrator]
+
+  create_duration = "30s"
+}
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri
+  image_uri                      = var.enable_pull_through_cache ? local.ecr_image_uri_pull_through : local.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
@@ -168,6 +240,11 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
+  depends_on = [
+    null_resource.push_image,
+    time_sleep.wait_30_seconds,
+  ]
+
 }
 
 module "eventbridge" {
