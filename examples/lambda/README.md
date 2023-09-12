@@ -51,16 +51,57 @@ cd terraform-aws-consul-lambda/examples/lambda
 git checkout v${VERSION}
 ```
 
-## Set your AWS region
+## Set your AWS account ID and region
 
-Subsequent steps require knowledge of the AWS region that you want to deploy the example resources to.
+Subsequent steps require knowledge of your AWS account ID and the AWS region that you want to deploy the example resources to.
 Export these values to environment variables using the commands below.
-Replace  `<region>` with your AWS region.
+Replace `<account_id>` and `<region>` with your AWS account ID and region, respectively.
 
 ```shell
+export AWS_ACCOUNT_ID=<account_id>
 export AWS_REGION=<region>
 ```
 
+## Publish `consul-lambda-registrator`
+
+In this section you will pull the `consul-lambda-registrator` image from the AWS Public ECR Gallery and publish it to a private ECR repository using `docker`. This is required because AWS Lambda functions must use images from a private ECR repository. They are not able to use images from the Public ECR Gallery.
+
+### Pull `consul-lambda-registrator`
+
+Use the following command to pull the `consul-lambda-registrator` from the AWS Public ECR to your local machine.
+
+```shell
+docker pull public.ecr.aws/hashicorp/consul-lambda-registrator:${VERSION}
+```
+
+### Log in to AWS ECR
+
+```shell
+aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+```
+
+### Create a private ECR repository
+
+Use the following command to create a private ECR repository for `consul-lambda-registrator`.
+
+```shell
+aws ecr create-repository \
+  --repository-name consul-lambda-registrator \
+  --image-scanning-configuration scanOnPush=true \
+  --region ${AWS_REGION}
+```
+
+### Push `consul-lambda-registrator`
+
+Use the following commands to push the `consul-lambda-registrator` image to the private ECR repository you created in the previous step.
+
+```shell
+docker tag \
+  public.ecr.aws/hashicorp/consul-lambda-registrator:${VERSION} \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}
+
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}
+```
 
 ## Download the `consul-lambda-extension`
 
@@ -69,7 +110,7 @@ This example Terraform workspace will use the zip package to deploy the `consul-
 add it to the `lambda-app-2` function so that it can call services within the Consul service mesh.
 
 ```shell
-curl -o consul-lambda-extension.zip "https://releases.hashicorp.com/consul-lambda-extension/${VERSION}/consul-lambda-extension_${VERSION}-beta4_linux_amd64.zip"
+curl -o consul-lambda-extension.zip https://releases.hashicorp.com/consul-lambda-extension/${VERSION}/consul-lambda-extension_${VERSION}_linux_amd64.zip
 ```
 
 ## Build the example Lambda function
@@ -98,6 +139,7 @@ terraform init
 terraform apply \
   -var "name=${USER}" \
   -var "region=${AWS_REGION}" \
+  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}" \
   -var "ingress_cidrs=[\"${MY_IP}\"]"
 ```
 
@@ -219,6 +261,7 @@ Use the following command to clean up the resources managed by Terraform.
 terraform destroy \
   -var "name=${USER}" \
   -var "region=${AWS_REGION}" \
+  -var "ecr_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/consul-lambda-registrator:${VERSION}" \
   -var "ingress_cidrs=[\"${MY_IP}\"]"
 ```
 
