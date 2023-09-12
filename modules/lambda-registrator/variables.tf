@@ -75,6 +75,16 @@ variable "reserved_concurrent_executions" {
   default     = -1
 }
 
+variable "ecr_image_uri" {
+  description = <<-EOT
+  The ECR image URI for consul-lambda-registrator. The image must be in the
+  same AWS region and in a private ECR repository. Due to these constraints,
+  the public ECR images (https://gallery.ecr.aws/hashicorp/consul-lambda-registrator)
+  cannot be used directly. We recommend either creating and using a new ECR
+  repository or configuring pull through cache rules (https://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html).
+  EOT
+  type        = string
+}
 
 variable "sync_frequency_in_minutes" {
   description = "The interval EventBridge is configured to trigger full synchronizations."
@@ -98,50 +108,4 @@ variable "tags" {
   description = "Additional tags to set on the Lambda registrator."
   type        = map(string)
   default     = {}
-}
-variable "region" {
-  type        = string
-  description = "AWS region to deploy Lambda registrator."
-}
-
-variable "private_ecr_repo_name" {
-  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created. Note :- If 'enable_pull_through_cache' is true this variable is ignored."
-  type        = string
-  default     = "consul-lambda-registrator"
-}
-
-variable "enable_pull_through_cache" {
-  description = "Flag to determine if a pull-through cache method will be used to obtain the appropriate ECR image"
-  type        = bool
-  default     = false
-}
-
-
-variable "consul_lambda_registrator_image" {
-  description = "The Lambda registrator image to use. Must be provided as <registry/repository:tag>"
-  type        = string
-  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
-
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-z0-9_.-]+/[a-z0-9_.-]+:[a-zA-Z0-9_.-]+$", var.consul_lambda_registrator_image))
-    error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It should be in the format 'registry/repository:tag'."
-  }
-}
-
-variable "docker_host" {
-  description = "The docker socket for your system"
-  type        = string
-  default     = "unix:///var/run/docker.sock"
-}
-
-variable "ecr_repository_prefix" {
-  description = "The repository namespace to use when caching images from the source registry"
-  type        = string
-  default     = "ecr-public"
-}
-
-variable "upstream_registry_url" {
-  description = "The public registry url"
-  type        = string
-  default     = "public.ecr.aws"
 }
