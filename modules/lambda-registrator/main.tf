@@ -18,9 +18,9 @@ locals {
   }] : []
   cron_key          = "${var.name}-cron"
   lambda_events_key = "${var.name}-lambda_events"
-  image_parts                = split(":", var.consul_lambda_registrator_image)
-  image_tag                  = local.image_parts[1]
-  ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
+  image_parts       = split(":", var.consul_lambda_registrator_image)
+  image_tag         = local.image_parts[1]
+  ecr_image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
 }
 
 # Equivalent of aws ecr get-login
@@ -161,8 +161,8 @@ resource "aws_ecr_repository" "lambda-registrator" {
 
 
 resource "docker_image" "lambda_registrator" {
-  count        = var.ecr_image_uri != "" ? 0 : 1
-  name         = var.consul_lambda_registrator_image
+  count = var.ecr_image_uri != "" ? 0 : 1
+  name  = var.consul_lambda_registrator_image
 }
 
 resource "docker_tag" "lambda_registrator_tag" {
@@ -171,7 +171,7 @@ resource "docker_tag" "lambda_registrator_tag" {
   target_image = local.ecr_image_uri
 }
 resource "docker_registry_image" "push_image" {
-  count = var.ecr_image_uri != "" ? 0 : 1
+  count         = var.ecr_image_uri != "" ? 0 : 1
   name          = docker_tag.lambda_registrator_tag[count.index].target_image
   keep_remotely = true
 }
