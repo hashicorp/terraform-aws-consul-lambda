@@ -1,6 +1,15 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.0.2"
+    }
+
+  }
+}
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
@@ -9,8 +18,25 @@ locals {
   }] : []
   cron_key          = "${var.name}-cron"
   lambda_events_key = "${var.name}-lambda_events"
+  image_parts                = split(":", var.consul_lambda_registrator_image)
+  image_tag                  = local.image_parts[1]
+  ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
 }
 
+# Equivalent of aws ecr get-login
+data "aws_ecr_authorization_token" "ecr_auth" {}
+
+
+provider "docker" {
+  host = var.docker_host
+  registry_auth {
+    username = data.aws_ecr_authorization_token.ecr_auth.user_name
+    password = data.aws_ecr_authorization_token.ecr_auth.password
+    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+  }
+}
+
+data "aws_caller_identity" "current" {}
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -127,8 +153,31 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
+resource "aws_ecr_repository" "lambda-registrator" {
+  count        = var.ecr_image_uri != "" ? 0 : 1
+  name         = var.private_ecr_repo_name
+  force_delete = true
+}
+
+
+resource "docker_image" "lambda_registrator" {
+  count        = var.ecr_image_uri != "" ? 0 : 1
+  name         = var.consul_lambda_registrator_image
+}
+
+resource "docker_tag" "lambda_registrator_tag" {
+  count        = var.ecr_image_uri != "" ? 0 : 1
+  source_image = docker_image.lambda_registrator[count.index].name
+  target_image = local.ecr_image_uri
+}
+resource "docker_registry_image" "push_image" {
+  count = var.ecr_image_uri != "" ? 0 : 1
+  name          = docker_tag.lambda_registrator_tag[count.index].target_image
+  keep_remotely = true
+}
+
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri
+  image_uri                      = var.ecr_image_uri != "" ? var.ecr_image_uri : local.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
@@ -168,6 +217,9 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
+  depends_on = [
+    docker_registry_image.push_image
+  ]
 }
 
 module "eventbridge" {
