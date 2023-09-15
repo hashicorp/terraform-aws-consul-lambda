@@ -20,8 +20,9 @@ locals {
   lambda_events_key = "${var.name}-lambda_events"
   image_parts       = split(":", var.consul_lambda_registrator_image)
   image_tag         = local.image_parts[1]
+  ecr_repo_name     = var.private_ecr_repo_name == "" ? "consul-lambda-registrator-${random_id.repo_id.hex}" : var.private_ecr_repo_name
   # generated_ecr_image_uri is used when we want to automatically push the public image to a private ecr repo using docker.
-  generated_ecr_image_uri = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
+  generated_ecr_image_uri = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com/${local.ecr_repo_name}:${local.image_tag}"
 }
 
 # Equivalent of aws ecr get-login
@@ -153,14 +154,12 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.registration.name
   policy_arn = aws_iam_policy.policy.arn
 }
-
 resource "random_id" "repo_id" {
-  count       = var.ecr_image_uri != "" ? 0 : 1
   byte_length = 8
 }
 resource "aws_ecr_repository" "lambda-registrator" {
   count        = var.ecr_image_uri != "" ? 0 : 1
-  name         = var.private_ecr_repo_name == "" ? "consul-lambda-registrator-${random_id.repo_id[count.index].hex}" : var.private_ecr_repo_name
+  name         = local.ecr_repo_name
   force_delete = true
 }
 

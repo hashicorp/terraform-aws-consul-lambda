@@ -31,8 +31,9 @@ type SetupConfig struct {
 
 func TestBasic(t *testing.T) {
 	cases := map[string]struct {
-		secure     bool
-		enterprise bool
+		secure                 bool
+		enterprise             bool
+		autoPublishRegistrator bool
 	}{
 		"secure": {
 			secure: true,
@@ -43,6 +44,10 @@ func TestBasic(t *testing.T) {
 		"enterprise and secure": {
 			secure:     true,
 			enterprise: true,
+		},
+		"secure auto publish": {
+			secure:                 true,
+			autoPublishRegistrator: true,
 		},
 	}
 
@@ -55,7 +60,9 @@ func TestBasic(t *testing.T) {
 			partition := ""
 			queryString := ""
 			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.1"
-
+			if c.autoPublishRegistrator {
+				tfVars["ecr_image_uri"] = ""
+			}
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
