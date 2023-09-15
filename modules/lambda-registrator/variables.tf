@@ -110,16 +110,10 @@ variable "tags" {
   default     = {}
 }
 
-variable "region" {
-  type        = string
-  description = "AWS region to deploy Lambda registrator."
-  default     = "us-east-1"
-}
-
 variable "private_ecr_repo_name" {
   description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
   type        = string
-  default     = "consul-lambda-registrator"
+  default     = ""
 }
 
 variable "consul_lambda_registrator_image" {

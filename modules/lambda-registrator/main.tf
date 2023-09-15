@@ -20,7 +20,8 @@ locals {
   lambda_events_key = "${var.name}-lambda_events"
   image_parts       = split(":", var.consul_lambda_registrator_image)
   image_tag         = local.image_parts[1]
-  ecr_image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
+  # generated_ecr_image_uri is used when we want to automatically push the public image to a private ecr repo using docker.
+  generated_ecr_image_uri = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com/${var.private_ecr_repo_name}:${local.image_tag}"
 }
 
 # Equivalent of aws ecr get-login
@@ -32,11 +33,11 @@ provider "docker" {
   registry_auth {
     username = data.aws_ecr_authorization_token.ecr_auth.user_name
     password = data.aws_ecr_authorization_token.ecr_auth.password
-    address  = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+    address  = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com"
   }
 }
-
-data "aws_caller_identity" "current" {}
+data "aws_region" "current_region" {}
+data "aws_caller_identity" "current_identity" {}
 resource "aws_iam_role" "registration" {
   name = var.name
 
@@ -153,9 +154,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
+resource "random_id" "repo_id" {
+  count       = var.ecr_image_uri != "" ? 0 : 1
+  byte_length = 8
+}
 resource "aws_ecr_repository" "lambda-registrator" {
   count        = var.ecr_image_uri != "" ? 0 : 1
-  name         = var.private_ecr_repo_name
+  name         = var.private_ecr_repo_name == "" ? "consul-lambda-registrator-${random_id.repo_id[count.index].hex}" : var.private_ecr_repo_name
   force_delete = true
 }
 
@@ -168,7 +173,7 @@ resource "docker_image" "lambda_registrator" {
 resource "docker_tag" "lambda_registrator_tag" {
   count        = var.ecr_image_uri != "" ? 0 : 1
   source_image = docker_image.lambda_registrator[count.index].name
-  target_image = local.ecr_image_uri
+  target_image = local.generated_ecr_image_uri
 }
 resource "docker_registry_image" "push_image" {
   count         = var.ecr_image_uri != "" ? 0 : 1
@@ -177,7 +182,7 @@ resource "docker_registry_image" "push_image" {
 }
 
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri != "" ? var.ecr_image_uri : local.ecr_image_uri
+  image_uri                      = var.ecr_image_uri != "" ? var.ecr_image_uri : local.generated_ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn
