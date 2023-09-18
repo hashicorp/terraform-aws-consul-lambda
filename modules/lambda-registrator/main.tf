@@ -28,7 +28,8 @@ locals {
 
 # Equivalent of aws ecr get-login
 data "aws_ecr_authorization_token" "ecr_auth" {}
-
+data "aws_region" "current_region" {}
+data "aws_caller_identity" "current_identity" {}
 
 provider "docker" {
   host = var.docker_host
@@ -38,8 +39,7 @@ provider "docker" {
     address  = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com"
   }
 }
-data "aws_region" "current_region" {}
-data "aws_caller_identity" "current_identity" {}
+
 resource "aws_iam_role" "registration" {
   name = var.name
 
