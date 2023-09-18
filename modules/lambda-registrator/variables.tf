@@ -84,6 +84,7 @@ variable "ecr_image_uri" {
   repository or configuring pull through cache rules (https://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html).
   EOT
   type        = string
+  default     = ""
 }
 
 variable "sync_frequency_in_minutes" {
@@ -131,4 +132,10 @@ variable "docker_host" {
   description = "The docker socket for your system"
   type        = string
   default     = "unix:///var/run/docker.sock"
+}
+
+variable "enable_auto_publish_ecr_image" {
+  description = "enables auto pushing public image to private ecr repo if set to true"
+  type        = bool
+  default     = false
 }

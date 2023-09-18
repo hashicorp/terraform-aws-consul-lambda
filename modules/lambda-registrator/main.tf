@@ -160,29 +160,29 @@ resource "random_id" "repo_id" {
 }
 
 resource "aws_ecr_repository" "lambda-registrator" {
-  count        = var.ecr_image_uri != "" ? 0 : 1
+  count        = var.enable_auto_publish_ecr_image ? 1 : 0
   name         = local.ecr_repo_name
   force_delete = true
 }
 
 resource "docker_image" "lambda_registrator" {
-  count = var.ecr_image_uri != "" ? 0 : 1
+  count = var.enable_auto_publish_ecr_image ? 1 : 0
   name  = var.consul_lambda_registrator_image
 }
 
 resource "docker_tag" "lambda_registrator_tag" {
-  count        = var.ecr_image_uri != "" ? 0 : 1
+  count        = var.enable_auto_publish_ecr_image ? 1 : 0
   source_image = docker_image.lambda_registrator[count.index].name
   target_image = local.generated_ecr_image_uri
 }
 resource "docker_registry_image" "push_image" {
-  count         = var.ecr_image_uri != "" ? 0 : 1
+  count         = var.enable_auto_publish_ecr_image ? 1 : 0
   name          = docker_tag.lambda_registrator_tag[count.index].target_image
   keep_remotely = true
 }
 
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri != "" ? var.ecr_image_uri : local.generated_ecr_image_uri
+  image_uri                      = var.enable_auto_publish_ecr_image ? local.generated_ecr_image_uri : var.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
   role                           = aws_iam_role.registration.arn

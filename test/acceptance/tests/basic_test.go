@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -31,9 +32,11 @@ type SetupConfig struct {
 
 func TestBasic(t *testing.T) {
 	cases := map[string]struct {
-		secure                 bool
-		enterprise             bool
-		autoPublishRegistrator bool
+		secure                            bool
+		enterprise                        bool
+		autoPublishRegistrator            bool
+		ecrImageNotSet                    bool
+		ecrImageUriOrAutoPublishNotSetErr string
 	}{
 		"secure": {
 			secure: true,
@@ -49,6 +52,11 @@ func TestBasic(t *testing.T) {
 			secure:                 true,
 			autoPublishRegistrator: true,
 		},
+		"secure ecrImageUri not set": {
+			secure:                            true,
+			ecrImageNotSet:                    true,
+			ecrImageUriOrAutoPublishNotSetErr: "ERROR: either ecr_image_uri or enable_auto_publish_ecr_image must be set",
+		},
 	}
 
 	for name, c := range cases {
@@ -60,9 +68,6 @@ func TestBasic(t *testing.T) {
 			partition := ""
 			queryString := ""
 			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.1"
-			if c.autoPublishRegistrator {
-				tfVars["ecr_image_uri"] = ""
-			}
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -79,6 +84,24 @@ func TestBasic(t *testing.T) {
 			tfVars["suffix"] = suffix
 			tfVars["setup_suffix"] = setupSuffix
 
+			var setupCfg SetupConfig
+			if !c.autoPublishRegistrator && c.ecrImageNotSet {
+				delete(tfVars, "ecr_image_uri")
+				setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+					TerraformDir: "./setup",
+					Vars:         tfVars,
+					NoColor:      true,
+				})
+				_, err := terraform.PlanE(t, setupTerraformOptions)
+				require.Error(t, err)
+				// error messages are wrapped, so a space may turn into a newline.
+				regex := strings.ReplaceAll(regexp.QuoteMeta(c.ecrImageUriOrAutoPublishNotSetErr), " ", "\\s+")
+				require.Regexp(t, regex, err.Error())
+				return
+			}
+			if c.autoPublishRegistrator {
+				tfVars["enable_auto_publish_ecr_image"] = true
+			}
 			setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./setup",
 				Vars:         tfVars,
@@ -95,7 +118,6 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, setupTerraformOptions)
 
-			var setupCfg SetupConfig
 			require.NoError(t, UnmarshalTF("./setup", &setupCfg))
 
 			clientServiceName := fmt.Sprintf("test_client_%s", suffix)
