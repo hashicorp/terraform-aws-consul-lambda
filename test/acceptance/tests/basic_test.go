@@ -92,6 +92,7 @@ func TestBasic(t *testing.T) {
 					Vars:         tfVars,
 					NoColor:      true,
 				})
+				terraform.Init(t, setupTerraformOptions)
 				_, err := terraform.PlanE(t, setupTerraformOptions)
 				require.Error(t, err)
 				// error messages are wrapped, so a space may turn into a newline.
