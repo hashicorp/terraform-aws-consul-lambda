@@ -68,3 +68,9 @@ variable "consul_partition" {
 variable "consul_lambda_extension_arn" {
   type = string
 }
+
+variable "enable_auto_publish_ecr_image" {
+  description = "enables auto pushing public image to private ecr repo if set to true"
+  type        = bool
+  default     = false
+}
