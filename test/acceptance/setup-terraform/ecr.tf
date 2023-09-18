@@ -8,7 +8,6 @@ locals {
 }
 
 resource "aws_ecr_repository" "lambda-registrator" {
-  count        = var.enable_auto_publish_ecr_image ? 1 : 0
   name         = local.ecr_repository_name
   force_delete = true
 }

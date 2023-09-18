@@ -156,7 +156,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.policy.arn
 }
 resource "random_id" "repo_id" {
-  byte_length = 8
+  byte_length = 4
 }
 
 resource "aws_ecr_repository" "lambda-registrator" {
