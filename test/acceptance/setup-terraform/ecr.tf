@@ -9,6 +9,7 @@ locals {
 
 resource "aws_ecr_repository" "lambda-registrator" {
   name = local.ecr_repository_name
+  force_delete = true
 }
 
 resource "null_resource" "push-lambda-registrator-to-ecr" {
