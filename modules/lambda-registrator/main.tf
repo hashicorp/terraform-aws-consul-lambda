@@ -158,12 +158,12 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 resource "random_id" "repo_id" {
   byte_length = 8
 }
+
 resource "aws_ecr_repository" "lambda-registrator" {
   count        = var.ecr_image_uri != "" ? 0 : 1
   name         = local.ecr_repo_name
   force_delete = true
 }
-
 
 resource "docker_image" "lambda_registrator" {
   count = var.ecr_image_uri != "" ? 0 : 1
