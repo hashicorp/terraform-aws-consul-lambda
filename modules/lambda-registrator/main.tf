@@ -10,6 +10,7 @@ terraform {
 
   }
 }
+
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
