@@ -48,6 +48,7 @@ variable "consul_image" {
 
 variable "ecr_image_uri" {
   type = string
+  default = ""
 }
 
 variable "consul_license" {
