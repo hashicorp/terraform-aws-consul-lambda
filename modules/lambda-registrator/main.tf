@@ -175,6 +175,7 @@ resource "docker_tag" "lambda_registrator_tag" {
   source_image = docker_image.lambda_registrator[count.index].name
   target_image = local.generated_ecr_image_uri
 }
+
 resource "docker_registry_image" "push_image" {
   count         = var.enable_auto_publish_ecr_image ? 1 : 0
   name          = docker_tag.lambda_registrator_tag[count.index].target_image
