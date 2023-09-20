@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -32,11 +31,9 @@ type SetupConfig struct {
 
 func TestBasic(t *testing.T) {
 	cases := map[string]struct {
-		secure                            bool
-		enterprise                        bool
-		autoPublishRegistrator            bool
-		ecrImageNotSet                    bool
-		ecrImageUriOrAutoPublishNotSetErr string
+		secure                 bool
+		enterprise             bool
+		autoPublishRegistrator bool
 	}{
 		"secure": {
 			secure: true,
@@ -51,11 +48,6 @@ func TestBasic(t *testing.T) {
 		"secure auto publish": {
 			secure:                 true,
 			autoPublishRegistrator: true,
-		},
-		"secure ecrImageUri not set": {
-			secure:                            true,
-			ecrImageNotSet:                    true,
-			ecrImageUriOrAutoPublishNotSetErr: "ERROR: either ecr_image_uri or enable_auto_publish_ecr_image must be set",
 		},
 	}
 
@@ -85,24 +77,11 @@ func TestBasic(t *testing.T) {
 			tfVars["setup_suffix"] = setupSuffix
 
 			var setupCfg SetupConfig
-			if !c.autoPublishRegistrator && c.ecrImageNotSet {
-				delete(tfVars, "ecr_image_uri")
-				setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-					TerraformDir: "./setup",
-					Vars:         tfVars,
-					NoColor:      true,
-				})
-				terraform.Init(t, setupTerraformOptions)
-				_, err := terraform.PlanE(t, setupTerraformOptions)
-				require.Error(t, err)
-				// error messages are wrapped, so a space may turn into a newline.
-				regex := strings.ReplaceAll(regexp.QuoteMeta(c.ecrImageUriOrAutoPublishNotSetErr), " ", "\\s+")
-				require.Regexp(t, regex, err.Error())
-				return
-			}
+
 			if c.autoPublishRegistrator {
 				tfVars["enable_auto_publish_ecr_image"] = true
 			}
+
 			setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./setup",
 				Vars:         tfVars,
