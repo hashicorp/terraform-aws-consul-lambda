@@ -135,7 +135,14 @@ variable "docker_host" {
 }
 
 variable "enable_auto_publish_ecr_image" {
-  description = "enables auto pushing public image to private ecr repo if set to true"
+  description = <<EOF
+    Enables auto pushing public image to private ecr repo if set to true
+    NOTE:-
+    Atleast one of ecr_image_uri or enable_auto_publish_ecr_image should be set.
+    When enable_auto_publish_ecr_image is set, the image defined by consul_lambda_registrator_image will be pulled and published to private_ecr_repo_name.
+    That this method requires local access to docker.
+
+    EOF
   type        = bool
   default     = false
 }

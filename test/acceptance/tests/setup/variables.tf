@@ -71,13 +71,11 @@ variable "consul_lambda_extension_arn" {
 }
 
 variable "enable_auto_publish_ecr_image" {
-  description = "enables auto pushing public image to private ecr repo if set to true"
   type        = bool
   default     = false
 }
 
 variable "private_ecr_repo_name" {
-  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
   type        = string
   default     = ""
 }
