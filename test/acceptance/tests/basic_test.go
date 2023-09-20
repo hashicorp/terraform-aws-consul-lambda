@@ -34,6 +34,7 @@ func TestBasic(t *testing.T) {
 		secure                 bool
 		enterprise             bool
 		autoPublishRegistrator bool
+		privateEcrRepoName     string
 	}{
 		"secure": {
 			secure: true,
@@ -48,6 +49,11 @@ func TestBasic(t *testing.T) {
 		"secure auto publish": {
 			secure:                 true,
 			autoPublishRegistrator: true,
+		},
+		"secure auto publish with privateEcrRepoName": {
+			secure:                 true,
+			autoPublishRegistrator: true,
+			privateEcrRepoName:     "test-ecr-repo",
 		},
 	}
 
@@ -80,6 +86,9 @@ func TestBasic(t *testing.T) {
 
 			if c.autoPublishRegistrator {
 				tfVars["enable_auto_publish_ecr_image"] = true
+				if c.privateEcrRepoName != "" {
+					tfVars["private_ecr_repo_name"] = c.privateEcrRepoName
+				}
 			}
 
 			setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{

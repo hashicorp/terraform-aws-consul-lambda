@@ -74,4 +74,5 @@ module "lambda-registration" {
   enterprise                    = local.enterprise
   enable_auto_publish_ecr_image = var.enable_auto_publish_ecr_image
   consul_extension_data_prefix  = "/${var.suffix}"
+  private_ecr_repo_name         = var.private_ecr_repo_name
 }
