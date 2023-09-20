@@ -71,11 +71,11 @@ variable "consul_lambda_extension_arn" {
 }
 
 variable "enable_auto_publish_ecr_image" {
-  type        = bool
-  default     = false
+  type    = bool
+  default = false
 }
 
 variable "private_ecr_repo_name" {
-  type        = string
-  default     = ""
+  type    = string
+  default = ""
 }
