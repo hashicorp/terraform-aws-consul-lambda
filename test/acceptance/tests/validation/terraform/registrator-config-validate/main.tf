@@ -12,10 +12,10 @@ provider "aws" {
 }
 
 module "lambda-registration" {
-  source = "../../../../../../modules/lambda-registrator"
-  name = var.name
-  ecr_image_uri = var.ecr_image_uri
-  consul_http_addr = var.consul_http_addr
+  source                        = "../../../../../../modules/lambda-registrator"
+  name                          = var.name
+  ecr_image_uri                 = var.ecr_image_uri
+  consul_http_addr              = var.consul_http_addr
   enable_auto_publish_ecr_image = var.enable_auto_publish_ecr_image
 }
 
@@ -39,5 +39,5 @@ variable "enable_auto_publish_ecr_image" {
 }
 
 variable "consul_http_addr" {
-  type        = string
+  type = string
 }

@@ -10,6 +10,7 @@ import (
 )
 
 func TestValidation_LambdaRegistrator(t *testing.T) {
+	t.Parallel()
 	terraformOpts := &terraform.Options{
 		TerraformDir: "./terraform/registrator-config-validate",
 		NoColor:      true,
@@ -57,7 +58,9 @@ func TestValidation_LambdaRegistrator(t *testing.T) {
 		},
 	}
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
 			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOpts.TerraformDir,
