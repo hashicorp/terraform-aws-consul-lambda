@@ -135,14 +135,14 @@ variable "docker_host" {
 }
 
 variable "enable_auto_publish_ecr_image" {
-  description = <<EOF
-    Enables auto pushing public image to private ecr repo if set to true
-    NOTE:-
-    Atleast one of ecr_image_uri or enable_auto_publish_ecr_image should be set.
-    When enable_auto_publish_ecr_image is set, the image defined by consul_lambda_registrator_image will be pulled and published to private_ecr_repo_name.
-    That this method requires local access to docker.
-
-    EOF
+  description = <<-EOT
+    Enables automatic publishing of a public Lambda Registrator image to a private ECR repository via Docker.
+    When enable_auto_publish_ecr_image is set to true, the image defined by consul_lambda_registrator_image will be pulled and published to a private ECR repository. If private_ecr_repo_name is set, that name will be used to create the private ECR repository, otherwise the default name, consul-lambda-registrator-<random-suffix>, will be used
+    
+    You must set at least one of ecr_image_uri or enable_auto_publish_ecr_image. If enable_auto_publish_ecr_image is set to true then ecr_image_uri is ignored.
+    
+    Using this method to automatically pull the public image and push it to a private ECR repository requires access to the docker command in the local environment.
+    EOT
   type        = bool
   default     = false
 }
