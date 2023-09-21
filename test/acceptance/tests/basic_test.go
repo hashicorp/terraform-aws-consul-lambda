@@ -74,7 +74,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.15.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
