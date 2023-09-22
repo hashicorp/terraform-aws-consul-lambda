@@ -31,8 +31,10 @@ type SetupConfig struct {
 
 func TestBasic(t *testing.T) {
 	cases := map[string]struct {
-		secure     bool
-		enterprise bool
+		secure                 bool
+		enterprise             bool
+		autoPublishRegistrator bool
+		privateEcrRepoName     string
 	}{
 		"secure": {
 			secure: true,
@@ -44,6 +46,15 @@ func TestBasic(t *testing.T) {
 			secure:     true,
 			enterprise: true,
 		},
+		"secure auto publish": {
+			secure:                 true,
+			autoPublishRegistrator: true,
+		},
+		"secure auto publish with privateEcrRepoName": {
+			secure:                 true,
+			autoPublishRegistrator: true,
+			privateEcrRepoName:     "test-ecr-repo",
+		},
 	}
 
 	for name, c := range cases {
@@ -54,8 +65,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.1"
-
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -64,13 +74,22 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.15.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
 			suffix := strings.ToLower(random.UniqueId())
 			tfVars["suffix"] = suffix
 			tfVars["setup_suffix"] = setupSuffix
+
+			var setupCfg SetupConfig
+
+			if c.autoPublishRegistrator {
+				tfVars["enable_auto_publish_ecr_image"] = true
+				if c.privateEcrRepoName != "" {
+					tfVars["private_ecr_repo_name"] = c.privateEcrRepoName
+				}
+			}
 
 			setupTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./setup",
@@ -88,7 +107,6 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, setupTerraformOptions)
 
-			var setupCfg SetupConfig
 			require.NoError(t, UnmarshalTF("./setup", &setupCfg))
 
 			clientServiceName := fmt.Sprintf("test_client_%s", suffix)

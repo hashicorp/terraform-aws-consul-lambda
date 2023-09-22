@@ -84,6 +84,7 @@ variable "ecr_image_uri" {
   repository or configuring pull through cache rules (https://docs.aws.amazon.com/AmazonECR/latest/userguide/pull-through-cache.html).
   EOT
   type        = string
+  default     = ""
 }
 
 variable "sync_frequency_in_minutes" {
@@ -108,4 +109,40 @@ variable "tags" {
   description = "Additional tags to set on the Lambda registrator."
   type        = map(string)
   default     = {}
+}
+
+variable "private_ecr_repo_name" {
+  description = "The name of the repository to republish the ECR image if one exists. If no name is passed, it is assumed that no repository exists and one needs to be created."
+  type        = string
+  default     = ""
+}
+
+variable "consul_lambda_registrator_image" {
+  description = "The Lambda registrator image to use. Must be provided as <registry/repository:tag>"
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-z0-9_.-]+/[a-z0-9_.-]+:[a-zA-Z0-9_.-]+$", var.consul_lambda_registrator_image))
+    error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It must be in the format 'registry/repository:tag'."
+  }
+}
+
+variable "docker_host" {
+  description = "The docker socket for your system"
+  type        = string
+  default     = "unix:///var/run/docker.sock"
+}
+
+variable "enable_auto_publish_ecr_image" {
+  description = <<-EOT
+    Enables automatic publishing of a public Lambda Registrator image to a private ECR repository via Docker.
+    When enable_auto_publish_ecr_image is set to true, the image defined by consul_lambda_registrator_image will be pulled and published to a private ECR repository. If private_ecr_repo_name is set, that name will be used to create the private ECR repository, otherwise the default name, consul-lambda-registrator-<random-suffix>, will be used
+    
+    You must set at least one of ecr_image_uri or enable_auto_publish_ecr_image. If enable_auto_publish_ecr_image is set to true then ecr_image_uri is ignored.
+    
+    Using this method to automatically pull the public image and push it to a private ECR repository requires access to the docker command in the local environment.
+    EOT
+  type        = bool
+  default     = false
 }
