@@ -47,7 +47,8 @@ variable "consul_image" {
 }
 
 variable "ecr_image_uri" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "consul_license" {
@@ -67,4 +68,14 @@ variable "consul_partition" {
 
 variable "consul_lambda_extension_arn" {
   type = string
+}
+
+variable "enable_auto_publish_ecr_image" {
+  type    = bool
+  default = false
+}
+
+variable "private_ecr_repo_name" {
+  type    = string
+  default = ""
 }
