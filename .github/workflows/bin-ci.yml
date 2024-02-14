@@ -13,22 +13,8 @@ jobs:
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
-    needs:
-      - action-lint
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+    needs: action-lint
+    uses: ./.github/workflows/reusable-get-go-version.yml
   lint:
     defaults:
       run:
@@ -58,8 +44,11 @@ jobs:
     strategy:
       matrix:
         consul-version:
-        - 1.15.2
-        - 1.15.2+ent
+          - 1.15.2
+          - 1.15.2+ent
+        platform:
+          - { goos: "linux", goarch: "amd64" }
+          - { goos: "linux", goarch: "arm64" }
     needs:
       - get-go-version
     defaults:
@@ -80,7 +69,8 @@ jobs:
       shell: bash
       run: |
         CONSUL_VERSION="${{ matrix.consul-version }}"
-        FILENAME="consul_${CONSUL_VERSION}_linux_amd64.zip"
+        PLATFORM="${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}"
+        FILENAME="consul_${CONSUL_VERSION}_${PLATFORM}.zip"
         curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
           unzip "${FILENAME}" -d /usr/local/bin && \
           rm "${FILENAME}"
@@ -90,8 +80,9 @@ jobs:
     - name: Setup gotestsum
       shell: bash
       run: |
+        PLATFORM="${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}"
         url=https://github.com/gotestyourself/gotestsum/releases/download
-        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
+        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_${PLATFORM}.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Test
       run: |

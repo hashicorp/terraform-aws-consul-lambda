@@ -14,22 +14,8 @@ jobs:
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
     needs: action-lint
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
-
+    uses: ./.github/workflows/reusable-get-go-version.yml
   get-product-version:
     defaults:
       run:
@@ -75,12 +61,19 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   build-linux:
+    strategy:
+      matrix:
+        goos:
+          - linux
+        goarch:
+          - amd64
+          - arm64
     defaults:
       run:
         working-directory: ./consul-lambda
     env:
-      GOOS: linux
-      GOARCH: amd64
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
       LDFLAGS: ${{ needs.get-product-version.outputs.ldflags }}
       CGO_ENABLED: 0
     needs:
@@ -122,6 +115,13 @@ jobs:
           path: ./consul-lambda/out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
   build-docker-default:
+    strategy:
+      matrix:
+        goos:
+          - linux
+        goarch:
+          - amd64
+          - arm64
     defaults:
       run:
         working-directory: ./consul-lambda/consul-lambda-registrator
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      arch: amd64
+      arch: ${{ matrix.goarch }}
 
     steps:
       - name: Checkout
@@ -147,6 +147,7 @@ jobs:
           target: release-default
           workdir: ./consul-lambda/consul-lambda-registrator
           arch: ${{ env.arch }}
+          os: ${{ env.os }}
           tags: |
             docker.io/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
             public.ecr.aws/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
@@ -155,6 +156,13 @@ jobs:
             docker.io/hashicorppreview/${{ env.REG_NAME }}:${{ env.version }}
 
   upload-dev-docker:
+    strategy:
+      matrix:
+        goos:
+          - linux
+        goarch:
+          - amd64
+          - arm64
     name: Upload dev image (hashicorpdev/consul-lambda-registrator:<commit>)
     environment: dockerhub/hashicorpdev
     needs:
@@ -164,20 +172,21 @@ jobs:
     env:
       repo: ${{ github.event.repository.name }}
       version: ${{ needs.get-product-version.outputs.product-version }}
-      arch: amd64
+      arch: ${{ matrix.goarch }}
+      os: ${{ matrix.goos }}
       target: release-default
       git-short-sha: ${{ needs.get-product-version.outputs.git-short-sha }}
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: ${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
+          name: ${{ env.repo }}_${{ env.target }}_${{ env.os }}_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
       - name: Docker push
         shell: bash
         run: |
           TAG=hashicorpdev/${{ env.REG_NAME }}:${{ env.git-short-sha }}
           echo "==> Load docker image from tar archive"
-          docker load -i "${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
+          docker load -i "${{ env.repo }}_${{ env.target }}_${{ env.os }}_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar"
           echo "==> Tag docker image $TAG"
           docker tag "hashicorppreview/${{ env.REG_NAME }}:${{ env.version }}" "$TAG"
           echo "==> Docker login"

@@ -30,20 +30,7 @@ jobs:
     - name: Validate
       run: terraform fmt -check -recursive .
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/reusable-get-go-version.yml
   go-test-lint:
     runs-on: ubuntu-latest
     defaults:
@@ -73,6 +60,13 @@ jobs:
         skip-build-cache: true
         working-directory: ./test/acceptance
   acceptance:
+    strategy:
+      matrix:
+        goos:
+          - linux
+        goarch:
+          - amd64
+          - arm64
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,6 +74,8 @@ jobs:
     env:
       TEST_RESULTS: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
+      OS: ${{ matrix.goos }}
+      ARCH: ${{ matrix.goarch }}
     needs:
       - action-lint
       - go-test-lint
@@ -96,7 +92,7 @@ jobs:
       shell: bash
       run: |
         url=https://github.com/gotestyourself/gotestsum/releases/download
-        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
+        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_${{ env.OS }}_${{ env.ARCH }}.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Install dependencies
       run: |
