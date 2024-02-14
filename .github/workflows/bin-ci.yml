@@ -85,6 +85,8 @@ jobs:
         curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_${PLATFORM}.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Test
+      env:
+        CGO_ENABLED: 1
       run: |
         mkdir -p "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json"
         read -r -a PACKAGE_NAMES <<<"$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')"
