@@ -62,20 +62,18 @@ jobs:
   acceptance:
     strategy:
       matrix:
-        goos:
-          - linux
-        goarch:
-          - amd64
-          - arm64
-    runs-on: ubuntu-latest
+        platform:
+          - {goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest", }
+          - {gooos: "linux", goarch: "arm64", runs-on: ["self-hosted", "Linux", "ARM64"]}
+    runs-on: ${{ matrix.goos.runs-on }}
     defaults:
       run:
         working-directory: ./test/acceptance
     env:
       TEST_RESULTS: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
-      OS: ${{ matrix.goos }}
-      ARCH: ${{ matrix.goarch }}
+      OS: ${{ matrix.platform.goos }}
+      ARCH: ${{ matrix.platform.goarch }}
     needs:
       - action-lint
       - go-test-lint
