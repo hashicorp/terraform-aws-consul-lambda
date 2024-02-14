@@ -65,7 +65,7 @@ jobs:
         platform:
           - {goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest", }
           - {goos: "linux", goarch: "arm64", runs-on: ["self-hosted", "Linux", "ARM64"]}
-    runs-on: ${{ matrix.goos.runs-on }}
+    runs-on: ${{ matrix.platform.runs-on }}
     defaults:
       run:
         working-directory: ./test/acceptance
