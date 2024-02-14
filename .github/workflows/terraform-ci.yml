@@ -64,7 +64,7 @@ jobs:
       matrix:
         platform:
           - {goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest", session-manager-plugin: "ubuntu_64bit"}
-          - {goos: "linux", goarch: "arm64", runs-on: ["self-hosted", "Linux", "ARM64"], session-manager-plugin: "ubuntu_arm64"}
+          - {goos: "linux", goarch: "arm64", runs-on: ['self-hosted', 'linux-arm', 'arm64'], session-manager-plugin: "ubuntu_arm64"}
       # this is because of VPC limit
       max-parallel: 1
     runs-on: ${{ matrix.platform.runs-on }}
