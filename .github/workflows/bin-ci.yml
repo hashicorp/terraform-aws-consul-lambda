@@ -40,7 +40,7 @@ jobs:
         working-directory: ./consul-lambda/consul-lambda-registrator
 
   test:
-    name: unit test (consul-version=${{ matrix.consul-version }})
+    name: unit test (consul-version=${{ matrix.consul-version }}) - platform=${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}
     strategy:
       matrix:
         consul-version:
@@ -72,7 +72,7 @@ jobs:
         PLATFORM="${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}"
         FILENAME="consul_${CONSUL_VERSION}_${PLATFORM}.zip"
         curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
-          unzip "${FILENAME}" -d /usr/local/bin && \
+          unzip -o "${FILENAME}" -d /usr/local/bin && \
           rm "${FILENAME}"
         consul version
     - name: Build
