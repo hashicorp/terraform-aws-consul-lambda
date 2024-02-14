@@ -47,8 +47,8 @@ jobs:
           - 1.15.2
           - 1.15.2+ent
         platform:
-          - { goos: "linux", goarch: "amd64" }
-          - { goos: "linux", goarch: "arm64" }
+          - { goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest"}
+          - { goos: "linux", goarch: "arm64", runs-on: "ubuntu-arm"}
     needs:
       - get-go-version
     defaults:
@@ -57,7 +57,7 @@ jobs:
     env:
       TEST_RESULTS_DIR: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform.runs-on }}
     steps:
     - name: Checkout
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
