@@ -64,7 +64,7 @@ jobs:
       matrix:
         platform:
           - {goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest", }
-          - {gooos: "linux", goarch: "arm64", runs-on: ["self-hosted", "Linux", "ARM64"]}
+          - {goos: "linux", goarch: "arm64", runs-on: ["self-hosted", "Linux", "ARM64"]}
     runs-on: ${{ matrix.goos.runs-on }}
     defaults:
       run:
