@@ -48,7 +48,7 @@ jobs:
           - 1.15.2+ent
         platform:
           - { goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest"}
-          - { goos: "linux", goarch: "arm64", runs-on: ['self-hosted', 'ondemand', 'os=ubuntu-arm', 'arm64']}
+          - { goos: "linux", goarch: "arm64", runs-on: ['self-hosted', 'ondemand', 'os=ubuntu-arm']}
     needs:
       - get-go-version
     defaults:
