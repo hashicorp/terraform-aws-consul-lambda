@@ -47,8 +47,8 @@ jobs:
           - 1.15.2
           - 1.15.2+ent
         platform:
-          - { goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest"}
-          - { goos: "linux", goarch: "arm64", runs-on: ['self-hosted', 'linux-arm', 'arm64']}
+          - { goos: "linux", goarch: "amd64"}
+          - { goos: "linux", goarch: "arm64"}
     needs:
       - get-go-version
     defaults:
@@ -57,7 +57,7 @@ jobs:
     env:
       TEST_RESULTS_DIR: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
-    runs-on: ${{ matrix.platform.runs-on }}
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -65,6 +65,11 @@ jobs:
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./consul-lambda/go.sum
+    - name: Install emulation
+      if: matrix.platform.goarch == 'arm64'
+      uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
+      with:
+        platforms: arm64
     - name: Install Consul
       shell: bash
       run: |
