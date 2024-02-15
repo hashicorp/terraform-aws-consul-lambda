@@ -48,10 +48,9 @@ jobs:
           - 1.15.2+ent
         platform:
           - { goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest"}
-          - { goos: "linux", goarch: "arm64", runs-on: "ubuntu-latest" }
-
+          - { goos: "linux", goarch: "arm64", runs-on: "ubuntu-latest"}
     needs:
-      - get-go-versiont
+      - get-go-version
     defaults:
       run:
         working-directory: ./consul-lambda/consul-lambda-registrator
@@ -81,8 +80,6 @@ jobs:
           unzip "${FILENAME}" -d /usr/local/bin && \
           rm "${FILENAME}"
         consul version
-
-
     - name: Build
       run: go build -v ./...
     - name: Setup gotestsum
