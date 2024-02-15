@@ -147,7 +147,6 @@ jobs:
           target: release-default
           workdir: ./consul-lambda/consul-lambda-registrator
           arch: ${{ env.arch }}
-          os: ${{ env.os }}
           tags: |
             docker.io/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
             public.ecr.aws/hashicorp/${{ env.REG_NAME }}:${{ env.version }}
