@@ -63,11 +63,11 @@ jobs:
     strategy:
       matrix:
         platform:
-          - {goos: "linux", goarch: "amd64", runs-on: "ubuntu-latest", session-manager-plugin: "ubuntu_64bit"}
-          - {goos: "linux", goarch: "arm64", runs-on: ['self-hosted', 'linux-arm', 'arm64'], session-manager-plugin: "ubuntu_arm64"}
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm64"}
       # this is because of VPC limit
       max-parallel: 1
-    runs-on: ${{ matrix.platform.runs-on }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./test/acceptance
@@ -76,7 +76,7 @@ jobs:
       GOTESTSUM_VERSION: 1.8.0
       OS: ${{ matrix.platform.goos }}
       ARCH: ${{ matrix.platform.goarch }}
-      SESSION_MANAGER: ${{ matrix.platform.session-manager-plugin }}
+      SESSION_MANAGER: ubuntu_64bit
     needs:
       - action-lint
       - go-test-lint
@@ -89,6 +89,11 @@ jobs:
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
+    - name: Install emulation
+      if: matrix.platform.goarch == 'arm64'
+      uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
+      with:
+        platforms: arm64
     - name: Setup gotestsum
       shell: bash
       run: |
