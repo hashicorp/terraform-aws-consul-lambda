@@ -8,7 +8,7 @@ resource "null_resource" "build_lambda_function" {
   provisioner "local-exec" {
     command = <<EOT
 cd ../tests/lambda
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build main.go
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build main.go
 zip example.zip main
 EOT
   }
@@ -37,7 +37,7 @@ resource "null_resource" "build_lambda_extension" {
     command = <<EOT
 cd ../../../consul-lambda/consul-lambda-extension
 mkdir extensions
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o extensions/ .
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o extensions/ .
 zip -r consul-lambda-extension.zip extensions/
 rm -rf extensions/
 cd -

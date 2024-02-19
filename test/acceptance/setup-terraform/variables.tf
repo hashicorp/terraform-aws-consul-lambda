@@ -5,3 +5,8 @@ variable "region" {
   default     = "us-west-2"
   description = "AWS region"
 }
+
+variable "arch" {
+  default     = "amd64"
+  description = "Build Architecture"
+}

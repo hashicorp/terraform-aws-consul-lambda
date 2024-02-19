@@ -117,7 +117,7 @@ jobs:
       run: |
         cd setup-terraform
         terraform init
-        terraform apply -auto-approve
+        terraform apply -var="${{matrix.platform.goarch}}" -auto-approve
     - name: Run acceptance tests
       run: |
         mkdir -p "$TEST_RESULTS"
