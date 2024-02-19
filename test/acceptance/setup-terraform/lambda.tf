@@ -24,8 +24,8 @@ module "preexisting-lambda" {
     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true",
     "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough" : "true",
   }
-  region = var.region
-  arch = var.arch
+  region     = var.region
+  arch       = var.arch
   depends_on = [null_resource.build_lambda_function]
 }
 
