@@ -37,8 +37,8 @@ resource "null_resource" "build_lambda_extension" {
     command = <<EOT
 cd ../../../consul-lambda/consul-lambda-extension
 mkdir extensions
-GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o extensions/bootstrap .
-zip -r consul-lambda-extension.zip extensions/bootstrap
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o extensions/ .
+zip -r consul-lambda-extension.zip extensions/
 rm -rf extensions/
 cd -
 mv ../../../consul-lambda/consul-lambda-extension/consul-lambda-extension.zip .
