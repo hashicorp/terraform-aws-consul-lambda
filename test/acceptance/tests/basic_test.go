@@ -183,6 +183,7 @@ func TestBasic(t *testing.T) {
 					"tags":   tags,
 					"name":   meshToLambdaServiceName,
 					"region": config.Region,
+					"arch":   config.Arch,
 				},
 			})
 
@@ -238,6 +239,7 @@ func TestBasic(t *testing.T) {
 					"region": config.Region,
 					"env":    env,
 					"layers": []string{suite.Config().ExtensionARN},
+					"arch":   config.Arch,
 				},
 			})
 

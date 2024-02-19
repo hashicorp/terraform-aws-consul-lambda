@@ -40,3 +40,7 @@ output "suffix" {
 output "consul_lambda_extension_arn" {
   value = aws_lambda_layer_version.consul_lambda_extension.arn
 }
+
+output "arch" {
+  value = var.arch
+}

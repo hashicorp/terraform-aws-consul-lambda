@@ -25,7 +25,7 @@ resource "aws_lambda_function" "example" {
   runtime       = "go1.x"
   tags          = merge(var.tags, { time = timestamp() })
   layers        = var.layers
-
+  architectures = var.arch == ["arm64"] ? ["arm64"]:["x86_64"]
   dynamic "environment" {
     for_each = local.env
     content {
