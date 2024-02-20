@@ -21,7 +21,7 @@ resource "aws_lambda_function" "example" {
   filename      = local.example_path
   function_name = var.name
   role          = aws_iam_role.example.arn
-  handler       = "main"
+  handler       = "bootstrap"
   runtime       = "provided.al2"
   tags          = merge(var.tags, { time = timestamp() })
   layers        = var.layers
