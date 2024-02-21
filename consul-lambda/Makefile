@@ -43,9 +43,5 @@ FLAGS      = --platform $(PLATFORM) --load --tag $(TAG) $(BA_FLAGS)
 docker: OS = linux
 docker: TARGET = release-default
 docker: dev  # TODO
-	@if ! docker buildx inspect lambda-builder; then \
-		docker buildx create --name lambda-builder --driver docker-container --bootstrap; \
-	fi;
-
-	export DOCKER_BUILDKIT=1; docker buildx use lambda-builder && docker buildx build $(FLAGS) ./consul-lambda-registrator
+	export DOCKER_BUILDKIT=1; docker build $(FLAGS) ./consul-lambda-registrator
 .PHONY: docker
