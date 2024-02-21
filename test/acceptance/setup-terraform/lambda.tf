@@ -8,7 +8,7 @@ resource "null_resource" "build_lambda_function" {
   provisioner "local-exec" {
     command = <<EOT
 cd ../tests/lambda
-GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o bootstrap .
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o bootstrap main.go
 zip example.zip bootstrap
 EOT
   }

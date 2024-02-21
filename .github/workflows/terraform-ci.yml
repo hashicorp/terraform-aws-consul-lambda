@@ -63,10 +63,8 @@ jobs:
     strategy:
       matrix:
         platform:
-          - {goos: "linux", goarch: "arm64"}
           - {goos: "linux", goarch: "amd64"}
-      # this is because of VPC limit
-      max-parallel: 1
+          - {goos: "linux", goarch: "arm64"}
     runs-on: ubuntu-latest
     defaults:
       run:
