@@ -43,5 +43,5 @@ FLAGS      = --target $(TARGET) --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
 docker: OS = linux
 docker: TARGET = release-default
 docker: dev  # TODO
-	export DOCKER_BUILDKIT=1; docker build $(FLAGS) ./consul-lambda-registrator
+	export DOCKER_BUILDKIT=1; docker buildx $(FLAGS) ./consul-lambda-registrator
 .PHONY: docker
