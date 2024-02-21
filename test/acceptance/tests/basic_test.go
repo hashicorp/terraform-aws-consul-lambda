@@ -64,6 +64,7 @@ func TestBasic(t *testing.T) {
 			config := suite.Config()
 			tfVars := config.TFVars()
 			tfVars["secure"] = c.secure
+			tfVars["arch"] = config.Arch
 			namespace := ""
 			partition := ""
 			queryString := ""
