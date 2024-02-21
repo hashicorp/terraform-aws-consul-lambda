@@ -31,6 +31,7 @@ type SetupConfig struct {
 }
 
 func TestBasic(t *testing.T) {
+
 	cases := map[string]struct {
 		secure                 bool
 		enterprise             bool
@@ -54,7 +55,7 @@ func TestBasic(t *testing.T) {
 		"secure auto publish with privateEcrRepoName": {
 			secure:                 true,
 			autoPublishRegistrator: true,
-			privateEcrRepoName:     "test-ecr-repo",
+			privateEcrRepoName:     fmt.Sprintf("test-ecr-repo-%s", strings.ToLower(random.UniqueId())),
 		},
 	}
 
