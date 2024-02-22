@@ -26,7 +26,7 @@ resource "aws_lambda_function" "example" {
   tags          = merge(var.tags, { time = timestamp() })
   layers        = var.layers
   architectures = var.arch == "arm64" ? ["arm64"] : ["x86_64"]
-  timeout       = 10
+  timeout       = 15
   dynamic "environment" {
     for_each = local.env
     content {
