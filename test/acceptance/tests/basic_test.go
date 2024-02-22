@@ -68,7 +68,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.17.3"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -77,7 +77,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.17.3-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
