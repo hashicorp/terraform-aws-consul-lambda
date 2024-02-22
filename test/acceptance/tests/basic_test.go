@@ -279,7 +279,7 @@ func TestBasic(t *testing.T) {
 			}
 
 			for _, c := range lambdas {
-				retry.RunWith(&retry.Timer{Timeout: 140 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
 					if c.inDefaultPartition {
