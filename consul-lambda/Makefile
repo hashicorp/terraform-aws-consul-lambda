@@ -3,7 +3,7 @@ SHELL = /usr/bin/env bash -euo pipefail -c
 # ---------- CRT ----------
 BIN_NAME = consul-lambda-registrator
 
-ARCH     = $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
+ARCH     ?= $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
 OS       = linux
 PLATFORM = $(OS)/$(ARCH)
 DIST     = dist/$(PLATFORM)
