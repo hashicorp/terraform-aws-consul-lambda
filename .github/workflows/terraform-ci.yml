@@ -61,10 +61,11 @@ jobs:
         working-directory: ./test/acceptance
   acceptance:
     strategy:
+      max-parallel: 1
       matrix:
         platform:
           - {goos: "linux", goarch: "amd64"}
-#          - {goos: "linux", goarch: "arm64"}
+          - {goos: "linux", goarch: "arm64"}
     runs-on: ubuntu-latest
     defaults:
       run:
