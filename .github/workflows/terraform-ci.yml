@@ -87,11 +87,6 @@ jobs:
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
-    - name: Install emulation
-      if: matrix.platform.goarch == 'arm64'
-      uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
-      with:
-        platforms: arm64
     - name: Setup gotestsum
       shell: bash
       run: |
