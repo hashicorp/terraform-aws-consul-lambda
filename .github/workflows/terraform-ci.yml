@@ -91,7 +91,7 @@ jobs:
       shell: bash
       run: |
         url=https://github.com/gotestyourself/gotestsum/releases/download
-        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64..tar.gz" | \
+        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Install dependencies
       run: |
