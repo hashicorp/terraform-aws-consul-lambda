@@ -21,8 +21,8 @@ resource "null_resource" "push-lambda-registrator-to-ecr" {
     command = <<EOF
     aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${local.account_id}.dkr.ecr.${var.region}.amazonaws.com
     cd ../../../consul-lambda
-    make docker TAG=${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}-${var.arch} ARCH=${var.arch}
-    docker push ${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}-${var.arch}
+    make docker TAG=${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}
+    docker push ${aws_ecr_repository.lambda-registrator.repository_url}:${local.ecr_image_tag}
     EOF
   }
 
@@ -36,5 +36,5 @@ data "aws_ecr_image" "lambda-registrator" {
     null_resource.push-lambda-registrator-to-ecr
   ]
   repository_name = local.ecr_repository_name
-  image_tag       = "${local.ecr_image_tag}-${var.arch}"
+  image_tag       = "${local.ecr_image_tag}"
 }

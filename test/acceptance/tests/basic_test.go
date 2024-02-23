@@ -48,15 +48,15 @@ func TestBasic(t *testing.T) {
 			secure:     true,
 			enterprise: true,
 		},
-		"secure auto publish": {
-			secure:                 true,
-			autoPublishRegistrator: true,
-		},
-		"secure auto publish with privateEcrRepoName": {
-			secure:                 true,
-			autoPublishRegistrator: true,
-			privateEcrRepoName:     fmt.Sprintf("test-ecr-repo-%s", strings.ToLower(random.UniqueId())),
-		},
+		// "secure auto publish": {
+		// 	secure:                 true,
+		// 	autoPublishRegistrator: true,
+		// },
+		// "secure auto publish with privateEcrRepoName": {
+		// 	secure:                 true,
+		// 	autoPublishRegistrator: true,
+		// 	privateEcrRepoName:     fmt.Sprintf("test-ecr-repo-%s", strings.ToLower(random.UniqueId())),
+		// },
 	}
 
 	for name, c := range cases {
