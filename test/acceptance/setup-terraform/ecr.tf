@@ -36,5 +36,5 @@ data "aws_ecr_image" "lambda-registrator" {
     null_resource.push-lambda-registrator-to-ecr
   ]
   repository_name = local.ecr_repository_name
-  image_tag       = "${local.ecr_image_tag}"
+  image_tag       = local.ecr_image_tag
 }
