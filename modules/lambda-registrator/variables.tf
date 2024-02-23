@@ -148,6 +148,7 @@ variable "enable_auto_publish_ecr_image" {
 }
 
 variable "arch" {
+  type        = string
   default     = "x86_64"
   description = "Lambda Architecture"
 }

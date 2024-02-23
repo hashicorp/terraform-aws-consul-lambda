@@ -7,6 +7,7 @@ variable "region" {
 }
 
 variable "arch" {
+  type        = string
   default     = "amd64"
   description = "Build Architecture"
 }

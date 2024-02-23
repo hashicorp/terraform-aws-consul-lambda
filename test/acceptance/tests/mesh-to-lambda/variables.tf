@@ -14,6 +14,7 @@ variable "region" {
 }
 
 variable "arch" {
+  type        = string
   default     = "x86_64"
   description = "Lambda Architecture"
 }
