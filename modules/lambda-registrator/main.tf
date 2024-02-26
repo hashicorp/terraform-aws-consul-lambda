@@ -186,7 +186,7 @@ resource "aws_lambda_function" "registration" {
   image_uri                      = var.enable_auto_publish_ecr_image ? local.generated_ecr_image_uri : var.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
-  architectures                  = var.arch
+  architectures                  = [var.arch]
   role                           = aws_iam_role.registration.arn
   timeout                        = var.timeout
   reserved_concurrent_executions = var.reserved_concurrent_executions
