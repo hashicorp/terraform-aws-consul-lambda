@@ -42,15 +42,12 @@ jobs:
         working-directory: ./consul-lambda
 
   test:
-    name: unit test (consul-version=${{ matrix.consul-version }}) - platform=${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}
+    name: unit test (consul-version=${{ matrix.consul-version }})
     strategy:
       matrix:
         consul-version:
-          - 1.15.2
-          - 1.15.2+ent
-        platform:
-          - { goos: "linux", goarch: "amd64"}
-          - { goos: "linux", goarch: "arm64"}
+        - 1.15.2
+        - 1.15.2+ent
     needs:
       - get-go-version
     defaults:
@@ -68,17 +65,11 @@ jobs:
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./consul-lambda/go.sum
-    - name: Install emulation
-      if: matrix.platform.goarch == 'arm64'
-      uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
-      with:
-        platforms: arm64
     - name: Install Consul
       shell: bash
       run: |
         CONSUL_VERSION="${{ matrix.consul-version }}"
-        PLATFORM="${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}"
-        FILENAME="consul_${CONSUL_VERSION}_${PLATFORM}.zip"
+        FILENAME="consul_${CONSUL_VERSION}_linux_amd64.zip"
         curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
           unzip "${FILENAME}" -d /usr/local/bin && \
           rm "${FILENAME}"
@@ -88,13 +79,10 @@ jobs:
     - name: Setup gotestsum
       shell: bash
       run: |
-        PLATFORM="${{ matrix.platform.goos }}_${{ matrix.platform.goarch }}"
         url=https://github.com/gotestyourself/gotestsum/releases/download
-        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_${PLATFORM}.tar.gz" | \
+        curl -sSL "${url}/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Test
-      env:
-        CGO_ENABLED: 1
       run: |
         mkdir -p "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json"
         read -r -a PACKAGE_NAMES <<<"$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')"
