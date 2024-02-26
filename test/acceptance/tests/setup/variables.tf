@@ -79,3 +79,9 @@ variable "private_ecr_repo_name" {
   type    = string
   default = ""
 }
+
+variable "arch" {
+  type        = string
+  default     = "x86_64"
+  description = "Lambda Architecture"
+}
