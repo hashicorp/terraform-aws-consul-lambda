@@ -63,7 +63,7 @@ func TestBasic(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			config := suite.Config()
 			if config.Arch == "arm64" && c.autoPublishRegistrator {
-				t.Skip("skipping since we currently dont have arm64 images of lambda registrator")
+				t.Skip("skipping since we currently dont have arm64 ecr images of lambda registrator")
 			}
 			tfVars := config.TFVars()
 			tfVars["secure"] = c.secure
