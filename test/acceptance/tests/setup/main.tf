@@ -62,19 +62,19 @@ resource "aws_ssm_parameter" "ca_cert" {
 module "lambda-registration" {
   source = "../../../../modules/lambda-registrator"
 
-  name                          = "lambda-registrator-1-${var.suffix}"
-  consul_http_addr              = local.consul_http_addr
-  consul_ca_cert_path           = aws_ssm_parameter.ca_cert.name
-  consul_http_token_path        = var.secure ? aws_ssm_parameter.acl_token[0].name : ""
-  ecr_image_uri                 = var.ecr_image_uri
-  subnet_ids                    = var.private_subnets
-  security_group_ids            = [data.aws_security_group.vpc_default.id]
-  sync_frequency_in_minutes     = 1
-  partitions                    = local.enterprise ? ["default", var.consul_partition] : []
-  enterprise                    = local.enterprise
-  enable_auto_publish_ecr_image = var.enable_auto_publish_ecr_image
-  consul_extension_data_prefix  = "/${var.suffix}"
-  private_ecr_repo_name         = var.private_ecr_repo_name
-  arch                          = var.arch == "arm64" ? "arm64" : "x86_64"
+  name                            = "lambda-registrator-1-${var.suffix}"
+  consul_http_addr                = local.consul_http_addr
+  consul_ca_cert_path             = aws_ssm_parameter.ca_cert.name
+  consul_http_token_path          = var.secure ? aws_ssm_parameter.acl_token[0].name : ""
+  ecr_image_uri                   = var.ecr_image_uri
+  subnet_ids                      = var.private_subnets
+  security_group_ids              = [data.aws_security_group.vpc_default.id]
+  sync_frequency_in_minutes       = 1
+  partitions                      = local.enterprise ? ["default", var.consul_partition] : []
+  enterprise                      = local.enterprise
+  enable_auto_publish_ecr_image   = var.enable_auto_publish_ecr_image
+  consul_extension_data_prefix    = "/${var.suffix}"
+  private_ecr_repo_name           = var.private_ecr_repo_name
+  arch                            = var.arch == "arm64" ? "arm64" : "x86_64"
   consul_lambda_registrator_image = var.consul_lambda_registrator_image
 }
