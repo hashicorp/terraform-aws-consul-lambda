@@ -76,4 +76,5 @@ module "lambda-registration" {
   consul_extension_data_prefix  = "/${var.suffix}"
   private_ecr_repo_name         = var.private_ecr_repo_name
   arch                          = var.arch == "arm64" ? "arm64" : "x86_64"
+  consul_lambda_registrator_image = var.consul_lambda_registrator_image
 }

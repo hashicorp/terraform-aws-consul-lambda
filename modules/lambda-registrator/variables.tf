@@ -153,7 +153,7 @@ variable "arch" {
   description = "Lambda Architecture. Valid values are arm64 and x86_64"
 
   validation {
-    condition     = can(regex("^(arm64|x86_64)$", var.arch))
+    condition     = contains(["arm64", "x86_64"], var.arch)
     error_message = "Invalid value for 'arch', options: 'arm64', 'x86_64'."
   }
 }

@@ -62,9 +62,6 @@ func TestBasic(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			config := suite.Config()
-			if config.Arch == "arm64" && c.autoPublishRegistrator {
-				t.Skip("skipping since we currently dont have arm64 ecr images of lambda registrator")
-			}
 			tfVars := config.TFVars()
 			tfVars["secure"] = c.secure
 			tfVars["arch"] = config.Arch
@@ -92,6 +89,7 @@ func TestBasic(t *testing.T) {
 
 			if c.autoPublishRegistrator {
 				tfVars["enable_auto_publish_ecr_image"] = true
+				tfVars["consul_lambda_registrator_image"] = config.ECRImageURI
 				if c.privateEcrRepoName != "" {
 					tfVars["private_ecr_repo_name"] = c.privateEcrRepoName
 				}
