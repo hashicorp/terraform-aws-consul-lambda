@@ -30,20 +30,7 @@ jobs:
     - name: Validate
       run: terraform fmt -check -recursive .
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/reusable-get-go-version.yml
   go-test-lint:
     runs-on: ubuntu-latest
     defaults:
@@ -73,6 +60,11 @@ jobs:
         skip-build-cache: true
         working-directory: ./test/acceptance
   acceptance:
+    strategy:
+      matrix:
+        platform:
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm64"}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,6 +72,9 @@ jobs:
     env:
       TEST_RESULTS: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0
+      OS: ${{ matrix.platform.goos }}
+      ARCH: ${{ matrix.platform.goarch }}
+      SESSION_MANAGER: ubuntu_64bit
     needs:
       - action-lint
       - go-test-lint
@@ -92,6 +87,8 @@ jobs:
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
     - name: Setup gotestsum
       shell: bash
       run: |
@@ -101,7 +98,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install -y expect
-        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/${{ env.SESSION_MANAGER }}/session-manager-plugin.deb" -o "session-manager-plugin.deb"
         sudo dpkg -i session-manager-plugin.deb
     - name: Configure AWS
       # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
@@ -115,7 +112,7 @@ jobs:
       run: |
         cd setup-terraform
         terraform init
-        terraform apply -auto-approve
+        terraform apply -var arch="${{matrix.platform.goarch}}" -auto-approve
     - name: Run acceptance tests
       run: |
         mkdir -p "$TEST_RESULTS"

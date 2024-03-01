@@ -22,3 +22,9 @@ variable "layers" {
   type    = list(string)
   default = []
 }
+
+variable "arch" {
+  type        = string
+  default     = "x86_64"
+  description = "Lambda Architecture"
+}

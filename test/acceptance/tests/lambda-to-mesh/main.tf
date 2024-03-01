@@ -29,5 +29,6 @@ module "lambda_to_mesh" {
   region = var.region
   env    = var.env
   layers = var.layers
+  arch   = var.arch
 }
 

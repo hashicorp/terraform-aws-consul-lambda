@@ -16,6 +16,7 @@ type TestConfig struct {
 	ECRImageURI        string      `json:"ecr_image_uri"`
 	Suffix             string      `json:"suffix"`
 	ExtensionARN       string      `json:"consul_lambda_extension_arn"`
+	Arch               string      `json:"arch"`
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {

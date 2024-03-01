@@ -20,9 +20,10 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/config"
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/logger"
-	"github.com/stretchr/testify/require"
 )
 
 type SetupConfig struct {
@@ -30,6 +31,7 @@ type SetupConfig struct {
 }
 
 func TestBasic(t *testing.T) {
+
 	cases := map[string]struct {
 		secure                 bool
 		enterprise             bool
@@ -53,7 +55,7 @@ func TestBasic(t *testing.T) {
 		"secure auto publish with privateEcrRepoName": {
 			secure:                 true,
 			autoPublishRegistrator: true,
-			privateEcrRepoName:     "test-ecr-repo",
+			privateEcrRepoName:     fmt.Sprintf("test-ecr-repo-%s", strings.ToLower(random.UniqueId())),
 		},
 	}
 
@@ -62,6 +64,7 @@ func TestBasic(t *testing.T) {
 			config := suite.Config()
 			tfVars := config.TFVars()
 			tfVars["secure"] = c.secure
+			tfVars["arch"] = config.Arch
 			namespace := ""
 			partition := ""
 			queryString := ""
@@ -86,6 +89,7 @@ func TestBasic(t *testing.T) {
 
 			if c.autoPublishRegistrator {
 				tfVars["enable_auto_publish_ecr_image"] = true
+				tfVars["consul_lambda_registrator_image"] = config.ECRImageURI
 				if c.privateEcrRepoName != "" {
 					tfVars["private_ecr_repo_name"] = c.privateEcrRepoName
 				}
@@ -117,8 +121,9 @@ func TestBasic(t *testing.T) {
 			lambdaToMeshServiceName := fmt.Sprintf("lambda_to_mesh_example_%s", suffix)
 
 			var consulServerTaskARN string
+			testingT := t
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+				taskListOut, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
 					Args: []string{
 						"ecs",
@@ -152,7 +157,7 @@ func TestBasic(t *testing.T) {
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
 				err := ExecuteRemoteCommandJSON(
-					t,
+					testingT,
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
@@ -181,6 +186,7 @@ func TestBasic(t *testing.T) {
 					"tags":   tags,
 					"name":   meshToLambdaServiceName,
 					"region": config.Region,
+					"arch":   config.Arch,
 				},
 			})
 
@@ -236,6 +242,7 @@ func TestBasic(t *testing.T) {
 					"region": config.Region,
 					"env":    env,
 					"layers": []string{suite.Config().ExtensionARN},
+					"arch":   config.Arch,
 				},
 			})
 
@@ -273,14 +280,14 @@ func TestBasic(t *testing.T) {
 			}
 
 			for _, c := range lambdas {
-				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
 					if c.inDefaultPartition {
 						qs = ""
 					}
 					err := ExecuteRemoteCommandJSON(
-						t,
+						testingT,
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
@@ -296,7 +303,7 @@ func TestBasic(t *testing.T) {
 				// Create an intention to allow the Lambda function to call the test_client service
 				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					result, err := ExecuteRemoteCommand(
-						t,
+						testingT,
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
@@ -313,7 +320,7 @@ func TestBasic(t *testing.T) {
 				// Export the test_client service so it can be called by the Lambda function.
 				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					result, err := ExecuteRemoteCommand(
-						t,
+						testingT,
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
@@ -335,7 +342,7 @@ func TestBasic(t *testing.T) {
 			defer os.Remove(outFile.Name())
 
 			retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
-				_, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
 					Args: []string{
 						"lambda",
@@ -382,7 +389,7 @@ func TestBasic(t *testing.T) {
 			retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
 				err := ExecuteRemoteCommandJSON(
-					t,
+					testingT,
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
