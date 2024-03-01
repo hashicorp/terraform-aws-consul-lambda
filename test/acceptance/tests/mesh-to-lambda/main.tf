@@ -27,4 +27,5 @@ module "mesh_to_lambda" {
   name   = var.name
   tags   = var.tags
   region = var.region
+  arch   = var.arch
 }

@@ -79,3 +79,20 @@ variable "private_ecr_repo_name" {
   type    = string
   default = ""
 }
+
+variable "arch" {
+  type        = string
+  default     = "x86_64"
+  description = "Lambda Architecture"
+}
+
+variable "consul_lambda_registrator_image" {
+  description = "The Lambda registrator image to use. Must be provided as <registry/repository:tag>"
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
+
+  validation {
+    condition     = can(regex(".+?/.+?:.+", var.consul_lambda_registrator_image))
+    error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It must be in the format 'registry/repository:tag'."
+  }
+}

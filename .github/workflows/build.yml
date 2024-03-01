@@ -14,22 +14,8 @@ jobs:
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
     needs: action-lint
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
-
+    uses: ./.github/workflows/reusable-get-go-version.yml
   get-product-version:
     defaults:
       run:
@@ -75,12 +61,19 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   build-linux:
+    strategy:
+      matrix:
+        goos:
+          - linux
+        goarch:
+          - amd64
+          - arm64
     defaults:
       run:
         working-directory: ./consul-lambda
     env:
-      GOOS: linux
-      GOARCH: amd64
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
       LDFLAGS: ${{ needs.get-product-version.outputs.ldflags }}
       CGO_ENABLED: 0
     needs:
@@ -122,6 +115,11 @@ jobs:
           path: ./consul-lambda/out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
   build-docker-default:
+    strategy:
+      matrix:
+        goarch:
+          - amd64
+          - arm64
     defaults:
       run:
         working-directory: ./consul-lambda/consul-lambda-registrator
@@ -132,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      arch: amd64
+      arch: ${{ matrix.goarch }}
 
     steps:
       - name: Checkout

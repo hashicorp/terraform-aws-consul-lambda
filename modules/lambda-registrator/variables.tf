@@ -123,7 +123,7 @@ variable "consul_lambda_registrator_image" {
   default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
 
   validation {
-    condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-z0-9_.-]+/[a-z0-9_.-]+:[a-zA-Z0-9_.-]+$", var.consul_lambda_registrator_image))
+    condition     = can(regex(".+?/.+?:.+", var.consul_lambda_registrator_image))
     error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It must be in the format 'registry/repository:tag'."
   }
 }
@@ -145,4 +145,15 @@ variable "enable_auto_publish_ecr_image" {
     EOT
   type        = bool
   default     = false
+}
+
+variable "arch" {
+  type        = string
+  default     = "x86_64"
+  description = "Lambda Architecture. Valid values are arm64 and x86_64"
+
+  validation {
+    condition     = contains(["arm64", "x86_64"], var.arch)
+    error_message = "Invalid value for 'arch', options: 'arm64', 'x86_64'."
+  }
 }
