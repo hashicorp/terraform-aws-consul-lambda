@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.0-beta5 (Mar 04, 2024)
 
 FEATURES
 * Add support for storing parameter values greater than 4 KB. The `lambda-registrator` module and source code have been updated to accept a configurable value for the [SSM parameter tier](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-advanced-parameters.html). This allows users to choose if they want to use the `Advanced` tier feature. Charges apply for the `Advanved` tier so if the tier is not expressly set to `Advanced`, then the `Standard` tier will be used. Using the `Advanced` tier allows for parameter values up to 8 KB. The Lambda-registrator Terraform module can be configured using the new `consul_extension_data_tier` variable.
@@ -6,6 +6,9 @@ FEATURES
 
 * Add support for pushing `consul-lambda-registrator` public image to private ecr repo through terraform.
   [[GH-82]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/82)
+
+* Add support for running `consul-lambda-registrator` in arm64 runtime and published arm64 artifacts for consul-lambda-registrator and consul-lambda-extension.
+  [[GH-90]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/90)
 
 ## 0.1.0-beta4 (Apr 28, 2023)
 
