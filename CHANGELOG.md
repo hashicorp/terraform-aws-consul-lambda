@@ -7,7 +7,7 @@ FEATURES
 * Add support for pushing `consul-lambda-registrator` public image to private ecr repo through terraform.
   [[GH-82]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/82)
 
-* Add support for running `consul-lambda-registrator` in arm64 runtime and published arm64 artifacts for consul-lambda-registrator and consul-lambda-extension.
+* Add  arm64 support to `consul-lambda-registrator` and `consul-lambda-extension`.
   [[GH-90]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/90)
 
 ## 0.1.0-beta4 (Apr 28, 2023)
