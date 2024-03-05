@@ -1,6 +1,16 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "3.0.2"
+    }
+
+  }
+}
+
 locals {
   on_vpc = length(var.subnet_ids) > 0 && length(var.security_group_ids) > 0
   vpc_config = local.on_vpc ? [{
@@ -9,6 +19,25 @@ locals {
   }] : []
   cron_key          = "${var.name}-cron"
   lambda_events_key = "${var.name}-lambda_events"
+  image_parts       = split(":", var.consul_lambda_registrator_image)
+  image_tag         = local.image_parts[1]
+  ecr_repo_name     = var.private_ecr_repo_name == "" ? "consul-lambda-registrator-${random_id.repo_id.hex}" : var.private_ecr_repo_name
+  # generated_ecr_image_uri is used when we want to automatically push the public image to a private ecr repo using docker.
+  generated_ecr_image_uri = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com/${local.ecr_repo_name}:${local.image_tag}"
+}
+
+# Equivalent of aws ecr get-login
+data "aws_ecr_authorization_token" "ecr_auth" {}
+data "aws_region" "current_region" {}
+data "aws_caller_identity" "current_identity" {}
+
+provider "docker" {
+  host = var.docker_host
+  registry_auth {
+    username = data.aws_ecr_authorization_token.ecr_auth.user_name
+    password = data.aws_ecr_authorization_token.ecr_auth.password
+    address  = "${data.aws_caller_identity.current_identity.account_id}.dkr.ecr.${data.aws_region.current_region.name}.amazonaws.com"
+  }
 }
 
 resource "aws_iam_role" "registration" {
@@ -126,11 +155,38 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.registration.name
   policy_arn = aws_iam_policy.policy.arn
 }
+resource "random_id" "repo_id" {
+  byte_length = 4
+}
+
+resource "aws_ecr_repository" "lambda-registrator" {
+  count        = var.enable_auto_publish_ecr_image ? 1 : 0
+  name         = local.ecr_repo_name
+  force_delete = true
+}
+
+resource "docker_image" "lambda_registrator" {
+  count = var.enable_auto_publish_ecr_image ? 1 : 0
+  name  = var.consul_lambda_registrator_image
+}
+
+resource "docker_tag" "lambda_registrator_tag" {
+  count        = var.enable_auto_publish_ecr_image ? 1 : 0
+  source_image = docker_image.lambda_registrator[count.index].name
+  target_image = local.generated_ecr_image_uri
+}
+
+resource "docker_registry_image" "push_image" {
+  count         = var.enable_auto_publish_ecr_image ? 1 : 0
+  name          = docker_tag.lambda_registrator_tag[count.index].target_image
+  keep_remotely = true
+}
 
 resource "aws_lambda_function" "registration" {
-  image_uri                      = var.ecr_image_uri
+  image_uri                      = var.enable_auto_publish_ecr_image ? local.generated_ecr_image_uri : var.ecr_image_uri
   package_type                   = "Image"
   function_name                  = var.name
+  architectures                  = [var.arch]
   role                           = aws_iam_role.registration.arn
   timeout                        = var.timeout
   reserved_concurrent_executions = var.reserved_concurrent_executions
@@ -155,6 +211,9 @@ resource "aws_lambda_function" "registration" {
       } : {},
       var.consul_extension_data_prefix != "" ? {
         CONSUL_EXTENSION_DATA_PREFIX = var.consul_extension_data_prefix
+      } : {},
+      var.consul_extension_data_tier != "" ? {
+        CONSUL_EXTENSION_DATA_TIER = var.consul_extension_data_tier
       } : {}
     )
   }
@@ -165,6 +224,9 @@ resource "aws_lambda_function" "registration" {
       security_group_ids = vpc_config.value["security_group_ids"]
     }
   }
+  depends_on = [
+    docker_registry_image.push_image
+  ]
 }
 
 module "eventbridge" {

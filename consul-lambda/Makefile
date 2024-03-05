@@ -3,7 +3,7 @@ SHELL = /usr/bin/env bash -euo pipefail -c
 # ---------- CRT ----------
 BIN_NAME = consul-lambda-registrator
 
-ARCH     = $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
+ARCH     ?= $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
 OS       = linux
 PLATFORM = $(OS)/$(ARCH)
 DIST     = dist/$(PLATFORM)
@@ -37,11 +37,11 @@ dev: dist
 BUILD_ARGS = BIN_NAME=consul-lambda-registrator VERSION=$(VERSION) GIT_COMMIT=$(GIT_COMMIT) GIT_DIRTY=$(GIT_DIRTY)
 TAG        ?= $(BIN_NAME)/$(TARGET):$(VERSION)
 BA_FLAGS   = $(addprefix --build-arg=,$(BUILD_ARGS))
-FLAGS      = --target $(TARGET) --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
+FLAGS      = --load --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
 
 # Set OS to linux for all docker/* targets.
 docker: OS = linux
 docker: TARGET = release-default
 docker: dev  # TODO
-	export DOCKER_BUILDKIT=1; docker build $(FLAGS) ./consul-lambda-registrator
+	docker buildx use default && docker buildx build $(FLAGS) ./consul-lambda-registrator
 .PHONY: docker

@@ -5,9 +5,13 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "4.14.0"
+      version = "4.67.0"
     }
   }
+}
+
+provider "aws" {
+  region = var.region
 }
 
 provider "aws" {
@@ -25,5 +29,6 @@ module "lambda_to_mesh" {
   region = var.region
   env    = var.env
   layers = var.layers
+  arch   = var.arch
 }
 

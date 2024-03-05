@@ -8,8 +8,8 @@ resource "null_resource" "build_lambda_function" {
   provisioner "local-exec" {
     command = <<EOT
 cd ../tests/lambda
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build main.go
-zip example.zip main
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o bootstrap main.go
+zip example.zip bootstrap
 EOT
   }
 }
@@ -24,8 +24,8 @@ module "preexisting-lambda" {
     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" : "true",
     "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough" : "true",
   }
-  region = var.region
-
+  region     = var.region
+  arch       = var.arch
   depends_on = [null_resource.build_lambda_function]
 }
 
@@ -37,7 +37,7 @@ resource "null_resource" "build_lambda_extension" {
     command = <<EOT
 cd ../../../consul-lambda/consul-lambda-extension
 mkdir extensions
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o extensions/ .
+GOOS=linux GOARCH=${var.arch} CGO_ENABLED=0 go build -o extensions/ .
 zip -r consul-lambda-extension.zip extensions/
 rm -rf extensions/
 cd -

@@ -11,7 +11,7 @@ variable "setup_suffix" {
 
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-west-2"
 }
 
 variable "secure" {
@@ -47,7 +47,8 @@ variable "consul_image" {
 }
 
 variable "ecr_image_uri" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "consul_license" {
@@ -67,4 +68,31 @@ variable "consul_partition" {
 
 variable "consul_lambda_extension_arn" {
   type = string
+}
+
+variable "enable_auto_publish_ecr_image" {
+  type    = bool
+  default = false
+}
+
+variable "private_ecr_repo_name" {
+  type    = string
+  default = ""
+}
+
+variable "arch" {
+  type        = string
+  default     = "x86_64"
+  description = "Lambda Architecture"
+}
+
+variable "consul_lambda_registrator_image" {
+  description = "The Lambda registrator image to use. Must be provided as <registry/repository:tag>"
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-lambda-registrator:0.1.0-beta4"
+
+  validation {
+    condition     = can(regex(".+?/.+?:.+", var.consul_lambda_registrator_image))
+    error_message = "Image format of 'consul_lambda_registrator_image' is invalid. It must be in the format 'registry/repository:tag'."
+  }
 }

@@ -13,26 +13,13 @@ jobs:
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
-    name: "Determine Go toolchain version"
-    defaults:
-      run:
-        working-directory: ./consul-lambda
-    runs-on: ubuntu-latest
-    needs:
-      - action-lint
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+    needs: action-lint
+    uses: ./.github/workflows/reusable-get-go-version.yml
   lint:
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        # run lint inside ./consul-lambda
+        working-directory: ./consul-lambda
     runs-on: ubuntu-latest
     needs:
       - get-go-version
@@ -51,7 +38,8 @@ jobs:
         only-new-issues: false
         skip-pkg-cache: true
         skip-build-cache: true
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        # run lint inside ./consul-lambda
+        working-directory: ./consul-lambda
 
   test:
     name: unit test (consul-version=${{ matrix.consul-version }})
@@ -64,7 +52,8 @@ jobs:
       - get-go-version
     defaults:
       run:
-        working-directory: ./consul-lambda/consul-lambda-registrator
+        # run all tests inside ./consul-lambda
+        working-directory: ./consul-lambda
     env:
       TEST_RESULTS_DIR: /tmp/test-results
       GOTESTSUM_VERSION: 1.8.0

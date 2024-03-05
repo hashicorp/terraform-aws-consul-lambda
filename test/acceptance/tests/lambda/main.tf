@@ -5,7 +5,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "4.14.0"
+      version = "4.67.0"
 
       configuration_aliases = [aws.provider]
     }
@@ -22,10 +22,10 @@ resource "aws_lambda_function" "example" {
   function_name = var.name
   role          = aws_iam_role.example.arn
   handler       = "main"
-  runtime       = "go1.x"
+  runtime       = "provided.al2"
   tags          = merge(var.tags, { time = timestamp() })
   layers        = var.layers
-
+  architectures = var.arch == "arm64" ? ["arm64"] : ["x86_64"]
   dynamic "environment" {
     for_each = local.env
     content {

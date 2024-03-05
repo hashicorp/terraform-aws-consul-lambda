@@ -1,0 +1,25 @@
+name: get-go-version
+
+on:
+  workflow_call:
+    outputs:
+      go-version:
+        description: "The Go version detected by this workflow"
+        value: ${{ jobs.get-go-version.outputs.go-version }}
+
+jobs:
+  get-go-version:
+    name: "Determine Go toolchain version"
+    defaults:
+      run:
+        working-directory: ./consul-lambda
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Determine Go version
+        id: get-go-version
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
