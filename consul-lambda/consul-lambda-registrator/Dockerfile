@@ -12,6 +12,9 @@ ENV BIN_NAME=$BIN_NAME
 ENV VERSION=$PRODUCT_VERSION
 # This is the location of the releases.
 ENV HASHICORP_RELEASES=https://releases.hashicorp.com
+ENV PRODUCT_NAME=$BIN_NAME
+
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 
 LABEL description="consul-lambda-registrator automatically registers Lambda functions into Consul." \
       maintainer="Consul Team <consul@hashicorp.com>" \
@@ -27,6 +30,7 @@ LABEL description="consul-lambda-registrator automatically registers Lambda func
       org.opencontainers.image.title=$BIN_NAME \
       org.opencontainers.image.url="https://www.consul.io/" \
       org.opencontainers.image.vendor="HashiCorp" \
+      org.opencontainers.image.licenses="MPL-2.0" \
       org.opencontainers.image.version=$PRODUCT_VERSION
 
 ENTRYPOINT ["/bin/consul-lambda-registrator"]
