@@ -93,6 +93,8 @@ jobs:
       - name: Build
         run: |
           mkdir dist out extensions
+          cp consul-lambda-registrator/LICENSE dist/LICENSE.txt
+          cp consul-lambda-registrator/LICENSE extensions/LICENSE.txt
           cd consul-lambda-registrator
           go build -ldflags="$LDFLAGS" -o ../dist/ .
           cd ..
