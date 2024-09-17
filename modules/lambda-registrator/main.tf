@@ -58,6 +58,8 @@ resource "aws_iam_role" "registration" {
   ]
 }
 EOF
+
+  permissions_boundary = var.aws_iam_permissions_boundary != "" ? var.aws.iam_permissions_boundary : null
 }
 
 resource "aws_iam_policy" "policy" {
