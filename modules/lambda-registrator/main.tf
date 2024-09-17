@@ -235,8 +235,9 @@ module "eventbridge" {
   source  = "terraform-aws-modules/eventbridge/aws"
   version = "1.17.3"
 
-  create_bus = false
-  role_name  = "${var.name}-eventbridge"
+  create_bus                = false
+  role_name                 = "${var.name}-eventbridge"
+  role_permissions_boundary = var.aws_iam_permissions_boundary != "" ? var.aws_iam_permissions_boundary : null
 
   rules = {
     "${local.lambda_events_key}" = {
