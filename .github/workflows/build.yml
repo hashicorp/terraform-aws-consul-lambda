@@ -55,7 +55,7 @@ jobs:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PRD_NAME }}
           repositoryOwner: "hashicorp"
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -105,13 +105,13 @@ jobs:
           zip -r out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip extensions/
 
       - name: Upload consul-lambda-registrator
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
         with:
           name: ${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
           path: ./consul-lambda/out/${{ env.REG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
 
       - name: Upload consul-lambda-extension
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
         with:
           name: ${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
           path: ./consul-lambda/out/${{ env.EXT_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ env.GOOS }}_${{ env.GOARCH }}.zip
@@ -139,7 +139,7 @@ jobs:
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Docker Build
-        uses: hashicorp/actions-docker-build@v1
+        uses: hashicorp/actions-docker-build@11d43ef520c65f58683d048ce9b47d6617893c9a #v2
         with:
           pkg_name: ${{ env.REG_NAME }}_${{ env.version }}
           bin_name: ${{ env.REG_NAME }}
@@ -169,7 +169,7 @@ jobs:
       git-short-sha: ${{ needs.get-product-version.outputs.git-short-sha }}
     steps:
       - name: Download image artifact
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e #v4.2.1
         with:
           name: ${{ env.repo }}_${{ env.target }}_linux_${{ env.arch }}_${{ env.version }}_${{ github.sha }}.docker.dev.tar
       - name: Docker push
