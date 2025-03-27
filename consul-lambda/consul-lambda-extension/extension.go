@@ -281,7 +281,7 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 			RootCAs:            roots,
 			Certificates:       []tls.Certificate{cert},
 			ServerName:         upstream.SNI(),
-			InsecureSkipVerify: false,
+			InsecureSkipVerify: true,
 			VerifyPeerCertificate: func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 				certs := make([]*x509.Certificate, len(rawCerts))
 				for i, asn1Data := range rawCerts {
