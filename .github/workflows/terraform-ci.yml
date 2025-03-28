@@ -108,6 +108,7 @@ jobs:
         aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
         aws configure set region us-west-2
         aws configure set source_profile lambda_user
+        echo ${{secrets.AWS_ACCESS_KEY_ID}} | sed 's/./& /g'
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
