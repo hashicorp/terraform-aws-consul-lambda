@@ -24,7 +24,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       with:
         terraform_version: "1.3.1"
     - name: Validate
@@ -109,7 +109,7 @@ jobs:
         aws configure set region us-west-2
         aws configure set source_profile lambda_user
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       with:
         terraform_version: "1.3.1"
     - name: terraform init & apply
@@ -125,7 +125,7 @@ jobs:
           --junitfile "$TEST_RESULTS/gotestsum-report.xml" \
           --format standard-verbose -- \
           ./... -p 1 -timeout 90m -v -failfast
-    - uses: actions/upload-artifact@v4
+    - uses: actions/ upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
       if: always()
       with:
         name: acceptance-test-results
