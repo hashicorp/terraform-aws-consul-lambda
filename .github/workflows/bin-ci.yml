@@ -33,7 +33,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
-        version: v1.51
+        version: v1.62.2
         args: "--verbose --enable gofmt"
         only-new-issues: false
         skip-pkg-cache: true
@@ -46,8 +46,8 @@ jobs:
     strategy:
       matrix:
         consul-version:
-        - 1.15.2
-        - 1.15.2+ent
+        - 1.20.5
+        - 1.20.5+ent
     needs:
       - get-go-version
     defaults:
@@ -96,7 +96,7 @@ jobs:
           --junitfile "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/gotestsum-report.xml" -- \
           -race "${PACKAGE_NAMES[@]}" \
           -- "$FLAG"
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+    - uses: actions/ upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
       with:
         name: test-results
         path: ${{ env.TEST_RESULTS_DIR }}/${{ matrix.consul-version }}
