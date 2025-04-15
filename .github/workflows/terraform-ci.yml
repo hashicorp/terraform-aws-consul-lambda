@@ -129,7 +129,7 @@ jobs:
       if: always()
       with:
         name: acceptance-test-results
-        path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+        path: ${{ env.TEST_RESULTS }}/${{ matrix.platform.goarch }}/gotestsum-report.xml
     - name: terraform destroy
       if: always()
       run: |
