@@ -154,7 +154,8 @@ func TestBasic(t *testing.T) {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
-			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			// We need high timeout here because sometimes Route53 propogation takes a long time. We've observed upto 15 mins for the task to be able to reach consul server through DNS.
+			retry.RunWith(&retry.Timer{Timeout: 20 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
 				err := ExecuteRemoteCommandJSON(
 					testingT,

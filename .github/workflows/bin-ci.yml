@@ -33,7 +33,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
-        version: v1.51
+        version: v1.62.2
         args: "--verbose --enable gofmt"
         only-new-issues: false
         skip-pkg-cache: true
@@ -42,12 +42,12 @@ jobs:
         working-directory: ./consul-lambda
 
   test:
-    name: unit test (consul-version=${{ matrix.consul-version }})
+    name: unit test (consul-version=${{ matrix.consul-version.version }})
     strategy:
       matrix:
         consul-version:
-        - 1.15.2
-        - 1.15.2+ent
+          - { version: "1.20.2", type: "ce" }
+          - { version: "1.20.2+ent", type: "ent" }
     needs:
       - get-go-version
     defaults:
@@ -68,7 +68,7 @@ jobs:
     - name: Install Consul
       shell: bash
       run: |
-        CONSUL_VERSION="${{ matrix.consul-version }}"
+        CONSUL_VERSION="${{ matrix.consul-version.version }}"
         FILENAME="consul_${CONSUL_VERSION}_linux_amd64.zip"
         curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
           unzip "${FILENAME}" -d /usr/local/bin && \
@@ -84,19 +84,19 @@ jobs:
         tar -xz --overwrite -C /usr/local/bin gotestsum
     - name: Test
       run: |
-        mkdir -p "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json"
+        mkdir -p "$TEST_RESULTS_DIR/${{ matrix.consul-version.version }}/json"
         read -r -a PACKAGE_NAMES <<<"$(go list ./... | grep -v 'mocks' | grep -v 'testing' | tr '\n' ' ')"
         echo "Testing $(echo "${PACKAGE_NAMES[@]}" | wc -w) packages"
-        if echo "${{ matrix.consul-version }}" | grep -q '.*\+ent'; then
+        if echo "${{ matrix.consul-version.version }}" | grep -q '.*\+ent'; then
           FLAG=-enterprise
         fi
         gotestsum \
           --format=short-verbose \
-          --jsonfile "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/json/go-test-race.log" \
-          --junitfile "$TEST_RESULTS_DIR/${{ matrix.consul-version }}/gotestsum-report.xml" -- \
+          --jsonfile "$TEST_RESULTS_DIR/${{ matrix.consul-version.version }}/json/go-test-race.log" \
+          --junitfile "$TEST_RESULTS_DIR/${{ matrix.consul-version.version }}/gotestsum-report.xml" -- \
           -race "${PACKAGE_NAMES[@]}" \
           -- "$FLAG"
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
       with:
-        name: test-results
-        path: ${{ env.TEST_RESULTS_DIR }}/${{ matrix.consul-version }}
+        name: ${{ matrix.consul-version.type }}-test-results
+        path: ${{ env.TEST_RESULTS_DIR }}/${{ matrix.consul-version.version }}

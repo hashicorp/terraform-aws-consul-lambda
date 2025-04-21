@@ -37,11 +37,12 @@ dev: dist
 BUILD_ARGS = BIN_NAME=consul-lambda-registrator VERSION=$(VERSION) GIT_COMMIT=$(GIT_COMMIT) GIT_DIRTY=$(GIT_DIRTY)
 TAG        ?= $(BIN_NAME)/$(TARGET):$(VERSION)
 BA_FLAGS   = $(addprefix --build-arg=,$(BUILD_ARGS))
-FLAGS      = --load --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS)
+FLAGS      = --load --platform $(PLATFORM) --tag $(TAG) $(BA_FLAGS) --provenance=false
 
 # Set OS to linux for all docker/* targets.
 docker: OS = linux
 docker: TARGET = release-default
 docker: dev  # TODO
+	docker context use default
 	docker buildx use default && docker buildx build $(FLAGS) ./consul-lambda-registrator
 .PHONY: docker

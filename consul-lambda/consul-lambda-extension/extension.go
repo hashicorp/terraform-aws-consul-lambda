@@ -277,11 +277,16 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 
 		ext.Logger.Debug("dialing upstream", "sni", upstream.SNI(), "port", upstream.Port)
 
+		skipTLSVerification := true
+		if PRE_RELEASE != "dev" {
+			skipTLSVerification = false
+		}
+
 		return tls.Dial("tcp", ext.MeshGatewayURI, &tls.Config{
 			RootCAs:            roots,
 			Certificates:       []tls.Certificate{cert},
 			ServerName:         upstream.SNI(),
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: skipTLSVerification,
 			VerifyPeerCertificate: func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 				certs := make([]*x509.Certificate, len(rawCerts))
 				for i, asn1Data := range rawCerts {

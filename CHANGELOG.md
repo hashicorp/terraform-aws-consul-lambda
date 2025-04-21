@@ -1,3 +1,24 @@
+## 0.1.0-beta6 (Apr 21, 2025)
+BUG FIXES
+* Security:
+  * Upgrade to use Go 1.23.7 This resolves vulnerabilities `CVE-2023-48795` and `CVE-2024-45337` in `golang.org/x/crypto`. [[PR]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/104)
+* Improvements ( Github Actions )
+  * Updated unit tests to use consul 1.20.2
+  * Updated `golangci-lint-action` version to `1.62.2` from `1.51`
+  * Updated `actions/upload-artifact` to v4 from v3 due to deprecation and fixed accompanying breaking changes caused by the update
+  * Updated `hashicorp-actions-docker-build` to v2 from v1
+  * Updated `actions/download-artifact` to v4 from v3 due to deprecation
+  * Updated `hashicorp/setup-terraform` to v3 from v2
+  * Added a `Setup Terraform` step in `terraform-ci.yml` before running terraform commands
+  * Updated Timeout to 20m from 5m in `test/acceptance/tests/basic_test.go` to fix flakiness due which was caused due to delays in Route53 DNS propogation
+* CVEs Fixed
+  * CVE-2024-10086
+  * CVE-2024-10006
+  * CVE-2024-10005
+  * CVE-2023-48795
+  * CVE-2024-45337
+  
+
 ## 0.1.0-beta5 (Mar 04, 2024)
 
 FEATURES

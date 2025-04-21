@@ -4,8 +4,8 @@
 
 
 git_commit=$(git rev-parse --short HEAD)
-version="0.1.0"
-prerelease="dev"
+version=$(grep 'var VERSION' ../consul-lambda/consul-lambda-extension/version.go | awk -F\" '{print $2}')
+prerelease=$(grep 'var PRE_RELEASE' ../consul-lambda/consul-lambda-extension/version.go | awk -F\" '{print $2}')
 
 if [ "$prerelease" == "dev" ]; then
     echo "${version}-${prerelease}-${git_commit}"
