@@ -145,7 +145,14 @@ resource "aws_iam_policy" "policy" {
       ],
       "Resource": "*",
       "Effect": "Allow"
-    }
+    },
+    {
+      "Action": [
+        "lambda:ListTags"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }    
   ]
 }
 EOF
