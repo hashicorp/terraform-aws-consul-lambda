@@ -1,3 +1,8 @@
+## Unreleased
+BUG FIXES
+* Security:
+  * Upgrade `github.com/hashicorp/consul` to v1.22.0 to fix CVE-2025-11375 (Consul event endpoint denial of service vulnerability). [[PR-112]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/112)
+
 ## 0.1.0-beta6 (Apr 21, 2025)
 BUG FIXES
 * Security:
