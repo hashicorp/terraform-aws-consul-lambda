@@ -1,0 +1,3 @@
+```release-note:security
+security: Upgrade `github.com/hashicorp/consul` to v1.22.0 to fix CVE-2025-11375 (Consul event endpoint denial of service vulnerability).
+```
