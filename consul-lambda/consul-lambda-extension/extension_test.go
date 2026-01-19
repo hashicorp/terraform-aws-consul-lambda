@@ -5,19 +5,14 @@ package main_test
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
-	"math/big"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
@@ -111,8 +106,20 @@ func (m MockEventProcessor) ProcessEvents(ctx context.Context) error {
 }
 
 func generateExtensionData(t *testing.T, name, trustDomain string) string {
-	ca, caKey := generateTestCA(t, trustDomain)
-	cert, pk := generateTestCert(t, ca, caKey, name, trustDomain, []string{fmt.Sprintf("%s.%s", name, trustDomain)}, []net.IP{net.ParseIP("127.0.0.1")})
+	ca, caKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{Domain: trustDomain})
+	require.NoError(t, err)
+
+	signer, err := tlsutil.ParseSigner(caKey)
+	require.NoError(t, err)
+
+	cert, pk, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		CA:          ca,
+		Signer:      signer,
+		Name:        name,
+		DNSNames:    []string{fmt.Sprintf("%s.%s", name, trustDomain)},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+	})
+	require.NoError(t, err)
 
 	ed := structs.ExtensionData{
 		PrivateKeyPEM: pk,
@@ -124,88 +131,4 @@ func generateExtensionData(t *testing.T, name, trustDomain string) string {
 	edJSON, err := json.Marshal(ed)
 	require.NoError(t, err)
 	return string(edJSON)
-}
-
-func generateTestCA(t *testing.T, trustDomain string) (caPEM string, caKey *rsa.PrivateKey) {
-	t.Helper()
-
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	require.NoError(t, err)
-
-	now := time.Now()
-	tmpl := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			CommonName: trustDomain,
-		},
-		NotBefore:             now.Add(-1 * time.Hour),
-		NotAfter:              now.Add(24 * time.Hour),
-		IsCA:                  true,
-		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
-	}
-
-	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
-	require.NoError(t, err)
-
-	certPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	require.NotEmpty(t, certPEMBytes)
-
-	return string(certPEMBytes), key
-}
-
-func generateTestCert(
-	t *testing.T,
-	caPEM string,
-	caKey *rsa.PrivateKey,
-	name string,
-	trustDomain string,
-	dnsNames []string,
-	ipAddresses []net.IP,
-) (certPEM string, keyPEM string) {
-	t.Helper()
-
-	caBlock, _ := pem.Decode([]byte(caPEM))
-	require.NotNil(t, caBlock)
-
-	caCert, err := x509.ParseCertificate(caBlock.Bytes)
-	require.NoError(t, err)
-
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	require.NoError(t, err)
-
-	now := time.Now()
-	tmpl := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			CommonName: name,
-		},
-		NotBefore:    now.Add(-1 * time.Hour),
-		NotAfter:     now.Add(24 * time.Hour),
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		DNSNames:     dnsNames,
-		IPAddresses:  ipAddresses,
-		Issuer:       caCert.Subject,
-		SubjectKeyId: []byte(trustDomain),
-	}
-
-	der, err := x509.CreateCertificate(rand.Reader, tmpl, caCert, &key.PublicKey, caKey)
-	require.NoError(t, err)
-
-	certPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	require.NotEmpty(t, certPEMBytes)
-
-	keyPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	require.NotEmpty(t, keyPEMBytes)
-
-	return string(certPEMBytes), string(keyPEMBytes)
 }
