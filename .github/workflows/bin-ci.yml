@@ -31,7 +31,7 @@ jobs:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
         cache-dependency-path: ./consul-lambda/go.sum
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
+      uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
       with:
         version: latest
         install-mode: goinstall
