@@ -66,7 +66,7 @@ func TestExtension(t *testing.T) {
 	}()
 
 	wg.Wait()
-	
+
 	// Check error after test goroutines complete to avoid panic in Go 1.25+
 	select {
 	case err := <-errChan:

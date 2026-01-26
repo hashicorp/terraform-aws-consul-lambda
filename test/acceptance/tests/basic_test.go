@@ -68,7 +68,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.22.0"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -77,7 +77,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.22.0-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
@@ -166,7 +166,9 @@ func TestBasic(t *testing.T) {
 					&services,
 				)
 				r.Check(err)
-				require.Len(r, services, 1)
+				if len(services) != 1 {
+					r.Errorf("expected 1 service, got %d", len(services))
+				}
 			})
 
 			// Create Lambda functions that are called by the test_client
@@ -296,7 +298,9 @@ func TestBasic(t *testing.T) {
 						&services,
 					)
 					r.Check(err)
-					require.Len(r, services, 1)
+					if len(services) != 1 {
+						r.Errorf("expected 1 service for %s, got %d", c.name, len(services))
+					}
 				})
 			}
 
@@ -373,8 +377,13 @@ func TestBasic(t *testing.T) {
 				}{}
 				err = json.Unmarshal(result, &obs)
 				r.Check(err)
-				require.Len(r, obs.Body, 1, fmt.Sprintf("result included %s", string(result)))
-				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code, fmt.Sprintf("result included %s", string(result)))
+				if len(obs.Body) != 1 {
+					r.Errorf("expected 1 item in Body, got %d - result included %s", len(obs.Body), string(result))
+					return
+				}
+				if obs.Body[0].Body.Code != http.StatusOK {
+					r.Errorf("expected status %d, got %d - result included %s", http.StatusOK, obs.Body[0].Body.Code, string(result))
+				}
 			})
 
 			meshToLambdaTerraformOptions.Vars = map[string]interface{}{
@@ -398,7 +407,9 @@ func TestBasic(t *testing.T) {
 					&services,
 				)
 				r.Check(err)
-				require.Len(r, services, 0)
+				if len(services) != 0 {
+					r.Errorf("expected 0 services, got %d", len(services))
+				}
 			})
 
 			logger.Log(t, "Test successful!")
