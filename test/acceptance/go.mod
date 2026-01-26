@@ -1,12 +1,12 @@
 module github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance
 
-go 1.25.3
+go 1.25.5
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
 	github.com/gruntwork-io/terratest v0.40.8
-	github.com/hashicorp/consul/api v1.33.0
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/stretchr/testify v1.8.4
 )
 
