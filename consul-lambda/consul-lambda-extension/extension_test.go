@@ -5,14 +5,19 @@ package main_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
@@ -106,29 +111,88 @@ func (m MockEventProcessor) ProcessEvents(ctx context.Context) error {
 }
 
 func generateExtensionData(t *testing.T, name, trustDomain string) string {
-	ca, caKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{Domain: trustDomain})
+	caCertPEM, caKey, err := generateTestCA(trustDomain)
 	require.NoError(t, err)
 
-	signer, err := tlsutil.ParseSigner(caKey)
-	require.NoError(t, err)
-
-	cert, pk, err := tlsutil.GenerateCert(tlsutil.CertOpts{
-		CA:          ca,
-		Signer:      signer,
-		Name:        name,
-		DNSNames:    []string{fmt.Sprintf("%s.%s", name, trustDomain)},
-		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
-	})
+	certPEM, pkPEM, err := generateTestLeafCert(caCertPEM, caKey, name, trustDomain)
 	require.NoError(t, err)
 
 	ed := structs.ExtensionData{
-		PrivateKeyPEM: pk,
-		CertPEM:       cert,
-		RootCertPEM:   ca,
+		PrivateKeyPEM: pkPEM,
+		CertPEM:       certPEM,
+		RootCertPEM:   caCertPEM,
 		TrustDomain:   trustDomain,
 	}
 
 	edJSON, err := json.Marshal(ed)
 	require.NoError(t, err)
 	return string(edJSON)
+}
+
+func generateTestCA(trustDomain string) (certPEM string, caKey *rsa.PrivateKey, err error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", nil, err
+	}
+
+	now := time.Now()
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: trustDomain},
+		NotBefore:             now.Add(-1 * time.Minute),
+		NotAfter:              now.Add(1 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		return "", nil, err
+	}
+
+	certPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	return string(certPEMBytes), key, nil
+}
+
+func generateTestLeafCert(caCertPEM string, caKey *rsa.PrivateKey, name, trustDomain string) (certPEM string, keyPEM string, err error) {
+	caBlock, _ := pem.Decode([]byte(caCertPEM))
+	if caBlock == nil {
+		return "", "", fmt.Errorf("failed to decode CA cert PEM")
+	}
+	caCert, err := x509.ParseCertificate(caBlock.Bytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", "", err
+	}
+
+	now := time.Now()
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return "", "", err
+	}
+
+	tmpl := &x509.Certificate{
+		SerialNumber: serial,
+		Subject:      pkix.Name{CommonName: name},
+		NotBefore:    now.Add(-1 * time.Minute),
+		NotAfter:     now.Add(1 * time.Hour),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		DNSNames:     []string{fmt.Sprintf("%s.%s", name, trustDomain)},
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, caCert, &key.PublicKey, caKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	certPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyPEMBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	return string(certPEMBytes), string(keyPEMBytes), nil
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -347,6 +348,11 @@ func TestFullSyncData(t *testing.T) {
 			ctx := context.Background()
 			c := c
 			server, err := testutil.NewTestServerConfigT(t, nil)
+			if err != nil {
+				if strings.Contains(err.Error(), "consul not found on $PATH") {
+					t.Skip(err.Error())
+				}
+			}
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				_ = server.Stop()

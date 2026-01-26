@@ -45,6 +45,11 @@ func TestSetupEnvironment(t *testing.T) {
 	}
 
 	server, err := testutil.NewTestServerConfigT(t, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "consul not found on $PATH") {
+			t.Skip(err.Error())
+		}
+	}
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = server.Stop()
