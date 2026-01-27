@@ -3,7 +3,7 @@
 
 module "mesh_gateway" {
   source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version = "0.6.0"
+  version = "0.8.1"
 
   kind                          = "mesh-gateway"
   family                        = "mesh-gateway-${var.suffix}"
