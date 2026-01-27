@@ -99,6 +99,7 @@ func TestBasic(t *testing.T) {
 				TerraformDir: "./setup",
 				Vars:         tfVars,
 				NoColor:      true,
+				Upgrade:      true,
 			})
 
 			t.Cleanup(func() {
