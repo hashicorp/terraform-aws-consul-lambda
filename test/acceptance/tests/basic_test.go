@@ -99,7 +99,6 @@ func TestBasic(t *testing.T) {
 				TerraformDir: "./setup",
 				Vars:         tfVars,
 				NoColor:      true,
-				Upgrade:      true,
 			})
 
 			t.Cleanup(func() {
@@ -376,15 +375,15 @@ func TestBasic(t *testing.T) {
 						} `json:"body"`
 					} `json:"body"`
 				}{}
-				err = json.Unmarshal(result, &obs)
-				r.Check(err)
-				if len(obs.Body) != 1 {
-					r.Errorf("expected 1 item in Body, got %d - result included %s", len(obs.Body), string(result))
-					return
-				}
-				if obs.Body[0].Body.Code != http.StatusOK {
-					r.Errorf("expected status %d, got %d - result included %s", http.StatusOK, obs.Body[0].Body.Code, string(result))
-				}
+			err = json.Unmarshal(result, &obs)
+			r.Check(err)
+			if len(obs.Body) != 1 {
+				r.Errorf("expected 1 item in Body, got %d - result included %s", len(obs.Body), string(result))
+				return
+			}
+			if obs.Body[0].Body.Code != http.StatusOK {
+				r.Errorf("expected status %d, got %d - result included %s", http.StatusOK, obs.Body[0].Body.Code, string(result))
+			}
 			})
 
 			meshToLambdaTerraformOptions.Vars = map[string]interface{}{
