@@ -392,6 +392,7 @@ func TestBasic(t *testing.T) {
 				},
 				"name":   meshToLambdaServiceName,
 				"region": config.Region,
+				"arch":   config.Arch,
 			}
 			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
