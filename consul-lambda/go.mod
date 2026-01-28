@@ -9,8 +9,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/api v1.33.2
-	github.com/hashicorp/consul/sdk v0.17.1
+	github.com/hashicorp/consul/api v1.32.0
+	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -31,7 +31,6 @@ require (
 	github.com/aws/smithy-go v1.11.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
