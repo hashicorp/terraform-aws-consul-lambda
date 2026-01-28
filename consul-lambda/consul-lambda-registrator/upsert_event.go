@@ -91,7 +91,6 @@ func (e UpsertEvent) AddAlias(alias string) UpsertEvent {
 func (env Environment) registerService(e UpsertEvent) error {
 	registration := &api.CatalogRegistration{
 		Node:           env.NodeName,
-		Address:        "127.0.0.1",
 		SkipNodeUpdate: true,
 		NodeMeta: map[string]string{
 			"external-node":  "true",

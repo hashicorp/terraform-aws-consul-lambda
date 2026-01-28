@@ -52,28 +52,17 @@ func TestExtension(t *testing.T) {
 
 	e := ext.NewExtension(cfg)
 
-	errChan := make(chan error, 1)
 	go func() {
 		err := e.Start(ctx)
 		if err != nil {
 			// If serve failed with an error, then we need to explicitly call wg.Done
 			// to end the test.
 			wg.Done()
-			errChan <- err
-		} else {
-			errChan <- nil
 		}
+		require.NoError(t, err)
 	}()
 
 	wg.Wait()
-
-	// Check error after test goroutines complete to avoid panic in Go 1.25+
-	select {
-	case err := <-errChan:
-		require.NoError(t, err)
-	default:
-		// Extension is still running, which is fine
-	}
 }
 
 type MockParamGetter struct {

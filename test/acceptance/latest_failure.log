@@ -1,0 +1,781 @@
+go-test-lint	Set up job	﻿2026-01-28T11:08:21.0650159Z Current runner version: '2.331.0'
+go-test-lint	Set up job	2026-01-28T11:08:21.0692993Z ##[group]Runner Image Provisioner
+go-test-lint	Set up job	2026-01-28T11:08:21.0694450Z Hosted Compute Agent
+go-test-lint	Set up job	2026-01-28T11:08:21.0695466Z Version: 20260115.477
+go-test-lint	Set up job	2026-01-28T11:08:21.0696461Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+go-test-lint	Set up job	2026-01-28T11:08:21.0697602Z Build Date: 2026-01-15T22:32:41Z
+go-test-lint	Set up job	2026-01-28T11:08:21.0698809Z Worker ID: {f77954fc-b1d4-4ee5-b13f-fc6f880a73be}
+go-test-lint	Set up job	2026-01-28T11:08:21.0700246Z Azure Region: northcentralus
+go-test-lint	Set up job	2026-01-28T11:08:21.0701191Z ##[endgroup]
+go-test-lint	Set up job	2026-01-28T11:08:21.0704020Z ##[group]Operating System
+go-test-lint	Set up job	2026-01-28T11:08:21.0705031Z Ubuntu
+go-test-lint	Set up job	2026-01-28T11:08:21.0705739Z 24.04.3
+go-test-lint	Set up job	2026-01-28T11:08:21.0706715Z LTS
+go-test-lint	Set up job	2026-01-28T11:08:21.0707576Z ##[endgroup]
+go-test-lint	Set up job	2026-01-28T11:08:21.0708322Z ##[group]Runner Image
+go-test-lint	Set up job	2026-01-28T11:08:21.0709341Z Image: ubuntu-24.04
+go-test-lint	Set up job	2026-01-28T11:08:21.0710148Z Version: 20260119.4.1
+go-test-lint	Set up job	2026-01-28T11:08:21.0711923Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+go-test-lint	Set up job	2026-01-28T11:08:21.0714968Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+go-test-lint	Set up job	2026-01-28T11:08:21.0716712Z ##[endgroup]
+go-test-lint	Set up job	2026-01-28T11:08:21.0721619Z ##[group]GITHUB_TOKEN Permissions
+go-test-lint	Set up job	2026-01-28T11:08:21.0725355Z Actions: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0726242Z ArtifactMetadata: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0727112Z Attestations: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0728242Z Checks: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0729113Z Contents: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0730070Z Deployments: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0731048Z Discussions: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0731862Z Issues: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0732995Z Metadata: read
+go-test-lint	Set up job	2026-01-28T11:08:21.0733873Z Models: read
+go-test-lint	Set up job	2026-01-28T11:08:21.0734611Z Packages: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0735701Z Pages: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0736733Z PullRequests: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0737589Z RepositoryProjects: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0738734Z SecurityEvents: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0739595Z Statuses: write
+go-test-lint	Set up job	2026-01-28T11:08:21.0740424Z ##[endgroup]
+go-test-lint	Set up job	2026-01-28T11:08:21.0744376Z Secret source: Actions
+go-test-lint	Set up job	2026-01-28T11:08:21.0745523Z Prepare workflow directory
+go-test-lint	Set up job	2026-01-28T11:08:21.1556266Z Prepare all required actions
+go-test-lint	Set up job	2026-01-28T11:08:21.1614421Z Getting action download info
+go-test-lint	Set up job	2026-01-28T11:08:21.5322729Z Download action repository 'actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab' (SHA:8e5e7e5ab8b370d6c329ec480221332ada57f0ab)
+go-test-lint	Set up job	2026-01-28T11:08:21.6828971Z Download action repository 'actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9' (SHA:4d34df0c2316fe8122ab82dc22947d607c0c91f9)
+go-test-lint	Set up job	2026-01-28T11:08:22.1789800Z Download action repository 'golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8' (SHA:971e284b6050e8a5849b72094c50ab08da042db8)
+go-test-lint	Set up job	2026-01-28T11:08:22.9708051Z Complete job name: go-test-lint
+go-test-lint	Checkout	﻿2026-01-28T11:08:23.0462668Z ##[group]Run actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+go-test-lint	Checkout	2026-01-28T11:08:23.0464450Z with:
+go-test-lint	Checkout	2026-01-28T11:08:23.0465339Z   repository: hashicorp/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.0466793Z   token: ***
+go-test-lint	Checkout	2026-01-28T11:08:23.0467560Z   ssh-strict: true
+go-test-lint	Checkout	2026-01-28T11:08:23.0468367Z   persist-credentials: true
+go-test-lint	Checkout	2026-01-28T11:08:23.0469241Z   clean: true
+go-test-lint	Checkout	2026-01-28T11:08:23.0469978Z   fetch-depth: 1
+go-test-lint	Checkout	2026-01-28T11:08:23.0470725Z   lfs: false
+go-test-lint	Checkout	2026-01-28T11:08:23.0471451Z   submodules: false
+go-test-lint	Checkout	2026-01-28T11:08:23.0472567Z   set-safe-directory: true
+go-test-lint	Checkout	2026-01-28T11:08:23.0473820Z env:
+go-test-lint	Checkout	2026-01-28T11:08:23.0528926Z   CONSUL_LICENSE: ***
+go-test-lint	Checkout	2026-01-28T11:08:23.0529775Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.1504770Z Syncing repository: hashicorp/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.1507627Z ##[group]Getting Git version info
+go-test-lint	Checkout	2026-01-28T11:08:23.1509581Z Working directory is '/home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda'
+go-test-lint	Checkout	2026-01-28T11:08:23.1512037Z [command]/usr/bin/git version
+go-test-lint	Checkout	2026-01-28T11:08:23.1548509Z git version 2.52.0
+go-test-lint	Checkout	2026-01-28T11:08:23.1575977Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.1590473Z Temporarily overriding HOME='/home/runner/work/_temp/7994abce-f169-4311-b2de-1c628f623842' before making global git config changes
+go-test-lint	Checkout	2026-01-28T11:08:23.1594306Z Adding repository directory to the temporary git global config as a safe directory
+go-test-lint	Checkout	2026-01-28T11:08:23.1597033Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.1636407Z Deleting the contents of '/home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda'
+go-test-lint	Checkout	2026-01-28T11:08:23.1640743Z ##[group]Initializing the repository
+go-test-lint	Checkout	2026-01-28T11:08:23.1644802Z [command]/usr/bin/git init /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.1746304Z hint: Using 'master' as the name for the initial branch. This default branch name
+go-test-lint	Checkout	2026-01-28T11:08:23.1748301Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+go-test-lint	Checkout	2026-01-28T11:08:23.1750862Z hint: to use in all of your new repositories, which will suppress this warning,
+go-test-lint	Checkout	2026-01-28T11:08:23.1752509Z hint: call:
+go-test-lint	Checkout	2026-01-28T11:08:23.1753255Z hint:
+go-test-lint	Checkout	2026-01-28T11:08:23.1754170Z hint: 	git config --global init.defaultBranch <name>
+go-test-lint	Checkout	2026-01-28T11:08:23.1755560Z hint:
+go-test-lint	Checkout	2026-01-28T11:08:23.1756653Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+go-test-lint	Checkout	2026-01-28T11:08:23.1758489Z hint: 'development'. The just-created branch can be renamed via this command:
+go-test-lint	Checkout	2026-01-28T11:08:23.1760125Z hint:
+go-test-lint	Checkout	2026-01-28T11:08:23.1760898Z hint: 	git branch -m <name>
+go-test-lint	Checkout	2026-01-28T11:08:23.1761811Z hint:
+go-test-lint	Checkout	2026-01-28T11:08:23.1763287Z hint: Disable this message with "git config set advice.defaultBranchName false"
+go-test-lint	Checkout	2026-01-28T11:08:23.1765774Z Initialized empty Git repository in /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda/.git/
+go-test-lint	Checkout	2026-01-28T11:08:23.1769613Z [command]/usr/bin/git remote add origin https://github.com/hashicorp/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.1798221Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.1799621Z ##[group]Disabling automatic garbage collection
+go-test-lint	Checkout	2026-01-28T11:08:23.1800856Z [command]/usr/bin/git config --local gc.auto 0
+go-test-lint	Checkout	2026-01-28T11:08:23.1828617Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.1829908Z ##[group]Setting up auth
+go-test-lint	Checkout	2026-01-28T11:08:23.1833867Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+go-test-lint	Checkout	2026-01-28T11:08:23.1861956Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+go-test-lint	Checkout	2026-01-28T11:08:23.2231458Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+go-test-lint	Checkout	2026-01-28T11:08:23.2264113Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+go-test-lint	Checkout	2026-01-28T11:08:23.2500568Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+go-test-lint	Checkout	2026-01-28T11:08:23.2534131Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.2535509Z ##[group]Fetching the repository
+go-test-lint	Checkout	2026-01-28T11:08:23.2543084Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +78a6393ae3a3ccd62467f417e1497cd6d9cc176d:refs/remotes/pull/112/merge
+go-test-lint	Checkout	2026-01-28T11:08:23.4857749Z remote: Enumerating objects: 159, done.        
+go-test-lint	Checkout	2026-01-28T11:08:23.4860209Z remote: Counting objects:   0% (1/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4862476Z remote: Counting objects:   1% (2/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4864001Z remote: Counting objects:   2% (4/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4865284Z remote: Counting objects:   3% (5/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4866551Z remote: Counting objects:   4% (7/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4867673Z remote: Counting objects:   5% (8/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4868859Z remote: Counting objects:   6% (10/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4870005Z remote: Counting objects:   7% (12/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4871144Z remote: Counting objects:   8% (13/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4873233Z remote: Counting objects:   9% (15/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4874927Z remote: Counting objects:  10% (16/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4876094Z remote: Counting objects:  11% (18/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4877249Z remote: Counting objects:  12% (20/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4878404Z remote: Counting objects:  13% (21/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4879588Z remote: Counting objects:  14% (23/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4880841Z remote: Counting objects:  15% (24/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4883003Z remote: Counting objects:  16% (26/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4884743Z remote: Counting objects:  17% (28/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4886376Z remote: Counting objects:  18% (29/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4888012Z remote: Counting objects:  19% (31/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4889609Z remote: Counting objects:  20% (32/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4890771Z remote: Counting objects:  21% (34/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4891903Z remote: Counting objects:  22% (35/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4893360Z remote: Counting objects:  23% (37/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4894506Z remote: Counting objects:  24% (39/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4895647Z remote: Counting objects:  25% (40/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4897231Z remote: Counting objects:  26% (42/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4898903Z remote: Counting objects:  27% (43/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4900119Z remote: Counting objects:  28% (45/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4901386Z remote: Counting objects:  29% (47/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4903073Z remote: Counting objects:  30% (48/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4904840Z remote: Counting objects:  31% (50/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4906350Z remote: Counting objects:  32% (51/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4907516Z remote: Counting objects:  33% (53/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4908646Z remote: Counting objects:  34% (55/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4909780Z remote: Counting objects:  35% (56/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4910916Z remote: Counting objects:  36% (58/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4912051Z remote: Counting objects:  37% (59/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4913299Z remote: Counting objects:  38% (61/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4914440Z remote: Counting objects:  39% (63/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4915576Z remote: Counting objects:  40% (64/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4916712Z remote: Counting objects:  41% (66/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4917849Z remote: Counting objects:  42% (67/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4918976Z remote: Counting objects:  43% (69/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4920104Z remote: Counting objects:  44% (70/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4921234Z remote: Counting objects:  45% (72/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4922748Z remote: Counting objects:  46% (74/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4923877Z remote: Counting objects:  47% (75/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4925004Z remote: Counting objects:  48% (77/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4926142Z remote: Counting objects:  49% (78/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4927270Z remote: Counting objects:  50% (80/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4928398Z remote: Counting objects:  51% (82/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4929600Z remote: Counting objects:  52% (83/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4930718Z remote: Counting objects:  53% (85/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4931852Z remote: Counting objects:  54% (86/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4933248Z remote: Counting objects:  55% (88/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4934386Z remote: Counting objects:  56% (90/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4935517Z remote: Counting objects:  57% (91/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4936649Z remote: Counting objects:  58% (93/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4937775Z remote: Counting objects:  59% (94/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4938928Z remote: Counting objects:  60% (96/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4940041Z remote: Counting objects:  61% (97/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4941347Z remote: Counting objects:  62% (99/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4942719Z remote: Counting objects:  63% (101/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4943903Z remote: Counting objects:  64% (102/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4945048Z remote: Counting objects:  65% (104/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4946224Z remote: Counting objects:  66% (105/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4947370Z remote: Counting objects:  67% (107/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4948509Z remote: Counting objects:  68% (109/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4949639Z remote: Counting objects:  69% (110/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4950784Z remote: Counting objects:  70% (112/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4951937Z remote: Counting objects:  71% (113/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4953177Z remote: Counting objects:  72% (115/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4954330Z remote: Counting objects:  73% (117/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4955471Z remote: Counting objects:  74% (118/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4956619Z remote: Counting objects:  75% (120/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4957760Z remote: Counting objects:  76% (121/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4958901Z remote: Counting objects:  77% (123/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4960251Z remote: Counting objects:  78% (125/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4961424Z remote: Counting objects:  79% (126/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4962707Z remote: Counting objects:  80% (128/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4963862Z remote: Counting objects:  81% (129/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4964991Z remote: Counting objects:  82% (131/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4966123Z remote: Counting objects:  83% (132/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4967245Z remote: Counting objects:  84% (134/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4968371Z remote: Counting objects:  85% (136/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4969514Z remote: Counting objects:  86% (137/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4970634Z remote: Counting objects:  87% (139/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4971759Z remote: Counting objects:  88% (140/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4973029Z remote: Counting objects:  89% (142/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4974156Z remote: Counting objects:  90% (144/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4975281Z remote: Counting objects:  91% (145/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4976409Z remote: Counting objects:  92% (147/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4977523Z remote: Counting objects:  93% (148/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4978639Z remote: Counting objects:  94% (150/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4979765Z remote: Counting objects:  95% (152/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4980886Z remote: Counting objects:  96% (153/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4981993Z remote: Counting objects:  97% (155/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4983209Z remote: Counting objects:  98% (156/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4984494Z remote: Counting objects:  99% (158/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4985611Z remote: Counting objects: 100% (159/159)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4986796Z remote: Counting objects: 100% (159/159), done.        
+go-test-lint	Checkout	2026-01-28T11:08:23.4988006Z remote: Compressing objects:   0% (1/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4989151Z remote: Compressing objects:   1% (2/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4990295Z remote: Compressing objects:   2% (3/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4991444Z remote: Compressing objects:   3% (5/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4992694Z remote: Compressing objects:   4% (6/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4993840Z remote: Compressing objects:   5% (7/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4994983Z remote: Compressing objects:   6% (9/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4996127Z remote: Compressing objects:   7% (10/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4997286Z remote: Compressing objects:   8% (12/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4998437Z remote: Compressing objects:   9% (13/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.4999587Z remote: Compressing objects:  10% (14/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5000746Z remote: Compressing objects:  11% (16/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5001901Z remote: Compressing objects:  12% (17/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5003353Z remote: Compressing objects:  13% (18/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5004526Z remote: Compressing objects:  14% (20/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5012815Z remote: Compressing objects:  15% (21/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5014989Z remote: Compressing objects:  16% (23/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5017235Z remote: Compressing objects:  17% (24/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5019122Z remote: Compressing objects:  18% (25/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5020483Z remote: Compressing objects:  19% (27/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5022428Z remote: Compressing objects:  20% (28/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5023888Z remote: Compressing objects:  21% (29/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5025236Z remote: Compressing objects:  22% (31/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5026568Z remote: Compressing objects:  23% (32/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5027942Z remote: Compressing objects:  24% (34/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5029170Z remote: Compressing objects:  25% (35/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5030342Z remote: Compressing objects:  26% (36/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5031525Z remote: Compressing objects:  27% (38/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5032969Z remote: Compressing objects:  28% (39/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5034144Z remote: Compressing objects:  29% (41/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5035336Z remote: Compressing objects:  30% (42/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5036523Z remote: Compressing objects:  31% (43/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5038159Z remote: Compressing objects:  32% (45/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5039364Z remote: Compressing objects:  33% (46/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5040546Z remote: Compressing objects:  34% (47/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5041717Z remote: Compressing objects:  35% (49/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5043253Z remote: Compressing objects:  36% (50/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5044432Z remote: Compressing objects:  37% (52/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5045624Z remote: Compressing objects:  38% (53/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5046806Z remote: Compressing objects:  39% (54/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5047982Z remote: Compressing objects:  40% (56/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5049165Z remote: Compressing objects:  41% (57/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5050347Z remote: Compressing objects:  42% (58/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5051511Z remote: Compressing objects:  43% (60/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5053192Z remote: Compressing objects:  44% (61/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5055039Z remote: Compressing objects:  45% (63/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5057018Z remote: Compressing objects:  46% (64/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5058955Z remote: Compressing objects:  47% (65/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5061236Z remote: Compressing objects:  48% (67/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5063353Z remote: Compressing objects:  49% (68/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5064958Z remote: Compressing objects:  50% (69/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5066164Z remote: Compressing objects:  51% (71/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5067337Z remote: Compressing objects:  52% (72/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5068508Z remote: Compressing objects:  53% (74/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5069662Z remote: Compressing objects:  54% (75/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5070820Z remote: Compressing objects:  55% (76/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5071975Z remote: Compressing objects:  56% (78/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5073406Z remote: Compressing objects:  57% (79/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5074576Z remote: Compressing objects:  58% (81/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5075728Z remote: Compressing objects:  59% (82/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5076881Z remote: Compressing objects:  60% (83/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5078058Z remote: Compressing objects:  61% (85/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5079208Z remote: Compressing objects:  62% (86/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5080381Z remote: Compressing objects:  63% (87/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5081745Z remote: Compressing objects:  64% (89/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5083200Z remote: Compressing objects:  65% (90/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5084382Z remote: Compressing objects:  66% (92/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5085550Z remote: Compressing objects:  67% (93/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5086725Z remote: Compressing objects:  68% (94/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5087889Z remote: Compressing objects:  69% (96/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5089047Z remote: Compressing objects:  70% (97/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5090206Z remote: Compressing objects:  71% (98/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5091370Z remote: Compressing objects:  72% (100/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5092641Z remote: Compressing objects:  73% (101/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5093843Z remote: Compressing objects:  74% (103/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5095013Z remote: Compressing objects:  75% (104/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5096183Z remote: Compressing objects:  76% (105/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5097373Z remote: Compressing objects:  77% (107/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5098549Z remote: Compressing objects:  78% (108/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5099736Z remote: Compressing objects:  79% (110/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5100907Z remote: Compressing objects:  80% (111/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5102081Z remote: Compressing objects:  81% (112/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5103406Z remote: Compressing objects:  82% (114/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5104578Z remote: Compressing objects:  83% (115/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5105769Z remote: Compressing objects:  84% (116/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5106959Z remote: Compressing objects:  85% (118/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5108129Z remote: Compressing objects:  86% (119/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5109334Z remote: Compressing objects:  87% (121/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5110506Z remote: Compressing objects:  88% (122/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5111697Z remote: Compressing objects:  89% (123/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5112983Z remote: Compressing objects:  90% (125/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5114170Z remote: Compressing objects:  91% (126/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5115340Z remote: Compressing objects:  92% (127/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5116510Z remote: Compressing objects:  93% (129/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5117684Z remote: Compressing objects:  94% (130/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5118868Z remote: Compressing objects:  95% (132/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5120048Z remote: Compressing objects:  96% (133/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5121221Z remote: Compressing objects:  97% (134/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5122481Z remote: Compressing objects:  98% (136/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5123848Z remote: Compressing objects:  99% (137/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5125025Z remote: Compressing objects: 100% (138/138)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5126272Z remote: Compressing objects: 100% (138/138), done.        
+go-test-lint	Checkout	2026-01-28T11:08:23.5127499Z Receiving objects:   0% (1/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5128395Z Receiving objects:   1% (2/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5129290Z Receiving objects:   2% (4/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5130178Z Receiving objects:   3% (5/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5131057Z Receiving objects:   4% (7/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5131957Z Receiving objects:   5% (8/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5133126Z Receiving objects:   6% (10/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5134047Z Receiving objects:   7% (12/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5134974Z Receiving objects:   8% (13/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5135893Z Receiving objects:   9% (15/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5136811Z Receiving objects:  10% (16/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5137724Z Receiving objects:  11% (18/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5138633Z Receiving objects:  12% (20/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5361613Z Receiving objects:  13% (21/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5369614Z Receiving objects:  14% (23/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5523603Z Receiving objects:  15% (24/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5525906Z Receiving objects:  16% (26/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5527626Z Receiving objects:  17% (28/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5529317Z Receiving objects:  18% (29/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5531136Z Receiving objects:  19% (31/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5533059Z Receiving objects:  20% (32/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5534865Z Receiving objects:  21% (34/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5536375Z Receiving objects:  22% (35/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5538129Z Receiving objects:  23% (37/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5539734Z Receiving objects:  24% (39/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5541349Z Receiving objects:  25% (40/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5542631Z Receiving objects:  26% (42/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5543758Z Receiving objects:  27% (43/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5544771Z Receiving objects:  28% (45/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5588748Z Receiving objects:  29% (47/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5590438Z Receiving objects:  30% (48/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5592036Z Receiving objects:  31% (50/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5593824Z Receiving objects:  32% (51/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5594816Z Receiving objects:  33% (53/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5596363Z Receiving objects:  34% (55/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5597877Z Receiving objects:  35% (56/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5598911Z Receiving objects:  36% (58/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5600356Z Receiving objects:  37% (59/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5601844Z Receiving objects:  38% (61/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5604236Z remote: Total 159 (delta 18), reused 64 (delta 7), pack-reused 0 (from 0)        
+go-test-lint	Checkout	2026-01-28T11:08:23.5606573Z Receiving objects:  39% (63/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5608122Z Receiving objects:  40% (64/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5609629Z Receiving objects:  41% (66/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5611136Z Receiving objects:  42% (67/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5612766Z Receiving objects:  43% (69/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5614333Z Receiving objects:  44% (70/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5615313Z Receiving objects:  45% (72/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5616239Z Receiving objects:  46% (74/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5617193Z Receiving objects:  47% (75/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5618108Z Receiving objects:  48% (77/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5619035Z Receiving objects:  49% (78/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5619947Z Receiving objects:  50% (80/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5620868Z Receiving objects:  51% (82/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5622017Z Receiving objects:  52% (83/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5623568Z Receiving objects:  53% (85/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5624656Z Receiving objects:  54% (86/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5625576Z Receiving objects:  55% (88/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5627080Z Receiving objects:  56% (90/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5628566Z Receiving objects:  57% (91/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5629829Z Receiving objects:  58% (93/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5630755Z Receiving objects:  59% (94/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5631982Z Receiving objects:  60% (96/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5633308Z Receiving objects:  61% (97/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5634246Z Receiving objects:  62% (99/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5635158Z Receiving objects:  63% (101/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5636105Z Receiving objects:  64% (102/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5637034Z Receiving objects:  65% (104/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5637959Z Receiving objects:  66% (105/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5638909Z Receiving objects:  67% (107/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5639835Z Receiving objects:  68% (109/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5640766Z Receiving objects:  69% (110/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5641689Z Receiving objects:  70% (112/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5642940Z Receiving objects:  71% (113/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5644465Z Receiving objects:  72% (115/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5645409Z Receiving objects:  73% (117/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5646353Z Receiving objects:  74% (118/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5647325Z Receiving objects:  75% (120/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5648624Z Receiving objects:  76% (121/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5649569Z Receiving objects:  77% (123/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5650493Z Receiving objects:  78% (125/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5651716Z Receiving objects:  79% (126/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5653710Z Receiving objects:  80% (128/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5655220Z Receiving objects:  81% (129/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5656659Z Receiving objects:  82% (131/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5657602Z Receiving objects:  83% (132/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5658530Z Receiving objects:  84% (134/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5659460Z Receiving objects:  85% (136/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5660383Z Receiving objects:  86% (137/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5661305Z Receiving objects:  87% (139/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5662425Z Receiving objects:  88% (140/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5663449Z Receiving objects:  89% (142/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5664384Z Receiving objects:  90% (144/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5665301Z Receiving objects:  91% (145/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5666224Z Receiving objects:  92% (147/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5667167Z Receiving objects:  93% (148/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5668087Z Receiving objects:  94% (150/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5669013Z Receiving objects:  95% (152/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5669930Z Receiving objects:  96% (153/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5670861Z Receiving objects:  97% (155/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5671783Z Receiving objects:  98% (156/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5672957Z Receiving objects:  99% (158/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5673890Z Receiving objects: 100% (159/159)
+go-test-lint	Checkout	2026-01-28T11:08:23.5675044Z Receiving objects: 100% (159/159), 439.53 KiB | 8.14 MiB/s, done.
+go-test-lint	Checkout	2026-01-28T11:08:23.5676291Z Resolving deltas:   0% (0/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5677181Z Resolving deltas:   5% (1/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5678064Z Resolving deltas:  16% (3/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5679112Z Resolving deltas:  22% (4/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5680002Z Resolving deltas:  27% (5/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5680884Z Resolving deltas:  33% (6/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5681767Z Resolving deltas:  44% (8/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5682870Z Resolving deltas:  50% (9/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5683772Z Resolving deltas:  55% (10/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5684667Z Resolving deltas:  61% (11/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5685558Z Resolving deltas:  66% (12/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5686520Z Resolving deltas:  72% (13/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5687456Z Resolving deltas:  77% (14/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5688409Z Resolving deltas:  83% (15/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5689415Z Resolving deltas:  88% (16/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5690852Z Resolving deltas:  94% (17/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5692064Z Resolving deltas: 100% (18/18)
+go-test-lint	Checkout	2026-01-28T11:08:23.5693257Z Resolving deltas: 100% (18/18), done.
+go-test-lint	Checkout	2026-01-28T11:08:23.5694546Z From https://github.com/hashicorp/terraform-aws-consul-lambda
+go-test-lint	Checkout	2026-01-28T11:08:23.5696129Z  * [new ref]         78a6393ae3a3ccd62467f417e1497cd6d9cc176d -> pull/112/merge
+go-test-lint	Checkout	2026-01-28T11:08:23.5726414Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.5727945Z ##[group]Determining the checkout info
+go-test-lint	Checkout	2026-01-28T11:08:23.5729473Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.5730915Z ##[group]Checking out the ref
+go-test-lint	Checkout	2026-01-28T11:08:23.5733641Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/112/merge
+go-test-lint	Checkout	2026-01-28T11:08:23.5859837Z Note: switching to 'refs/remotes/pull/112/merge'.
+go-test-lint	Checkout	2026-01-28T11:08:23.5860997Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5861705Z You are in 'detached HEAD' state. You can look around, make experimental
+go-test-lint	Checkout	2026-01-28T11:08:23.5863619Z changes and commit them, and you can discard any commits you make in this
+go-test-lint	Checkout	2026-01-28T11:08:23.5865265Z state without impacting any branches by switching back to a branch.
+go-test-lint	Checkout	2026-01-28T11:08:23.5866237Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5866874Z If you want to create a new branch to retain commits you create, you may
+go-test-lint	Checkout	2026-01-28T11:08:23.5868912Z do so (now or later) by using -c with the switch command. Example:
+go-test-lint	Checkout	2026-01-28T11:08:23.5869866Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5870232Z   git switch -c <new-branch-name>
+go-test-lint	Checkout	2026-01-28T11:08:23.5870850Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5871194Z Or undo this operation with:
+go-test-lint	Checkout	2026-01-28T11:08:23.5871754Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5872085Z   git switch -
+go-test-lint	Checkout	2026-01-28T11:08:23.5872721Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5873443Z Turn off this advice by setting config variable advice.detachedHead to false
+go-test-lint	Checkout	2026-01-28T11:08:23.5874514Z 
+go-test-lint	Checkout	2026-01-28T11:08:23.5875682Z HEAD is now at 78a6393 Merge ea98dc49bd83f262b72e190c91a638c9771e1e92 into a4bd7fa678838cc8a8565583c56d15b7c7ee7aaf
+go-test-lint	Checkout	2026-01-28T11:08:23.5879323Z ##[endgroup]
+go-test-lint	Checkout	2026-01-28T11:08:23.5905397Z [command]/usr/bin/git log -1 --format='%H'
+go-test-lint	Checkout	2026-01-28T11:08:23.5927485Z '78a6393ae3a3ccd62467f417e1497cd6d9cc176d'
+go-test-lint	Setup go	﻿2026-01-28T11:08:23.6199838Z ##[group]Run actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9
+go-test-lint	Setup go	2026-01-28T11:08:23.6201163Z with:
+go-test-lint	Setup go	2026-01-28T11:08:23.6201832Z   go-version: 1.25.6
+go-test-lint	Setup go	2026-01-28T11:08:23.6202885Z   cache-dependency-path: ./test/acceptance/go.sum
+go-test-lint	Setup go	2026-01-28T11:08:23.6203958Z   check-latest: false
+go-test-lint	Setup go	2026-01-28T11:08:23.6204996Z   token: ***
+go-test-lint	Setup go	2026-01-28T11:08:23.6205698Z   cache: true
+go-test-lint	Setup go	2026-01-28T11:08:23.6206373Z env:
+go-test-lint	Setup go	2026-01-28T11:08:23.6258757Z   CONSUL_LICENSE: ***
+go-test-lint	Setup go	2026-01-28T11:08:23.6259546Z ##[endgroup]
+go-test-lint	Setup go	2026-01-28T11:08:23.7537342Z Setup go version spec 1.25.6
+go-test-lint	Setup go	2026-01-28T11:08:23.7627111Z Found in cache @ /opt/hostedtoolcache/go/1.25.6/x64
+go-test-lint	Setup go	2026-01-28T11:08:23.7631000Z Added go to the path
+go-test-lint	Setup go	2026-01-28T11:08:23.7634775Z Successfully set up Go version 1.25.6
+go-test-lint	Setup go	2026-01-28T11:08:24.5973707Z [command]/opt/hostedtoolcache/go/1.25.6/x64/bin/go env GOMODCACHE
+go-test-lint	Setup go	2026-01-28T11:08:24.6010618Z [command]/opt/hostedtoolcache/go/1.25.6/x64/bin/go env GOCACHE
+go-test-lint	Setup go	2026-01-28T11:08:24.6036725Z /home/runner/go/pkg/mod
+go-test-lint	Setup go	2026-01-28T11:08:24.6067956Z /home/runner/.cache/go-build
+go-test-lint	Setup go	2026-01-28T11:08:24.6967897Z ##[warning]Failed to restore: Cache service responded with 400
+go-test-lint	Setup go	2026-01-28T11:08:24.6975945Z Cache is not found
+go-test-lint	Setup go	2026-01-28T11:08:24.6996120Z go version go1.25.6 linux/amd64
+go-test-lint	Setup go	2026-01-28T11:08:24.6996357Z 
+go-test-lint	Setup go	2026-01-28T11:08:24.6996666Z ##[group]go env
+go-test-lint	Setup go	2026-01-28T11:08:24.8371918Z AR='ar'
+go-test-lint	Setup go	2026-01-28T11:08:24.8372883Z CC='gcc'
+go-test-lint	Setup go	2026-01-28T11:08:24.8373178Z CGO_CFLAGS='-O2 -g'
+go-test-lint	Setup go	2026-01-28T11:08:24.8373498Z CGO_CPPFLAGS=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8373839Z CGO_CXXFLAGS='-O2 -g'
+go-test-lint	Setup go	2026-01-28T11:08:24.8374171Z CGO_ENABLED='1'
+go-test-lint	Setup go	2026-01-28T11:08:24.8374510Z CGO_FFLAGS='-O2 -g'
+go-test-lint	Setup go	2026-01-28T11:08:24.8374812Z CGO_LDFLAGS='-O2 -g'
+go-test-lint	Setup go	2026-01-28T11:08:24.8375102Z CXX='g++'
+go-test-lint	Setup go	2026-01-28T11:08:24.8375408Z GCCGO='gccgo'
+go-test-lint	Setup go	2026-01-28T11:08:24.8375690Z GO111MODULE=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8375960Z GOAMD64='v1'
+go-test-lint	Setup go	2026-01-28T11:08:24.8376228Z GOARCH='amd64'
+go-test-lint	Setup go	2026-01-28T11:08:24.8376494Z GOAUTH='netrc'
+go-test-lint	Setup go	2026-01-28T11:08:24.8376788Z GOBIN=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8377103Z GOCACHE='/home/runner/.cache/go-build'
+go-test-lint	Setup go	2026-01-28T11:08:24.8377528Z GOCACHEPROG=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8377823Z GODEBUG=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8378131Z GOENV='/home/runner/.config/go/env'
+go-test-lint	Setup go	2026-01-28T11:08:24.8378540Z GOEXE=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8378845Z GOEXPERIMENT=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8379215Z GOFIPS140='off'
+go-test-lint	Setup go	2026-01-28T11:08:24.8379543Z GOFLAGS=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8380588Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build698400228=/tmp/go-build -gno-record-gcc-switches'
+go-test-lint	Setup go	2026-01-28T11:08:24.8381672Z GOHOSTARCH='amd64'
+go-test-lint	Setup go	2026-01-28T11:08:24.8381991Z GOHOSTOS='linux'
+go-test-lint	Setup go	2026-01-28T11:08:24.8382503Z GOINSECURE=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8382866Z GOMOD='/dev/null'
+go-test-lint	Setup go	2026-01-28T11:08:24.8383237Z GOMODCACHE='/home/runner/go/pkg/mod'
+go-test-lint	Setup go	2026-01-28T11:08:24.8383639Z GONOPROXY=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8383933Z GONOSUMDB=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8384199Z GOOS='linux'
+go-test-lint	Setup go	2026-01-28T11:08:24.8384511Z GOPATH='/home/runner/go'
+go-test-lint	Setup go	2026-01-28T11:08:24.8384851Z GOPRIVATE=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8385239Z GOPROXY='https://proxy.golang.org,direct'
+go-test-lint	Setup go	2026-01-28T11:08:24.8385765Z GOROOT='/opt/hostedtoolcache/go/1.25.6/x64'
+go-test-lint	Setup go	2026-01-28T11:08:24.8386218Z GOSUMDB='sum.golang.org'
+go-test-lint	Setup go	2026-01-28T11:08:24.8386583Z GOTELEMETRY='local'
+go-test-lint	Setup go	2026-01-28T11:08:24.8386986Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+go-test-lint	Setup go	2026-01-28T11:08:24.8387452Z GOTMPDIR=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8387749Z GOTOOLCHAIN='auto'
+go-test-lint	Setup go	2026-01-28T11:08:24.8388239Z GOTOOLDIR='/opt/hostedtoolcache/go/1.25.6/x64/pkg/tool/linux_amd64'
+go-test-lint	Setup go	2026-01-28T11:08:24.8388779Z GOVCS=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8389067Z GOVERSION='go1.25.6'
+go-test-lint	Setup go	2026-01-28T11:08:24.8389387Z GOWORK=''
+go-test-lint	Setup go	2026-01-28T11:08:24.8389693Z PKG_CONFIG='pkg-config'
+go-test-lint	Setup go	2026-01-28T11:08:24.8389916Z 
+go-test-lint	Setup go	2026-01-28T11:08:24.8390781Z ##[endgroup]
+go-test-lint	lint-consul-retry	﻿2026-01-28T11:08:24.8503273Z ##[group]Run go install github.com/hashicorp/lint-consul-retry@latest
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8503858Z [36;1mgo install github.com/hashicorp/lint-consul-retry@latest[0m
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8504207Z [36;1mlint-consul-retry[0m
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8540387Z shell: /usr/bin/bash -e {0}
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8540653Z env:
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8554898Z   CONSUL_LICENSE: ***
+go-test-lint	lint-consul-retry	2026-01-28T11:08:24.8555121Z ##[endgroup]
+go-test-lint	lint-consul-retry	2026-01-28T11:08:25.2918855Z go: downloading github.com/hashicorp/lint-consul-retry v1.4.0
+go-test-lint	golangci-lint	﻿2026-01-28T11:08:33.4354664Z ##[warning]Unexpected input(s) 'skip-pkg-cache', 'skip-build-cache', valid inputs are ['version', 'install-mode', 'working-directory', 'github-token', 'only-new-issues', 'skip-cache', 'skip-save-cache', 'problem-matchers', 'args', 'cache-invalidation-interval']
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4359912Z ##[group]Run golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4360302Z with:
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4360475Z   version: latest
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4360678Z   install-mode: goinstall
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4360938Z   args: --verbose --enable gofmt --timeout 2m
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4361214Z   only-new-issues: false
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4361421Z   skip-pkg-cache: true
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4361624Z   skip-build-cache: true
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4361836Z   working-directory: ./test/acceptance
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4362482Z   github-token: ***
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4362705Z   skip-cache: false
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4362899Z   skip-save-cache: false
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4363125Z   problem-matchers: false
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4363384Z   cache-invalidation-interval: 7
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4363620Z env:
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4377653Z   CONSUL_LICENSE: ***
+go-test-lint	golangci-lint	2026-01-28T11:08:33.4377853Z ##[endgroup]
+go-test-lint	golangci-lint	2026-01-28T11:08:33.5974542Z ##[group]prepare environment
+go-test-lint	golangci-lint	2026-01-28T11:08:33.5979405Z Checking for go.mod: test/acceptance/go.mod
+go-test-lint	golangci-lint	2026-01-28T11:08:33.6720253Z ##[warning]Failed to restore: Cache service responded with 400
+go-test-lint	golangci-lint	2026-01-28T11:08:33.6728664Z Cache not found for input keys: golangci-lint.cache-Linux-./test/acceptance-2925-aadd122b3c436779f57bdda866b92ff26aed7685, golangci-lint.cache-Linux-./test/acceptance-2925-
+go-test-lint	golangci-lint	2026-01-28T11:08:33.6729984Z Finding needed golangci-lint version...
+go-test-lint	golangci-lint	2026-01-28T11:08:33.6730849Z Installation mode: goinstall
+go-test-lint	golangci-lint	2026-01-28T11:08:33.6731915Z Installing golangci-lint latest...
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5520091Z go: downloading github.com/golangci/golangci-lint v1.64.8
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5520746Z go: downloading github.com/fatih/color v1.18.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5521246Z go: downloading github.com/gofrs/flock v0.12.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5521841Z go: downloading github.com/hashicorp/go-version v1.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5522730Z go: downloading github.com/pelletier/go-toml/v2 v2.2.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5523391Z go: downloading github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5524003Z go: downloading github.com/spf13/cobra v1.9.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5524519Z go: downloading github.com/spf13/pflag v1.0.6
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5525045Z go: downloading github.com/spf13/viper v1.12.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5525591Z go: downloading github.com/pelletier/go-toml v1.9.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5526146Z go: downloading go.uber.org/automaxprocs v1.6.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5526635Z go: downloading gopkg.in/yaml.v3 v3.0.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5527112Z go: downloading golang.org/x/tools v0.31.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5527675Z go: downloading github.com/go-viper/mapstructure/v2 v2.2.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5528249Z go: downloading github.com/ldez/grignotin v0.9.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5528772Z go: downloading github.com/mitchellh/go-homedir v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5529111Z go: downloading golang.org/x/mod v0.24.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5529465Z go: downloading github.com/golangci/plugin-module-register v0.1.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5529866Z go: downloading github.com/mattn/go-colorable v0.1.14
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5530189Z go: downloading github.com/sirupsen/logrus v1.9.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5530514Z go: downloading github.com/stretchr/testify v1.10.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5532833Z go: downloading github.com/go-xmlfmt/xmlfmt v1.1.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5533420Z go: downloading github.com/golangci/revgrep v0.8.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5533924Z go: downloading github.com/mattn/go-isatty v0.0.20
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5534418Z go: downloading golang.org/x/sys v0.31.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5534867Z go: downloading golang.org/x/text v0.22.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5535315Z go: downloading github.com/fsnotify/fsnotify v1.5.4
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5535823Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5536183Z go: downloading github.com/spf13/afero v1.12.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5537046Z go: downloading github.com/spf13/cast v1.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5537387Z go: downloading github.com/spf13/jwalterweatherman v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5537747Z go: downloading github.com/rogpeppe/go-internal v1.14.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5538093Z go: downloading github.com/alingse/asasalint v0.0.11
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5538425Z go: downloading github.com/tdakkota/asciicheck v0.4.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5538741Z go: downloading github.com/breml/bidichk v0.3.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5539132Z go: downloading github.com/timakin/bodyclose v0.0.0-20241017074812-ed6a65f985e3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5539562Z go: downloading github.com/lasiar/canonicalheader v1.1.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5539905Z go: downloading github.com/sivchari/containedctx v1.0.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5540244Z go: downloading github.com/kkHAIKE/contextcheck v1.1.6
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5540600Z go: downloading github.com/karamaru-alpha/copyloopvar v1.2.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5540967Z go: downloading github.com/bkielbasa/cyclop v1.2.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5541304Z go: downloading gitlab.com/bosi/decorder v0.4.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5541631Z go: downloading github.com/OpenPeeDeeP/depguard/v2 v2.2.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5542053Z go: downloading github.com/golangci/dupl v0.0.0-20250308024227-f665c8d69b32
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5542933Z go: downloading github.com/Abirdcfly/dupword v0.1.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5543310Z go: downloading github.com/charithe/durationcheck v0.0.10
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5544112Z go: downloading github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5544697Z go: downloading github.com/kisielk/errcheck v1.9.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5545021Z go: downloading github.com/breml/errchkjson v0.4.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5545349Z go: downloading github.com/Antonboom/errname v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5545695Z go: downloading github.com/polyfloyd/go-errorlint v1.7.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5546046Z go: downloading github.com/nishanths/exhaustive v0.12.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5546445Z go: downloading github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5546851Z go: downloading github.com/ldez/exptostd v0.4.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5547173Z go: downloading github.com/Crocmagnon/fatcontext v0.7.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5547513Z go: downloading github.com/ashanbrown/forbidigo v1.6.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5547897Z go: downloading github.com/gostaticanalysis/forcetypeassert v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5548273Z go: downloading github.com/ultraware/funlen v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5548608Z go: downloading github.com/nunnatsa/ginkgolinter v0.19.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5548970Z go: downloading 4d63.com/gocheckcompilerdirectives v1.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5549304Z go: downloading 4d63.com/gochecknoglobals v0.2.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5549658Z go: downloading github.com/alecthomas/go-check-sumtype v0.3.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5550010Z go: downloading github.com/uudashr/gocognit v1.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5550328Z go: downloading github.com/jgautheron/goconst v1.7.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5550666Z go: downloading github.com/go-critic/go-critic v0.12.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5551021Z go: downloading github.com/quasilyte/go-ruleguard/dsl v0.3.22
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5551356Z go: downloading github.com/fzipp/gocyclo v0.6.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5551775Z go: downloading github.com/quasilyte/go-ruleguard v0.4.3-0.20240823090925-0fe6f58b47b1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5552406Z go: downloading github.com/tetafro/godot v1.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5552884Z go: downloading github.com/matoous/godox v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5553225Z go: downloading github.com/denis-tingaikin/go-header v0.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5553581Z go: downloading github.com/ldez/gomoddirectives v0.6.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5553912Z go: downloading github.com/ryancurrah/gomodguard v1.3.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5554280Z go: downloading github.com/golangci/go-printf-func-name v0.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5554635Z go: downloading github.com/securego/gosec/v2 v2.22.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5554938Z go: downloading honnef.co/go/tools v0.6.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5555566Z go: downloading github.com/xen0n/gosmopolitan v1.2.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5556144Z go: downloading github.com/leonklingele/grouper v1.1.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5556577Z go: downloading github.com/uudashr/iface v1.3.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5556947Z go: downloading github.com/julz/importas v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5557377Z go: downloading github.com/macabu/inamedparam v0.1.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5557842Z go: downloading github.com/gordonklaus/ineffassign v0.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5558380Z go: downloading github.com/sashamelentyev/interfacebloat v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5558758Z go: downloading github.com/ckaznocha/intrange v0.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5559082Z go: downloading github.com/butuzov/ireturn v0.3.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5559419Z go: downloading github.com/timonwong/loggercheck v0.10.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5559744Z go: downloading github.com/yagipy/maintidx v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5560071Z go: downloading github.com/ashanbrown/makezero v1.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5560389Z go: downloading github.com/butuzov/mirror v1.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5560714Z go: downloading github.com/golangci/misspell v0.6.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5561056Z go: downloading github.com/tommy-muehle/go-mnd/v2 v2.5.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5561381Z go: downloading go-simpler.org/musttag v0.13.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5561702Z go: downloading github.com/alexkohler/nakedret/v2 v2.0.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5562027Z go: downloading github.com/nakabonne/nestif v0.3.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5562638Z go: downloading github.com/gostaticanalysis/nilerr v0.1.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5562999Z go: downloading github.com/alingse/nilnesserr v0.1.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5563482Z go: downloading github.com/Antonboom/nilnil v1.0.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5563809Z go: downloading github.com/ssgreg/nlreturn/v2 v2.2.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5564127Z go: downloading github.com/sonatard/noctx v0.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5564449Z go: downloading github.com/firefart/nonamedreturns v1.0.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5564838Z go: downloading github.com/stbenjam/no-sprintf-host-port v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5565238Z go: downloading github.com/kunwardeep/paralleltest v1.0.10
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5565595Z go: downloading github.com/catenacyber/perfsprint v0.8.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5565941Z go: downloading github.com/alexkohler/prealloc v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5566274Z go: downloading github.com/nishanths/predeclared v0.2.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5566607Z go: downloading github.com/yeya24/promlinter v0.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5566951Z go: downloading github.com/ghostiam/protogetter v0.3.9
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5567302Z go: downloading github.com/curioswitch/go-reassign v0.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5567638Z go: downloading github.com/raeperd/recvcheck v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5568039Z go: downloading github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5568434Z go: downloading github.com/mgechev/revive v1.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5569014Z go: downloading github.com/jingyugao/rowserrcheck v1.1.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5569615Z go: downloading go-simpler.org/sloglint v0.9.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5570181Z go: downloading github.com/jjti/go-spancheck v0.6.4
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5570776Z go: downloading github.com/ryanrolds/sqlclosecheck v0.5.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5571373Z go: downloading github.com/4meepo/tagalign v1.4.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5571949Z go: downloading github.com/ldez/tagliatelle v0.7.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5572697Z go: downloading github.com/sivchari/tenv v1.12.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5573277Z go: downloading github.com/maratori/testableexamples v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5574204Z go: downloading github.com/Antonboom/testifylint v1.5.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5574837Z go: downloading github.com/maratori/testpackage v1.1.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5575172Z go: downloading github.com/kulti/thelper v0.6.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5575679Z go: downloading github.com/moricho/tparallel v0.3.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5576197Z go: downloading github.com/golangci/unconvert v0.0.0-20240309020433-c5143eacb3ed
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5576860Z go: downloading mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5577844Z go: downloading github.com/sashamelentyev/usestdlibvars v1.28.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5578494Z go: downloading github.com/ldez/usetesting v0.4.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5578833Z go: downloading github.com/blizzy78/varnamelen v0.8.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5579342Z go: downloading github.com/sanposhiho/wastedassign/v2 v2.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5579787Z go: downloading github.com/ultraware/whitespace v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5580143Z go: downloading github.com/tomarrell/wrapcheck/v2 v2.10.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5580486Z go: downloading github.com/bombsimon/wsl/v4 v4.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5580827Z go: downloading github.com/ykadowak/zerologlint v0.1.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5581151Z go: downloading github.com/davecgh/go-spew v1.1.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5581492Z go: downloading github.com/pmezard/go-difflib v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5581814Z go: downloading github.com/stretchr/objx v0.5.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5582123Z go: downloading github.com/daixiang0/gci v0.13.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5582725Z go: downloading github.com/golangci/gofmt v0.0.0-20250106114630-d62b90e6713d
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5583136Z go: downloading mvdan.cc/gofumpt v0.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5583419Z go: downloading golang.org/x/sync v0.12.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5583719Z go: downloading github.com/subosito/gotenv v1.4.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5584029Z go: downloading github.com/hashicorp/hcl v1.0.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5584318Z go: downloading gopkg.in/ini.v1 v1.67.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5584625Z go: downloading github.com/magiconair/properties v1.8.6
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5584973Z go: downloading github.com/sourcegraph/go-diff v0.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5585347Z go: downloading github.com/gostaticanalysis/analysisutil v0.7.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5585720Z go: downloading github.com/go-toolsmith/astcast v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5586040Z go: downloading github.com/gobwas/glob v0.2.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5586341Z go: downloading github.com/google/go-cmp v0.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5586628Z go: downloading gopkg.in/yaml.v2 v2.4.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5586942Z go: downloading github.com/go-toolsmith/astfmt v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5587287Z go: downloading github.com/go-toolsmith/astcopy v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5587634Z go: downloading github.com/go-toolsmith/astequal v1.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5587972Z go: downloading github.com/go-toolsmith/astp v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5588307Z go: downloading github.com/go-toolsmith/strparse v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5588636Z go: downloading github.com/go-toolsmith/typep v1.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5589060Z go: downloading github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5589503Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5589836Z go: downloading github.com/ccojocar/zxcvbn-go v1.0.2
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5590288Z go: downloading github.com/gostaticanalysis/comment v1.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5591026Z go: downloading github.com/prometheus/client_golang v1.12.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5591710Z go: downloading github.com/prometheus/client_model v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5604666Z go: downloading github.com/fatih/structtag v1.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5605098Z go: downloading github.com/hashicorp/go-immutable-radix/v2 v2.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5605720Z go: downloading github.com/ettle/strcase v0.2.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5606167Z go: downloading github.com/hexops/gotextdiff v1.0.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5606469Z go: downloading go.uber.org/zap v1.24.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5606849Z go: downloading golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5607494Z go: downloading golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5607894Z go: downloading github.com/quasilyte/gogrep v0.5.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5608295Z go: downloading github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5608704Z go: downloading github.com/golang/protobuf v1.5.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5609019Z go: downloading github.com/chavacava/garif v0.1.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5609351Z go: downloading github.com/olekukonko/tablewriter v0.0.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5609799Z go: downloading github.com/beorn7/perks v1.0.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5610107Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5610438Z go: downloading github.com/prometheus/common v0.32.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5610762Z go: downloading github.com/prometheus/procfs v0.7.3
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5611104Z go: downloading google.golang.org/protobuf v1.36.5
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5611461Z go: downloading github.com/hashicorp/golang-lru/v2 v2.0.7
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5611777Z go: downloading go.uber.org/atomic v1.7.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5612060Z go: downloading go.uber.org/multierr v1.6.0
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5612587Z go: downloading github.com/mattn/go-runewidth v0.0.16
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5612985Z go: downloading github.com/matttproud/golang_protobuf_extensions v1.0.1
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5613365Z go: downloading github.com/rivo/uniseg v0.4.7
+go-test-lint	golangci-lint	2026-01-28T11:09:16.5613555Z 
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8942388Z touch /home/runner/go/bin/golangci-lint
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8943030Z 
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8943672Z Installed golangci-lint into /home/runner/go/bin/golangci-lint in 43221ms
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8946535Z Prepared env in 43297ms
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8948448Z ##[endgroup]
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8950938Z ##[group]run golangci-lint
+go-test-lint	golangci-lint	2026-01-28T11:09:16.8960413Z Running [/home/runner/go/bin/golangci-lint run --path-prefix=./test/acceptance --verbose --enable gofmt --timeout 2m] in [/home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda/test/acceptance] ...
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9660978Z level=info msg="golangci-lint has version v1.64.8 built with go1.25.6 from (unknown, modified: ?, mod sum: \"h1:y5TdeVidMtBGG32zgSC7ZXTFNHrsJkDnpO4ItB3Am+I=\") on (unknown)"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9664546Z level=info msg="[config_reader] Config search paths: [./ /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda/test/acceptance /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda/test /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda /home/runner/work/terraform-aws-consul-lambda /home/runner/work /home/runner /home /]"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9667854Z level=info msg="[goenv] Read go env for 3.356508ms: map[string]string{\"GOCACHE\":\"/home/runner/.cache/go-build\", \"GOROOT\":\"/opt/hostedtoolcache/go/1.25.6/x64\"}"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9669288Z level=info msg="[lintersdb] Active 7 linters: [errcheck gofmt gosimple govet ineffassign staticcheck unused]"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9670733Z level=info msg="[loader] Go packages loading at mode 8767 (compiled_files|deps|imports|name|types_sizes|exports_file|files) took 6.949956442s"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9672377Z level=error msg="Running error: context loading failed: no go files to analyze: running `go mod tidy` may solve the problem"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9673381Z level=info msg="Memory: 71 samples, avg is 33.8MB, max is 33.8MB"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9673951Z level=info msg="Execution took 6.953520556s"
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9674252Z 
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9677564Z ##[error]golangci-lint exit with code 5
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9679064Z Ran golangci-lint in 7070ms
+go-test-lint	golangci-lint	2026-01-28T11:09:23.9679673Z ##[endgroup]
+go-test-lint	Post golangci-lint	﻿2026-01-28T11:09:23.9778147Z ##[warning]Unexpected input(s) 'skip-pkg-cache', 'skip-build-cache', valid inputs are ['version', 'install-mode', 'working-directory', 'github-token', 'only-new-issues', 'skip-cache', 'skip-save-cache', 'problem-matchers', 'args', 'cache-invalidation-interval']
+go-test-lint	Post golangci-lint	2026-01-28T11:09:23.9783728Z Post job cleanup.
+go-test-lint	Post golangci-lint	2026-01-28T11:09:24.1604276Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda --files-from manifest.txt --use-compress-program zstdmt
+go-test-lint	Post golangci-lint	2026-01-28T11:09:24.2553865Z ##[warning]Failed to save: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0ZO55aQAAAAB5A+18J2PrQJs4cg0r9N4KQ0hJMzBFREdFMDIxNgBFZGdl
+go-test-lint	Post golangci-lint	2026-01-28T11:09:24.2559788Z Saved cache for golangci-lint from paths '/home/runner/.cache/golangci-lint' in 119ms
+go-test-lint	Post Checkout	﻿2026-01-28T11:09:24.2689268Z Post job cleanup.
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3405492Z [command]/usr/bin/git version
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3439331Z git version 2.52.0
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3483714Z Temporarily overriding HOME='/home/runner/work/_temp/62ae38f4-cb64-4501-8c12-141be4b309eb' before making global git config changes
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3485078Z Adding repository directory to the temporary git global config as a safe directory
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3488794Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/terraform-aws-consul-lambda/terraform-aws-consul-lambda
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3519868Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3549575Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3780799Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3803044Z http.https://github.com/.extraheader
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3815083Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+go-test-lint	Post Checkout	2026-01-28T11:09:24.3846122Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+go-test-lint	Complete job	﻿2026-01-28T11:09:24.4189892Z Cleaning up orphan processes
