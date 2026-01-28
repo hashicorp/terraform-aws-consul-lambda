@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda
 
-go 1.25.5
+go 1.23.7
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
