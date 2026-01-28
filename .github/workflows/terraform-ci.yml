@@ -45,7 +45,7 @@ jobs:
       uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
-        cache-dependency-path: ./consul-lambda/go.sum
+        cache-dependency-path: ./test/acceptance/go.sum
     - name: lint-consul-retry
       run: |
         go install github.com/hashicorp/lint-consul-retry@latest
