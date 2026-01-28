@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda
 
-go 1.23.7
+go 1.25.5
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
@@ -9,8 +9,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/api v1.29.4
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -31,6 +31,7 @@ require (
 	github.com/aws/smithy-go v1.11.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.16.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -49,10 +50,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
-	golang.org/x/net v0.36.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
