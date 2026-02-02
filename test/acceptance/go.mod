@@ -5,8 +5,8 @@ go 1.23.7
 require (
 	github.com/aws/aws-lambda-go v1.46.0
 	github.com/gruntwork-io/terratest v0.40.8
-	github.com/hashicorp/consul/api v1.32.0
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/api v1.20.0
+	github.com/hashicorp/consul/sdk v0.13.1
 	github.com/stretchr/testify v1.8.4
 )
 
@@ -58,7 +58,6 @@ require (
 	github.com/zclconf/go-cty v1.9.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
