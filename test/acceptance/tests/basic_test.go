@@ -363,6 +363,7 @@ func TestBasic(t *testing.T) {
 				// Check for a 200 from the test_client response body.
 				result, err := os.ReadFile(outFile.Name())
 				r.Check(err)
+				logger.Log(t, "Lambda invocation result:", string(result))
 
 				obs := struct {
 					Body []struct {
