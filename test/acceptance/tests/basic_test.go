@@ -371,7 +371,6 @@ func TestBasic(t *testing.T) {
 							Code int `json:"code"`
 						} `json:"body"`
 					} `json:"body"`
-					
 				}{}
 				err = json.Unmarshal(result, &obs)
 				r.Check(err)
