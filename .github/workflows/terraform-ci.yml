@@ -54,7 +54,7 @@ jobs:
       uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
         version: v1.62.2
-        args: "--verbose --enable gofmt --timeout 2m"
+        args: "--verbose --enable gofmt --timeout ˀ2m"
         only-new-issues: false
         skip-pkg-cache: true
         skip-build-cache: true
@@ -108,6 +108,7 @@ jobs:
         aws configure set role_arn "${{ secrets.AWS_ARN_TEST }}"
         aws configure set region us-west-2
         aws configure set source_profile lambda_user
+        aws configure set external_id github-actions
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       with:
