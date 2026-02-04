@@ -103,9 +103,9 @@ jobs:
     - name: Configure AWS
       # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
       run: |
-        aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
-        aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-        aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
+        aws configure --profile lambda_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID_TEST }}"
+        aws configure --profile lambda_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY_TEST }}"
+        aws configure set role_arn "${{ secrets.AWS_ARN_TEST }}"
         aws configure set region us-west-2
         aws configure set source_profile lambda_user
     - name: Setup Terraform
