@@ -68,22 +68,28 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-		tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
-		if c.enterprise {
-			tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
-			require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
-			namespace = "ns1"
-			partition = "ap1"
-			tfVars["consul_namespace"] = namespace
-			tfVars["consul_partition"] = partition
-			queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
-		}
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
+			if c.enterprise {
+				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
+				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
+				namespace = "ns1"
+				partition = "ap1"
+				tfVars["consul_namespace"] = namespace
+				tfVars["consul_partition"] = partition
+				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
+			}
 
-		setupSuffix := tfVars["suffix"]
-		suffix := strings.ToLower(random.UniqueId())
-		tfVars["suffix"] = suffix
-		tfVars["setup_suffix"] = setupSuffix
+			setupSuffix := tfVars["suffix"]
+			suffix := strings.ToLower(random.UniqueId())
+			tfVars["suffix"] = suffix
+			tfVars["setup_suffix"] = setupSuffix
+
+			var setupCfg SetupConfig
+
+			if c.autoPublishRegistrator {
+				tfVars["enable_auto_publish_ecr_image"] = true
+				tfVars["consul_lambda_registrator_image"] = config.ECRImageURI
 				if c.privateEcrRepoName != "" {
 					tfVars["private_ecr_repo_name"] = c.privateEcrRepoName
 				}
@@ -357,7 +363,6 @@ func TestBasic(t *testing.T) {
 				// Check for a 200 from the test_client response body.
 				result, err := os.ReadFile(outFile.Name())
 				r.Check(err)
-				r.Logf("Lambda invocation result: %s", string(result))
 
 				obs := struct {
 					Body []struct {
@@ -429,7 +434,6 @@ func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, 
 		},
 		Logger: terratestLogger.New(logger.TestLogger{}),
 	})
-
 }
 
 func ExecuteRemoteCommandJSON(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string, out interface{}) error {
