@@ -13,3 +13,9 @@ out/
 *.out
 *.zip
 test/acceptance/tests/lambda/main
+test/acceptance/tests/lambda/bootstrap
+test/acceptance/*.sh
+test/acceptance/*.txt
+test/acceptance/tests.test
+trust-policy.json
+latest_failure.log
