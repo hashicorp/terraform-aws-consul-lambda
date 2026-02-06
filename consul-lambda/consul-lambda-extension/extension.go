@@ -89,14 +89,6 @@ func (ext *Extension) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Fetch the initial extension data before starting the proxy.
-	// This ensures that the proxy's DialFunc has access to the mTLS certificates
-	// when connections are attempted.
-	err = ext.getExtensionData(ctx)
-	if err != nil {
-		return err
-	}
-
 	errChan := make(chan error)
 
 	// Start the proxy server and initialize all the upstream listeners so that the extension
@@ -120,8 +112,13 @@ func (ext *Extension) refreshExtensionData(ctx context.Context, errChan chan err
 	trace.Enter()
 	defer trace.Exit()
 
-	// The initial extension data has already been fetched in Start().
-	// Set up a ticker to refresh it periodically.
+	// Fetch the initial extension data.
+	err := ext.getExtensionData(ctx)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
 	refresh := time.NewTicker(ext.RefreshFrequency)
 	defer refresh.Stop()
 
