@@ -27,5 +27,5 @@ module "mesh_gateway" {
     }
   }
 
-  consul_image = "public.ecr.aws/hashicorp/consul:1.22.0"
+  consul_image = "public.ecr.aws/hashicorp/consul:1.15.2"
 }

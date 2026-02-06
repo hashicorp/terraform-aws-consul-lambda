@@ -23,7 +23,7 @@ module "dev_consul_server" {
   }
   launch_type = "FARGATE"
 
-  consul_image = "public.ecr.aws/hashicorp/consul:1.22.0"
+  consul_image = "public.ecr.aws/hashicorp/consul:1.15.2"
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {
