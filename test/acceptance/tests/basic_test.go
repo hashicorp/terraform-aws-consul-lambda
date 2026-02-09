@@ -429,9 +429,11 @@ func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, 
 			command,
 			"--interactive",
 		},
+		Env: map[string]string{
+			"AWS_EXECUTION_ENV": "CloudShell",
+		},
 		Logger: terratestLogger.New(logger.TestLogger{}),
 	})
-
 }
 
 func ExecuteRemoteCommandJSON(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string, out interface{}) error {

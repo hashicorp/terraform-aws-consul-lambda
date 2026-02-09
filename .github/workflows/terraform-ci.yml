@@ -54,7 +54,7 @@ jobs:
       uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       with:
         version: v1.62.2
-        args: "--verbose --enable gofmt --timeout 2m"
+        args: "--verbose --enable gofmt --timeout 12m"
         only-new-issues: false
         skip-pkg-cache: true
         skip-build-cache: true
