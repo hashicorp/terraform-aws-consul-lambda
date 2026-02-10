@@ -37,7 +37,7 @@ func (c *SSMClient) Get(ctx context.Context, key string) (string, error) {
 		ctx,
 		&ssm.GetParameterInput{
 			Name:           &key,
-			WithDecryption: true,
+			WithDecryption: aws.Bool(true),
 		})
 
 	if err != nil {
@@ -58,7 +58,7 @@ func (c *SSMClient) Set(ctx context.Context, key, val string) error {
 	input := &ssm.PutParameterInput{
 		Name:      &key,
 		Value:     &val,
-		Overwrite: true,
+		Overwrite: aws.Bool(true),
 		Type:      types.ParameterTypeSecureString,
 	}
 

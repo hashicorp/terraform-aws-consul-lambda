@@ -19,10 +19,6 @@ const (
 	ap   = "ap1"
 	dc   = "dc2"
 	td   = "ba471007-78d1-3261-2e02-24258f2cb341.consul"
-
-	internal        = "internal"
-	version         = "v1"
-	internalVersion = internal + "-" + version
 )
 
 func TestService(t *testing.T) {

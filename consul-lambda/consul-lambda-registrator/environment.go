@@ -142,6 +142,16 @@ func SetupEnvironment(ctx context.Context) (Environment, error) {
 		return env, err
 	}
 
+	env.Logger.Info("Consul client configured",
+		"address", os.Getenv("CONSUL_HTTP_ADDR"),
+		"scheme", os.Getenv("CONSUL_HTTP_SSL"),
+		"nodeName", env.NodeName,
+		"datacenter", env.Datacenter,
+		"isEnterprise", env.IsEnterprise,
+		"partitions", env.RawPartitions,
+		"logLevel", env.LogLevel,
+	)
+
 	return env, nil
 }
 

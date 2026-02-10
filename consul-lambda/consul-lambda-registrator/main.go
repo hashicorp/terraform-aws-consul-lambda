@@ -36,11 +36,14 @@ func HandleRequest(ctx context.Context, rawEvent map[string]interface{}) (string
 	var resultErr error
 
 	for _, event := range events {
+		env.Logger.Info("Reconciling event", "identifier", event.Identifier())
 		err := event.Reconcile(env)
 
 		if err != nil {
-			env.Logger.Warn("Error reconciling event", "error", err, "identifier", event.Identifier())
+			env.Logger.Error("Error reconciling event", "error", err, "identifier", event.Identifier())
 			resultErr = multierror.Append(resultErr, err)
+		} else {
+			env.Logger.Info("Successfully reconciled event", "identifier", event.Identifier())
 		}
 	}
 
