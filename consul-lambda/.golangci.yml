@@ -4,13 +4,14 @@
 version: "2"
 
 linters:
-  disable-all: true
   enable:
     - govet
     - unconvert
     - staticcheck
     - ineffassign
     - unparam
+  disable:
+    - errcheck
 
 formatters:
   enable:
