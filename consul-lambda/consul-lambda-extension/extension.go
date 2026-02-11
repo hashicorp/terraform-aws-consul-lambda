@@ -277,10 +277,7 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 
 		ext.Logger.Debug("dialing upstream", "sni", upstream.SNI(), "port", upstream.Port)
 
-		skipTLSVerification := true
-		if PRE_RELEASE != "dev" {
-			skipTLSVerification = false
-		}
+		skipTLSVerification := PRE_RELEASE == "dev"
 
 		return tls.Dial("tcp", ext.MeshGatewayURI, &tls.Config{
 			RootCAs:            roots,

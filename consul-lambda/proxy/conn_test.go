@@ -38,9 +38,9 @@ func testConnPairSetup(t *testing.T) (net.Conn, net.Conn, func()) {
 	src := <-ch
 
 	stopper := func() {
-		l.Close()
-		src.Close()
-		dst.Close()
+		_ = l.Close()
+		_ = src.Close()
+		_ = dst.Close()
 	}
 
 	return src, dst, stopper
@@ -59,7 +59,7 @@ func testConnPipelineSetup(t *testing.T) (net.Conn, net.Conn, *Conn, func()) {
 	src2, dst2, stop2 := testConnPairSetup(t)
 	c := NewConn(dst1, src2)
 	return src1, dst2, c, func() {
-		c.Close()
+		_ = c.Close()
 		stop1()
 		stop2()
 	}
@@ -104,7 +104,7 @@ func TestConn(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "pong 2\n", got)
 
-	c.Close()
+	_ = c.Close()
 
 	ret := <-retCh
 	require.Nil(t, ret, "Close() should not cause error return")
@@ -143,7 +143,7 @@ func TestConnSrcClosing(t *testing.T) {
 	testTimer := time.AfterFunc(3*time.Second, func() {
 		panic("test timeout")
 	})
-	src.Close()
+	_ = src.Close()
 	<-retCh
 	testTimer.Stop()
 }
@@ -182,7 +182,7 @@ func TestConnDstClosing(t *testing.T) {
 	testTimer := time.AfterFunc(3*time.Second, func() {
 		panic("test timeout")
 	})
-	src.Close()
+	_ = src.Close()
 	<-retCh
 	testTimer.Stop()
 }

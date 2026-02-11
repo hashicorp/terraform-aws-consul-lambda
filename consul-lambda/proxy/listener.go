@@ -92,7 +92,7 @@ func (l *Listener) Listening() <-chan struct{} {
 func (l *Listener) handleConn(src net.Conn) {
 	defer func() {
 		// Make sure Listener.Close waits for this conn to be cleaned up.
-		src.Close()
+		_ = src.Close()
 		l.connWG.Done()
 	}()
 
@@ -104,7 +104,7 @@ func (l *Listener) handleConn(src net.Conn) {
 
 	// Note no need to defer dst.Close() since conn handles that for us.
 	conn := NewConn(src, dst)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	connStop := make(chan struct{})
 
@@ -141,7 +141,7 @@ func (l *Listener) Close() {
 
 	// Stop the current listener and stop accepting new requests.
 	if listener := l.getListener(); listener != nil {
-		listener.Close()
+		_ = listener.Close()
 	}
 
 	// Stop outstanding requests.

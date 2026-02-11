@@ -40,8 +40,8 @@ func TestSetupEnvironment(t *testing.T) {
 		extensionPathEnvironment: "/path/to/data",
 	}
 	for k, v := range envVars {
-		os.Setenv(k, v)
-		t.Cleanup(func() { os.Unsetenv(k) })
+		_ = os.Setenv(k, v)
+		t.Cleanup(func() { _ = os.Unsetenv(k) })
 	}
 
 	server, err := testutil.NewTestServerConfigT(t, nil)
@@ -68,8 +68,8 @@ func TestSetupEnvironment(t *testing.T) {
 func TestSetConsulCACert(t *testing.T) {
 	ctx := context.Background()
 	unsetEverything := func() {
-		os.Unsetenv("CONSUL_CACERT")
-		os.Remove(caCertPath)
+		_ = os.Unsetenv("CONSUL_CACERT")
+		_ = os.Remove(caCertPath)
 	}
 
 	t.Run("Without the environment variable set", func(t *testing.T) {
@@ -106,8 +106,8 @@ func TestSetConsulCACert(t *testing.T) {
 func TestSetConsulHTTPToken(t *testing.T) {
 	ctx := context.Background()
 	unsetEverything := func() {
-		os.Unsetenv("CONSUL_HTTP_TOKEN")
-		os.Remove(caCertPath)
+		_ = os.Unsetenv("CONSUL_HTTP_TOKEN")
+		_ = os.Remove(caCertPath)
 	}
 
 	t.Run("Without the environment variable set", func(t *testing.T) {

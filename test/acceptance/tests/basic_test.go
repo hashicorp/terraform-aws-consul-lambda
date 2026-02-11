@@ -340,7 +340,7 @@ func TestBasic(t *testing.T) {
 			// This way we cover both the Lambda-to-mesh and mesh-to-Lambda use cases in one call.
 			outFile, err := os.CreateTemp("", "lambda-output")
 			require.NoError(t, err)
-			defer os.Remove(outFile.Name())
+			defer func() { _ = os.Remove(outFile.Name()) }()
 
 			retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{

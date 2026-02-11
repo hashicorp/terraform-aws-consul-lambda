@@ -140,7 +140,7 @@ func (c *Lambda) next(ctx context.Context) (*NextEventResponse, error) {
 	if httpRes.StatusCode != 200 {
 		return nil, fmt.Errorf("request failed with status %s", httpRes.Status)
 	}
-	defer httpRes.Body.Close()
+	defer func() { _ = httpRes.Body.Close() }()
 	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err

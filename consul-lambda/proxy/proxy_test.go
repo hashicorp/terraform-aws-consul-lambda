@@ -32,7 +32,7 @@ func TestProxyHTTP(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Write(b)
+		_, _ = w.Write(b)
 	}))
 	u, err := url.Parse(httpServer.URL)
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestProxyHTTP(t *testing.T) {
 	// Create and start the proxy
 	p := proxy.New(hclog.NewNullLogger(), cfg...)
 	t.Cleanup(func() { p.Close() })
-	go p.Serve()
+	go func() { _ = p.Serve() }()
 
 	// Wait for the proxy to be ready before sending it requests.
 	<-p.Wait()
@@ -182,7 +182,7 @@ func TestProxyDialError(t *testing.T) {
 func makeListenFunc(t *testing.T) (func() (net.Listener, error), string) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	t.Cleanup(func() { l.Close() })
+	t.Cleanup(func() { _ = l.Close() })
 
 	lf := func() (net.Listener, error) {
 		return l, nil
@@ -225,9 +225,9 @@ func (c *tcpClient) request(addr, body string) (string, error) {
 	if err != nil {
 		return r, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
-	conn.SetDeadline(time.Now().Add(c.Timeout))
+	_ = conn.SetDeadline(time.Now().Add(c.Timeout))
 
 	if len(body) > 0 {
 		nw, err := conn.Write([]byte(body))
@@ -266,7 +266,7 @@ func NewTCPServer(tlsConfig *tls.Config) (*tcpServer, error) {
 	if err != nil {
 		return s, err
 	}
-	go s.Listen()
+	go func() { _ = s.Listen() }()
 	return s, nil
 }
 
@@ -281,8 +281,8 @@ func (s *tcpServer) Listen() error {
 			return err
 		}
 		go func(conn net.Conn) {
-			defer conn.Close()
-			io.Copy(conn, conn)
+			defer func() { _ = conn.Close() }()
+			_, _ = io.Copy(conn, conn)
 		}(conn)
 
 		if atomic.LoadInt32(&s.done) == 1 {
@@ -294,6 +294,6 @@ func (s *tcpServer) Listen() error {
 func (s *tcpServer) Close() {
 	done := atomic.SwapInt32(&s.done, 1)
 	if done == 0 {
-		s.Listener.Close()
+		_ = s.Listener.Close()
 	}
 }

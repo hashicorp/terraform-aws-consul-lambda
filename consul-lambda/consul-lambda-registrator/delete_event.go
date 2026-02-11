@@ -79,8 +79,8 @@ func (env Environment) deleteTLSData(e DeleteEvent) error {
 func (e DeleteEvent) writeOptions() *api.WriteOptions {
 	writeOptions := &api.WriteOptions{Datacenter: e.Datacenter}
 	if e.EnterpriseMeta != nil {
-		writeOptions.Partition = e.EnterpriseMeta.Partition
-		writeOptions.Namespace = e.EnterpriseMeta.Namespace
+		writeOptions.Partition = e.Partition
+		writeOptions.Namespace = e.Namespace
 	}
 	return writeOptions
 }
