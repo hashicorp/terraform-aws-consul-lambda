@@ -20,4 +20,4 @@ formatters:
 
 run:
   concurrency: 2
-  timeout: 1m
+  timeout: 3m
