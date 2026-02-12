@@ -99,6 +99,7 @@ func (env Environment) registerService(e UpsertEvent) error {
 		Service: &api.AgentService{
 			ID:      e.Name,
 			Service: e.Name,
+			Port:    443, // Required by Consul v1.13+ for services with EnvoyExtensions
 			Tags:    []string{managedLambdaTag},
 		},
 	}
