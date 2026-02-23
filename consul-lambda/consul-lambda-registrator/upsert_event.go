@@ -129,7 +129,7 @@ func (env Environment) registerService(e UpsertEvent) error {
 		"service_name", e.Name,
 		"node_name", env.NodeName,
 		"port", 443,
-		"consul_address", env.ConsulClient.Address(),
+		"consul_http_addr", os.Getenv("CONSUL_HTTP_ADDR"),
 		"partition", e.Service.Partition,
 		"namespace", e.Service.Namespace,
 	)

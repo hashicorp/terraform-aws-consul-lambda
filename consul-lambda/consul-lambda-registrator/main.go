@@ -29,7 +29,7 @@ func HandleRequest(ctx context.Context, rawEvent map[string]interface{}) (string
 	}
 
 	env.Logger.Info("[DEBUG] Environment setup complete",
-		"consul_address", env.ConsulClient.Address(),
+		"consul_http_addr", os.Getenv("CONSUL_HTTP_ADDR"),
 		"node_name", env.NodeName,
 	)
 
