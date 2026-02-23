@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
@@ -9,9 +9,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul v1.22.3
-	github.com/hashicorp/consul/api v1.33.2
-	github.com/hashicorp/consul/sdk v0.17.1
+	github.com/hashicorp/consul v1.22.4
+	github.com/hashicorp/consul/api v1.33.3
+	github.com/hashicorp/consul/sdk v0.17.2
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
