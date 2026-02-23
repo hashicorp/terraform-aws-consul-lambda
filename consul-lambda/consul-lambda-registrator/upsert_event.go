@@ -69,8 +69,8 @@ func (e UpsertEvent) Reconcile(env Environment) error {
 	env.Logger.Info("[DEBUG] Starting Reconcile for UpsertEvent",
 		"arn", e.ARN,
 		"service_name", e.Name,
-		"partition", e.Service.Partition,
-		"namespace", e.Service.Namespace,
+		"partition", e.Partition,
+		"namespace", e.Namespace,
 		"invocation_mode", e.InvocationMode,
 		"payload_passthrough", e.PayloadPassthrough,
 	)
@@ -131,8 +131,8 @@ func (env Environment) registerService(e UpsertEvent) error {
 		"node_name", env.NodeName,
 		"port", 443,
 		"consul_http_addr", os.Getenv("CONSUL_HTTP_ADDR"),
-		"partition", e.Service.Partition,
-		"namespace", e.Service.Namespace,
+		"partition", e.Partition,
+		"namespace", e.Namespace,
 	)
 
 	writeOpts := WriteOptions(e.Service)
