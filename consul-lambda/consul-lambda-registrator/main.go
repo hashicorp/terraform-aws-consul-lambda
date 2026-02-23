@@ -17,31 +17,48 @@ func main() {
 }
 
 func HandleRequest(ctx context.Context, rawEvent map[string]interface{}) (string, error) {
+	fmt.Println("[DEBUG] Lambda registrator invoked")
+	fmt.Printf("[DEBUG] Raw event: %+v\n", rawEvent)
+
 	env, err := SetupEnvironment(ctx)
 
 	if err != nil {
 		// We can't use the logger because of the error.
-		fmt.Println("Error setting up the environment: %w", err)
+		fmt.Println("[DEBUG] Error setting up the environment:", err)
 		return "", fmt.Errorf("setting up consul environment:  %w", err)
 	}
 
+	env.Logger.Info("[DEBUG] Environment setup complete",
+		"consul_address", env.ConsulClient.Address(),
+		"node_name", env.NodeName,
+	)
+
 	events, err := GetEvents(ctx, env, rawEvent)
 	if err != nil {
-		env.Logger.Warn("Error getting events", "error", err)
+		env.Logger.Warn("[DEBUG] Error getting events", "error", err, "raw_event", rawEvent)
 		return "", fmt.Errorf("error getting events: %w", err)
 	}
 
-	env.Logger.Info("Processing events", "count", len(events))
+	env.Logger.Info("[DEBUG] Processing events", "count", len(events), "event_types", fmt.Sprintf("%T", events))
 
 	var resultErr error
 
-	for _, event := range events {
+	for i, event := range events {
+		env.Logger.Info("[DEBUG] Processing event", "index", i, "identifier", event.Identifier(), "event_type", fmt.Sprintf("%T", event))
 		err := event.Reconcile(env)
 
 		if err != nil {
-			env.Logger.Warn("Error reconciling event", "error", err, "identifier", event.Identifier())
+			env.Logger.Warn("[DEBUG] Error reconciling event", "error", err, "identifier", event.Identifier())
 			resultErr = multierror.Append(resultErr, err)
+		} else {
+			env.Logger.Info("[DEBUG] Successfully reconciled event", "identifier", event.Identifier())
 		}
+	}
+
+	if resultErr != nil {
+		env.Logger.Error("[DEBUG] Handler completed with errors", "error", resultErr)
+	} else {
+		env.Logger.Info("[DEBUG] Handler completed successfully")
 	}
 
 	return "", resultErr

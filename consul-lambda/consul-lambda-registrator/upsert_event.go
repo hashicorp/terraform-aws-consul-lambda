@@ -65,20 +65,40 @@ func (e UpsertEvent) Identifier() string {
 
 // Reconcile reconciles lambda with the state of Consul and performs the necessary steps to upsert a Lambda.
 func (e UpsertEvent) Reconcile(env Environment) error {
+	env.Logger.Info("[DEBUG] Starting Reconcile for UpsertEvent",
+		"arn", e.ARN,
+		"service_name", e.Name,
+		"partition", e.Service.Partition,
+		"namespace", e.Service.Namespace,
+		"invocation_mode", e.InvocationMode,
+		"payload_passthrough", e.PayloadPassthrough,
+	)
+
 	env.Logger.Info("Upserting Lambda", "arn", e.ARN)
 	env.Logger.Debug("Storing service defaults config entry", "arn", e.ARN)
 	err := env.storeServiceDefaults(e)
 	if err != nil {
+		env.Logger.Error("[DEBUG] Failed to store service defaults", "error", err, "arn", e.ARN)
 		return err
 	}
+	env.Logger.Info("[DEBUG] Successfully stored service defaults", "arn", e.ARN)
 
 	env.Logger.Debug("Registering service", "arn", e.ARN)
 	err = env.registerService(e)
 	if err != nil {
+		env.Logger.Error("[DEBUG] Failed to register service", "error", err, "arn", e.ARN)
 		return err
 	}
+	env.Logger.Info("[DEBUG] Successfully registered service", "arn", e.ARN)
 
-	return env.upsertTLSData(e)
+	err = env.upsertTLSData(e)
+	if err != nil {
+		env.Logger.Error("[DEBUG] Failed to upsert TLS data", "error", err, "arn", e.ARN)
+		return err
+	}
+	env.Logger.Info("[DEBUG] Successfully upserted TLS data and completed Reconcile", "arn", e.ARN)
+
+	return nil
 }
 
 // AddAlias sets the UpserEvent Name and ARN by appending on the alias in the form `-alias`
@@ -104,8 +124,36 @@ func (env Environment) registerService(e UpsertEvent) error {
 		},
 	}
 
-	_, err := env.ConsulClient.Catalog().Register(registration, WriteOptions(e.Service))
-	return err
+	env.Logger.Info("[DEBUG] Attempting to register service in Consul",
+		"service_id", e.Name,
+		"service_name", e.Name,
+		"node_name", env.NodeName,
+		"port", 443,
+		"consul_address", env.ConsulClient.Address(),
+		"partition", e.Service.Partition,
+		"namespace", e.Service.Namespace,
+	)
+
+	writeOpts := WriteOptions(e.Service)
+	env.Logger.Info("[DEBUG] Consul write options",
+		"partition", writeOpts.Partition,
+		"namespace", writeOpts.Namespace,
+	)
+
+	result, err := env.ConsulClient.Catalog().Register(registration, writeOpts)
+	if err != nil {
+		env.Logger.Error("[DEBUG] Failed to register service in Consul",
+			"error", err,
+			"service_id", e.Name,
+		)
+		return err
+	}
+
+	env.Logger.Info("[DEBUG] Successfully registered service in Consul",
+		"service_id", e.Name,
+		"result", result,
+	)
+	return nil
 }
 
 func (env Environment) storeServiceDefaults(e UpsertEvent) error {
