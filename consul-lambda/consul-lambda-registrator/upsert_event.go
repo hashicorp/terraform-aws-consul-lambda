@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform-aws-consul-lambda/consul-lambda/structs"
