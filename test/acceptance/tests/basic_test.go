@@ -31,7 +31,7 @@ type SetupConfig struct {
 }
 
 // waitForConsulHealth waits for Consul server to be healthy and ready
-func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time.Duration) error {
+func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time.Duration) {
 	t.Logf("[DEBUG] Waiting for Consul server health check (timeout: %v)", timeout)
 	
 	tokenHeader := ""
@@ -39,7 +39,7 @@ func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time
 		tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 	}
 	
-	return retry.RunWith(&retry.Timer{Timeout: timeout, Wait: 10 * time.Second}, t, func(r *retry.R) {
+	retry.RunWith(&retry.Timer{Timeout: timeout, Wait: 10 * time.Second}, t, func(r *retry.R) {
 		// 1. Check Consul leader election
 		leaderOutput, err := ExecuteRemoteCommand(
 			t,
@@ -255,8 +255,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for Consul server to be fully healthy before running tests
 			t.Log("[DEBUG] Waiting for Consul server health check (leader election, agent health, ACL bootstrap)...")
-			err = waitForConsulHealth(t, consulServerTaskARN, c.secure, 10*time.Minute)
-			require.NoError(t, err, "Consul server failed health check")
+			waitForConsulHealth(t, consulServerTaskARN, c.secure, 10*time.Minute)
 			t.Log("[DEBUG] Consul server health check passed")
 
 			// Wait for passing health check for test_client
@@ -396,14 +395,14 @@ func TestBasic(t *testing.T) {
 				},
 			}
 
-			for _, c := range lambdas {
+			for _, lambda := range lambdas {
 				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
-					if c.inDefaultPartition {
+					if lambda.inDefaultPartition {
 						qs = ""
 					}
-					endpoint := fmt.Sprintf("/v1/catalog/service/%s%s", c.name, qs)
+					endpoint := fmt.Sprintf("/v1/catalog/service/%s%s", lambda.name, qs)
 					err := ExecuteRemoteCommandJSON(
 						testingT,
 						suite.Config(),
@@ -413,7 +412,7 @@ func TestBasic(t *testing.T) {
 						&services,
 					)
 					if err != nil || len(services) == 0 {
-						t.Logf("[DEBUG] Lambda service %s query failed or returned empty, debugging HTTP response...", c.name)
+						t.Logf("[DEBUG] Lambda service %s query failed or returned empty, debugging HTTP response...", lambda.name)
 						debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
 					}
 					r.Check(err)
