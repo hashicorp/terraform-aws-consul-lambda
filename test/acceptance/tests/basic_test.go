@@ -278,8 +278,8 @@ func TestBasic(t *testing.T) {
 					&services,
 				)
 				if err != nil || len(services) == 0 {
-					t.Log("[DEBUG] Catalog service query failed or returned empty, debugging HTTP response...")
-					debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+					testingT.Log("[DEBUG] Catalog service query failed or returned empty, debugging HTTP response...")
+					debugHTTPAPIResponse(testingT, consulServerTaskARN, endpoint, c.secure)
 				}
 				r.Check(err)
 				require.Len(r, services, 1)
@@ -413,8 +413,8 @@ func TestBasic(t *testing.T) {
 						&services,
 					)
 					if err != nil || len(services) == 0 {
-						t.Logf("[DEBUG] Lambda service %s query failed or returned empty, debugging HTTP response...", lambda.name)
-						debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+						testingT.Logf("[DEBUG] Lambda service %s query failed or returned empty, debugging HTTP response...", lambda.name)
+						debugHTTPAPIResponse(testingT, consulServerTaskARN, endpoint, c.secure)
 					}
 					r.Check(err)
 					require.Len(r, services, 1)
@@ -520,8 +520,8 @@ func TestBasic(t *testing.T) {
 					&services,
 				)
 				if err != nil {
-					t.Logf("[DEBUG] Negative test: Lambda service %s query failed, debugging HTTP response...", meshToLambdaServiceName)
-					debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+					testingT.Logf("[DEBUG] Negative test: Lambda service %s query failed, debugging HTTP response...", meshToLambdaServiceName)
+					debugHTTPAPIResponse(testingT, consulServerTaskARN, endpoint, c.secure)
 				}
 				r.Check(err)
 				require.Len(r, services, 0)
