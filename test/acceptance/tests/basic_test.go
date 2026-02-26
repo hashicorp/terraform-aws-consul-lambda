@@ -34,6 +34,7 @@ type SetupConfig struct {
 func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time.Duration) {
 	t.Logf("[DEBUG] Waiting for Consul server health check (timeout: %v)", timeout)
 	
+	testingT := t
 	tokenHeader := ""
 	if secure {
 		tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
@@ -42,7 +43,7 @@ func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time
 	retry.RunWith(&retry.Timer{Timeout: timeout, Wait: 10 * time.Second}, t, func(r *retry.R) {
 		// 1. Check Consul leader election
 		leaderOutput, err := ExecuteRemoteCommand(
-			t,
+			testingT,
 			suite.Config(),
 			taskARN,
 			"consul-server",
@@ -61,7 +62,7 @@ func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time
 		
 		// 2. Check Consul agent health
 		healthOutput, err := ExecuteRemoteCommand(
-			t,
+			testingT,
 			suite.Config(),
 			taskARN,
 			"consul-server",
@@ -80,7 +81,7 @@ func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time
 		// 3. If secure, verify ACL system is bootstrapped
 		if secure {
 			aclOutput, err := ExecuteRemoteCommand(
-				t,
+				testingT,
 				suite.Config(),
 				taskARN,
 				"consul-server",
@@ -97,7 +98,7 @@ func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time
 			r.Logf("[DEBUG] ACL system ready and token is valid")
 		}
 		
-		t.Logf("[DEBUG] ✅ Consul server is fully healthy and ready")
+		r.Logf("[DEBUG] ✅ Consul server is fully healthy and ready")
 	})
 }
 
