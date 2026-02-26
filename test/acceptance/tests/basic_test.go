@@ -30,6 +30,111 @@ type SetupConfig struct {
 	MeshGatewayURI string `json:"mesh_gateway_uri"`
 }
 
+// waitForConsulHealth waits for Consul server to be healthy and ready
+func waitForConsulHealth(t *testing.T, taskARN string, secure bool, timeout time.Duration) error {
+	t.Logf("[DEBUG] Waiting for Consul server health check (timeout: %v)", timeout)
+	
+	tokenHeader := ""
+	if secure {
+		tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
+	}
+	
+	return retry.RunWith(&retry.Timer{Timeout: timeout, Wait: 10 * time.Second}, t, func(r *retry.R) {
+		// 1. Check Consul leader election
+		leaderOutput, err := ExecuteRemoteCommand(
+			t,
+			suite.Config(),
+			taskARN,
+			"consul-server",
+			fmt.Sprintf(`/bin/sh -c 'curl -s %s "localhost:8500/v1/status/leader"'`, tokenHeader),
+		)
+		if err != nil {
+			r.Logf("[DEBUG] Failed to check Consul leader: %v", err)
+			r.FailNow()
+		}
+		leaderOutput = strings.TrimSpace(leaderOutput)
+		if leaderOutput == "" || leaderOutput == `""` {
+			r.Logf("[DEBUG] Consul leader not yet elected, got: %s", leaderOutput)
+			r.FailNow()
+		}
+		r.Logf("[DEBUG] Consul leader elected: %s", leaderOutput)
+		
+		// 2. Check Consul agent health
+		healthOutput, err := ExecuteRemoteCommand(
+			t,
+			suite.Config(),
+			taskARN,
+			"consul-server",
+			fmt.Sprintf(`/bin/sh -c 'curl -s %s "localhost:8500/v1/agent/self"'`, tokenHeader),
+		)
+		if err != nil {
+			r.Logf("[DEBUG] Failed to check Consul agent health: %v", err)
+			r.FailNow()
+		}
+		if !strings.Contains(healthOutput, `"Config"`) {
+			r.Logf("[DEBUG] Consul agent not responding properly, got first 200 chars: %s", healthOutput[:min(200, len(healthOutput))])
+			r.FailNow()
+		}
+		r.Logf("[DEBUG] Consul agent is healthy")
+		
+		// 3. If secure, verify ACL system is bootstrapped
+		if secure {
+			aclOutput, err := ExecuteRemoteCommand(
+				t,
+				suite.Config(),
+				taskARN,
+				"consul-server",
+				`/bin/sh -c 'curl -s -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" "localhost:8500/v1/acl/token/self"'`,
+			)
+			if err != nil {
+				r.Logf("[DEBUG] Failed to check ACL tokens: %v", err)
+				r.FailNow()
+			}
+			if !strings.Contains(aclOutput, `"AccessorID"`) {
+				r.Logf("[DEBUG] ACL system not ready, got: %s", aclOutput[:min(200, len(aclOutput))])
+				r.FailNow()
+			}
+			r.Logf("[DEBUG] ACL system ready and token is valid")
+		}
+		
+		t.Logf("[DEBUG] ✅ Consul server is fully healthy and ready")
+	})
+}
+
+// debugHTTPAPIResponse logs detailed HTTP API response for debugging
+func debugHTTPAPIResponse(t *testing.T, taskARN string, endpoint string, secure bool) {
+	t.Logf("[DEBUG] === Debugging HTTP API Response for: %s ===", endpoint)
+	
+	tokenHeader := ""
+	if secure {
+		tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
+	}
+	
+	cmd := fmt.Sprintf(`/bin/sh -c 'curl -v %s "localhost:8500%s" 2>&1'`, tokenHeader, endpoint)
+	
+	rawOutput, err := ExecuteRemoteCommand(
+		t,
+		suite.Config(),
+		taskARN,
+		"consul-server",
+		cmd,
+	)
+	
+	if err != nil {
+		t.Logf("[DEBUG] Error executing HTTP API debug request: %v", err)
+	}
+	
+	t.Logf("[DEBUG] Raw HTTP response:\n%s", rawOutput)
+	t.Logf("[DEBUG] === End HTTP API Debug ===")
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func TestBasic(t *testing.T) {
 
 	cases := map[string]struct {
@@ -148,6 +253,12 @@ func TestBasic(t *testing.T) {
 				consulServerTaskARN = tasks.TaskARNs[0]
 			})
 
+			// Wait for Consul server to be fully healthy before running tests
+			t.Log("[DEBUG] Waiting for Consul server health check (leader election, agent health, ACL bootstrap)...")
+			err = waitForConsulHealth(t, consulServerTaskARN, c.secure, 10*time.Minute)
+			require.NoError(t, err, "Consul server failed health check")
+			t.Log("[DEBUG] Consul server health check passed")
+
 			// Wait for passing health check for test_client
 			tokenHeader := ""
 			if c.secure {
@@ -157,14 +268,19 @@ func TestBasic(t *testing.T) {
 			// We need high timeout here because sometimes Route53 propogation takes a long time. We've observed upto 15 mins for the task to be able to reach consul server through DNS.
 			retry.RunWith(&retry.Timer{Timeout: 20 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
+				endpoint := fmt.Sprintf("/v1/catalog/service/%s%s", clientServiceName, queryString)
 				err := ExecuteRemoteCommandJSON(
 					testingT,
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, clientServiceName, queryString),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500%s"'`, tokenHeader, endpoint),
 					&services,
 				)
+				if err != nil || len(services) == 0 {
+					t.Log("[DEBUG] Catalog service query failed or returned empty, debugging HTTP response...")
+					debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+				}
 				r.Check(err)
 				require.Len(r, services, 1)
 			})
@@ -287,14 +403,19 @@ func TestBasic(t *testing.T) {
 					if c.inDefaultPartition {
 						qs = ""
 					}
+					endpoint := fmt.Sprintf("/v1/catalog/service/%s%s", c.name, qs)
 					err := ExecuteRemoteCommandJSON(
 						testingT,
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, c.name, qs),
+						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500%s"'`, tokenHeader, endpoint),
 						&services,
 					)
+					if err != nil || len(services) == 0 {
+						t.Logf("[DEBUG] Lambda service %s query failed or returned empty, debugging HTTP response...", c.name)
+						debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+					}
 					r.Check(err)
 					require.Len(r, services, 1)
 				})
@@ -389,14 +510,19 @@ func TestBasic(t *testing.T) {
 			// Lambda doesn't exists
 			retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
+				endpoint := fmt.Sprintf("/v1/catalog/service/%s%s", meshToLambdaServiceName, queryString)
 				err := ExecuteRemoteCommandJSON(
 					testingT,
 					suite.Config(),
 					consulServerTaskARN,
 					"consul-server",
-					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, meshToLambdaServiceName, queryString),
+					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500%s"'`, tokenHeader, endpoint),
 					&services,
 				)
+				if err != nil {
+					t.Logf("[DEBUG] Negative test: Lambda service %s query failed, debugging HTTP response...", meshToLambdaServiceName)
+					debugHTTPAPIResponse(t, consulServerTaskARN, endpoint, c.secure)
+				}
 				r.Check(err)
 				require.Len(r, services, 0)
 			})
