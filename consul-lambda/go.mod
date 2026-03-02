@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul v1.22.4
+	github.com/hashicorp/consul v1.22.5
 	github.com/hashicorp/consul/api v1.33.3
 	github.com/hashicorp/consul/sdk v0.17.2
 	github.com/hashicorp/go-hclog v1.6.3
@@ -88,6 +88,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
