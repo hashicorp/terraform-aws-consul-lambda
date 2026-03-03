@@ -1,17 +1,23 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+version: "2"
+
 linters:
-  disable-all: true
   enable:
-    - gofmt
     - govet
     - unconvert
     - staticcheck
     - ineffassign
     - unparam
+  disable:
+    - errcheck
+
+formatters:
+  enable:
+    - gofmt
     - goimports
 
 run:
   concurrency: 2
-  timeout: 1m
+  timeout: 3m
