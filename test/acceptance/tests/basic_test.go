@@ -316,6 +316,51 @@ func TestBasic(t *testing.T) {
 				},
 			}
 
+			// DEBUG: Register cleanup to dump CloudWatch logs on test failure
+			t.Cleanup(func() {
+				if !t.Failed() {
+					return
+				}
+				logger.Log(t, "DEBUG: Test failed - invoking registrator and fetching CloudWatch logs")
+				shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"lambda",
+						"invoke",
+						"--region",
+						suite.Config().Region,
+						"--function-name",
+						registratorFunctionName,
+						"--payload",
+						base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
+						syncOutFile.Name(),
+					},
+				})
+				retryResult, _ := os.ReadFile(syncOutFile.Name())
+				logger.Log(t, "DEBUG: Registrator response:", string(retryResult))
+
+				logGroupName := fmt.Sprintf("/aws/lambda/%s", registratorFunctionName)
+				cwOutput, cwErr := shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"logs",
+						"tail",
+						logGroupName,
+						"--region",
+						suite.Config().Region,
+						"--since",
+						"30m",
+						"--format",
+						"short",
+					},
+				})
+				if cwErr != nil {
+					logger.Log(t, "DEBUG: Could not fetch CloudWatch logs:", cwErr.Error())
+				} else {
+					logger.Log(t, "DEBUG: Registrator CloudWatch logs:\n"+cwOutput)
+				}
+			})
+
 			for _, l := range lambdas {
 				lambdaName := l.name
 				inDefaultPartition := l.inDefaultPartition
@@ -334,48 +379,6 @@ func TestBasic(t *testing.T) {
 						&services,
 					)
 					r.Check(err)
-					if len(services) != 1 {
-						// DEBUG: On failure, invoke registrator again and fetch CloudWatch logs
-						logger.Log(t, "DEBUG: Service not found yet:", lambdaName, "trying registrator invoke again")
-						shell.RunCommandAndGetOutputE(testingT, shell.Command{
-							Command: "aws",
-							Args: []string{
-								"lambda",
-								"invoke",
-								"--region",
-								suite.Config().Region,
-								"--function-name",
-								registratorFunctionName,
-								"--payload",
-								base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
-								syncOutFile.Name(),
-							},
-						})
-						retryResult, _ := os.ReadFile(syncOutFile.Name())
-						logger.Log(t, "DEBUG: Retry registrator response:", string(retryResult))
-
-						// Fetch CloudWatch logs for the registrator
-						logGroupName := fmt.Sprintf("/aws/lambda/%s", registratorFunctionName)
-						cwOutput, cwErr := shell.RunCommandAndGetOutputE(testingT, shell.Command{
-							Command: "aws",
-							Args: []string{
-								"logs",
-								"tail",
-								logGroupName,
-								"--region",
-								suite.Config().Region,
-								"--since",
-								"30m",
-								"--format",
-								"short",
-							},
-						})
-						if cwErr != nil {
-							logger.Log(t, "DEBUG: Could not fetch CloudWatch logs:", cwErr.Error())
-						} else {
-							logger.Log(t, "DEBUG: Registrator CloudWatch logs:\n"+cwOutput)
-						}
-					}
 					require.Len(r, services, 1)
 				})
 			}
