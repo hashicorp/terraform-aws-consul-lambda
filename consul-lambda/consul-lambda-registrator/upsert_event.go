@@ -182,8 +182,8 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 func QueryOptions(s structs.Service) *api.QueryOptions {
 	opts := &api.QueryOptions{Datacenter: s.Datacenter}
 	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
+		opts.Partition = s.Partition
+		opts.Namespace = s.Namespace
 	}
 	return opts
 }
@@ -193,8 +193,8 @@ func QueryOptions(s structs.Service) *api.QueryOptions {
 func WriteOptions(s structs.Service) *api.WriteOptions {
 	opts := &api.WriteOptions{Datacenter: s.Datacenter}
 	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
+		opts.Partition = s.Partition
+		opts.Namespace = s.Namespace
 	}
 	return opts
 }

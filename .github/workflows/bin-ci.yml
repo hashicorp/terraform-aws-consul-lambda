@@ -36,8 +36,6 @@ jobs:
         version: v2.8.0
         args: "--verbose"
         only-new-issues: false
-        skip-pkg-cache: true
-        skip-build-cache: true
         # run lint inside ./consul-lambda
         working-directory: ./consul-lambda
 
