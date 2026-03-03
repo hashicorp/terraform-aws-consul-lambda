@@ -68,7 +68,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.20.5"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.22.5"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -77,7 +77,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.20.5-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.22.5-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
@@ -257,6 +257,42 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, lambdaToMeshTerraformOptions)
 
+			// DEBUG: Directly invoke the registrator Lambda to trigger a full sync
+			// and capture any errors from the registrator itself.
+			registratorFunctionName := fmt.Sprintf("lambda-registrator-1-%s", suffix)
+			logger.Log(t, "DEBUG: Invoking registrator Lambda for full sync", "function", registratorFunctionName)
+
+			syncOutFile, err := os.CreateTemp("", "registrator-sync-output")
+			require.NoError(t, err)
+			defer os.Remove(syncOutFile.Name())
+
+			syncOutput, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
+				Command: "aws",
+				Args: []string{
+					"lambda",
+					"invoke",
+					"--region",
+					suite.Config().Region,
+					"--function-name",
+					registratorFunctionName,
+					"--payload",
+					base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
+					syncOutFile.Name(),
+				},
+			})
+			if err != nil {
+				logger.Log(t, "DEBUG: Error invoking registrator Lambda:", err.Error())
+			} else {
+				logger.Log(t, "DEBUG: Registrator Lambda invoke CLI output:", syncOutput)
+				syncResult, readErr := os.ReadFile(syncOutFile.Name())
+				if readErr == nil {
+					logger.Log(t, "DEBUG: Registrator Lambda response payload:", string(syncResult))
+				}
+			}
+
+			// Wait a moment for any async processing
+			time.Sleep(5 * time.Second)
+
 			lambdas := []struct {
 				name               string
 				inDefaultPartition bool
@@ -280,11 +316,13 @@ func TestBasic(t *testing.T) {
 				},
 			}
 
-			for _, c := range lambdas {
+			for _, l := range lambdas {
+				lambdaName := l.name
+				inDefaultPartition := l.inDefaultPartition
 				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
-					if c.inDefaultPartition {
+					if inDefaultPartition {
 						qs = ""
 					}
 					err := ExecuteRemoteCommandJSON(
@@ -292,10 +330,52 @@ func TestBasic(t *testing.T) {
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, c.name, qs),
+						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, lambdaName, qs),
 						&services,
 					)
 					r.Check(err)
+					if len(services) != 1 {
+						// DEBUG: On failure, invoke registrator again and fetch CloudWatch logs
+						logger.Log(t, "DEBUG: Service not found yet:", lambdaName, "trying registrator invoke again")
+						shell.RunCommandAndGetOutputE(testingT, shell.Command{
+							Command: "aws",
+							Args: []string{
+								"lambda",
+								"invoke",
+								"--region",
+								suite.Config().Region,
+								"--function-name",
+								registratorFunctionName,
+								"--payload",
+								base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
+								syncOutFile.Name(),
+							},
+						})
+						retryResult, _ := os.ReadFile(syncOutFile.Name())
+						logger.Log(t, "DEBUG: Retry registrator response:", string(retryResult))
+
+						// Fetch CloudWatch logs for the registrator
+						logGroupName := fmt.Sprintf("/aws/lambda/%s", registratorFunctionName)
+						cwOutput, cwErr := shell.RunCommandAndGetOutputE(testingT, shell.Command{
+							Command: "aws",
+							Args: []string{
+								"logs",
+								"tail",
+								logGroupName,
+								"--region",
+								suite.Config().Region,
+								"--since",
+								"30m",
+								"--format",
+								"short",
+							},
+						})
+						if cwErr != nil {
+							logger.Log(t, "DEBUG: Could not fetch CloudWatch logs:", cwErr.Error())
+						} else {
+							logger.Log(t, "DEBUG: Registrator CloudWatch logs:\n"+cwOutput)
+						}
+					}
 					require.Len(r, services, 1)
 				})
 			}
