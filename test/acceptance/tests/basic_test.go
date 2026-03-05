@@ -322,7 +322,7 @@ func TestBasic(t *testing.T) {
 					return
 				}
 				logger.Log(t, "DEBUG: Test failed - invoking registrator and fetching CloudWatch logs")
-				shell.RunCommandAndGetOutputE(t, shell.Command{
+				_, _ = shell.RunCommandAndGetOutputE(t, shell.Command{
 					Command: "aws",
 					Args: []string{
 						"lambda",
