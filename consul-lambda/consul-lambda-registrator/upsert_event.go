@@ -182,7 +182,10 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	}
 
 	// Retrieve the leaf for this service
-	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, QueryOptions(e.Service))
+	// Note: Agent API calls should not include partition/namespace in QueryOptions
+	// as the agent operates within its own partition context. Including them
+	// causes "request targets partition does not match agent partition" errors.
+	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, nil)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve leaf cert for %s: %w", e.Name, err)
 	}
