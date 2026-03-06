@@ -310,6 +310,9 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 				}
 
 				// Match the SPIFFE ID.
+				if len(certs[0].URIs) == 0 {
+					return fmt.Errorf("certificate has no URIs for upstream %s", upstream.Name)
+				}
 				if !strings.EqualFold(certs[0].URIs[0].String(), upstream.SpiffeID()) {
 					return fmt.Errorf("invalid SPIFFE ID for upstream %s", upstream.Name)
 				}
