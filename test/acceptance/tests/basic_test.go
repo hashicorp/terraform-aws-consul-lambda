@@ -202,8 +202,6 @@ func TestBasic(t *testing.T) {
 			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Create Lambda function that calls the test_client
-			lambdaToMeshAP := ""
-			lambdaToMeshNS := ""
 			env := map[string]string{
 				"CONSUL_EXTENSION_DATA_PREFIX": "/" + suffix,
 				"CONSUL_MESH_GATEWAY_URI":      setupCfg.MeshGatewayURI,
@@ -216,29 +214,23 @@ func TestBasic(t *testing.T) {
 			}
 			if c.enterprise {
 				env["CONSUL_SERVICE_UPSTREAMS"] = fmt.Sprintf("%s.%s.%s:1234", clientServiceName, namespace, partition)
+				env["CONSUL_SERVICE_PARTITION"] = partition
+				env["CONSUL_SERVICE_NAMESPACE"] = namespace
+			}
 
-				// Lambda functions don't have a Consul client agent so Lambda registrator uses the HTTP API
-				// to retrieve the leaf service certificate for the Lambda function. That works in the default
-				// partition and namespace but it does not work when the Lambda function is in a non-default
-				// ap/ns. The registrator hits the /agent/connect/ca/leaf/:service endpoint on the Consul server
-				// but supplying any non-default partition to this endpoint on the server results in:
-				//
-				//	request targets partition "ap1" which does not match agent partition "default"
-				//
-				// So we can't get a service cert for a Lambda function in a non-default partition :(
-				lambdaToMeshAP = "default"
-				lambdaToMeshNS = "default"
-				env["CONSUL_SERVICE_PARTITION"] = lambdaToMeshAP
-				env["CONSUL_SERVICE_NAMESPACE"] = lambdaToMeshNS
+			lambdaToMeshTags := map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
+			}
+			if c.enterprise {
+				lambdaToMeshTags["serverless.consul.hashicorp.com/v1alpha1/lambda/partition"] = partition
+				lambdaToMeshTags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
 			}
 
 			lambdaToMeshTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./lambda-to-mesh",
 				NoColor:      true,
 				Vars: map[string]interface{}{
-					"tags": map[string]string{
-						"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
-					},
+					"tags":   lambdaToMeshTags,
 					"name":   lambdaToMeshServiceName,
 					"region": config.Region,
 					"env":    env,
@@ -311,8 +303,7 @@ func TestBasic(t *testing.T) {
 					inDefaultPartition: c.enterprise,
 				},
 				{
-					name:               lambdaToMeshServiceName,
-					inDefaultPartition: c.enterprise,
+					name: lambdaToMeshServiceName,
 				},
 			}
 
@@ -393,7 +384,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildIntention(lambdaToMeshServiceName, lambdaToMeshAP, lambdaToMeshNS, clientServiceName, partition, namespace)),
+							buildIntention(lambdaToMeshServiceName, partition, namespace, clientServiceName, partition, namespace)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")
@@ -410,7 +401,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildExport(clientServiceName, partition, namespace, lambdaToMeshAP)),
+							buildExport(clientServiceName, partition, namespace, partition)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")
