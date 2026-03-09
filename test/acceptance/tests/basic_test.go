@@ -1,11 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// These tests have been updated to support Lambda functions in non-default
-// Consul Enterprise partitions. Previously, Lambda functions were forced to the default
-// partition due to Agent API limitations with the /agent/connect/ca/leaf endpoint.
-// The registrator now passes nil QueryOptions to Agent API calls, allowing proper
-// certificate retrieval for services in any partition.
+// NOTE: Lambda-to-mesh functions must be registered in the default partition because
+// the Consul Agent API's /agent/connect/ca/leaf/:service endpoint can only issue
+// leaf certificates for services in the agent's own partition. The Consul server
+// runs in the "default" partition, so ConnectCALeaf with nil QueryOptions always
+// returns certs with SPIFFE IDs scoped to the default partition. Passing explicit
+// partition/namespace in QueryOptions causes "request targets partition does not
+// match agent partition" errors.
+//
+// Mesh-to-lambda functions CAN be in non-default partitions because they don't
+// use the leaf cert for outbound mTLS connections (the mesh gateway handles that).
+//
+// TODO: Implement gRPC-based cert signing via ConnectCA.Sign to support
+// lambda-to-mesh functions in non-default partitions.
 
 package main
 
@@ -208,6 +216,11 @@ func TestBasic(t *testing.T) {
 			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Create Lambda function that calls the test_client
+			// For enterprise, the lambda-to-mesh function must be in the default partition
+			// because the Agent API's ConnectCALeaf can only issue certs for the agent's
+			// own partition (default). The upstream can still be in a non-default partition.
+			lambdaToMeshAP := ""
+			lambdaToMeshNS := ""
 			env := map[string]string{
 				"CONSUL_EXTENSION_DATA_PREFIX": "/" + suffix,
 				"CONSUL_MESH_GATEWAY_URI":      setupCfg.MeshGatewayURI,
@@ -220,16 +233,19 @@ func TestBasic(t *testing.T) {
 			}
 			if c.enterprise {
 				env["CONSUL_SERVICE_UPSTREAMS"] = fmt.Sprintf("%s.%s.%s:1234", clientServiceName, namespace, partition)
-				env["CONSUL_SERVICE_PARTITION"] = partition
-				env["CONSUL_SERVICE_NAMESPACE"] = namespace
+
+				// Lambda-to-mesh functions must use the default partition for their own
+				// identity because the Consul Agent API's ConnectCALeaf endpoint cannot
+				// issue leaf certs for non-default partitions. The upstream (test_client)
+				// is still in partition ap1.
+				lambdaToMeshAP = "default"
+				lambdaToMeshNS = "default"
+				env["CONSUL_SERVICE_PARTITION"] = lambdaToMeshAP
+				env["CONSUL_SERVICE_NAMESPACE"] = lambdaToMeshNS
 			}
 
 			lambdaToMeshTags := map[string]string{
 				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
-			}
-			if c.enterprise {
-				lambdaToMeshTags["serverless.consul.hashicorp.com/v1alpha1/lambda/partition"] = partition
-				lambdaToMeshTags["serverless.consul.hashicorp.com/v1alpha1/lambda/namespace"] = namespace
 			}
 
 			lambdaToMeshTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
@@ -309,7 +325,8 @@ func TestBasic(t *testing.T) {
 					inDefaultPartition: c.enterprise,
 				},
 				{
-					name: lambdaToMeshServiceName,
+					name:               lambdaToMeshServiceName,
+					inDefaultPartition: c.enterprise,
 				},
 			}
 
@@ -390,7 +407,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildIntention(lambdaToMeshServiceName, partition, namespace, clientServiceName, partition, namespace)),
+							buildIntention(lambdaToMeshServiceName, lambdaToMeshAP, lambdaToMeshNS, clientServiceName, partition, namespace)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")
@@ -407,7 +424,7 @@ func TestBasic(t *testing.T) {
 						"consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
-							buildExport(clientServiceName, partition, namespace, partition)),
+							buildExport(clientServiceName, partition, namespace, lambdaToMeshAP)),
 					)
 					r.Check(err)
 					require.Contains(r, result, "true")

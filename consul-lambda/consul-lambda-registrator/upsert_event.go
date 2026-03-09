@@ -185,6 +185,11 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	// Note: Agent API calls should not include partition/namespace in QueryOptions
 	// as the agent operates within its own partition context. Including them
 	// causes "request targets partition does not match agent partition" errors.
+	// This means the leaf cert SPIFFE ID will always be scoped to the agent's
+	// own partition (default). Lambda-to-mesh functions must therefore be registered
+	// in the default partition for the cert identity to match intentions.
+	// TODO: Use the gRPC ConnectCA.Sign endpoint to generate CSRs with the
+	// correct SPIFFE ID for services in non-default partitions.
 	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, nil)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve leaf cert for %s: %w", e.Name, err)
