@@ -304,8 +304,9 @@ func TestBasic(t *testing.T) {
 				}
 			}
 
-			// Wait a moment for any async processing
-			time.Sleep(5 * time.Second)
+			// Wait for async processing. In CI this can take longer due to Lambda cold starts,
+			// EventBridge latency, and eventual consistency across AWS APIs.
+			time.Sleep(30 * time.Second)
 
 			lambdas := []struct {
 				name               string
@@ -378,7 +379,7 @@ func TestBasic(t *testing.T) {
 			for _, l := range lambdas {
 				lambdaName := l.name
 				inDefaultPartition := l.inDefaultPartition
-				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 					var services []api.CatalogService
 					qs := queryString
 					if inDefaultPartition {
@@ -439,7 +440,7 @@ func TestBasic(t *testing.T) {
 			require.NoError(t, err)
 			defer os.Remove(outFile.Name())
 
-			retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
 					Args: []string{
