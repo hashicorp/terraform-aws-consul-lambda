@@ -1,6 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
+// These tests have been updated to support Lambda functions in non-default
+// Consul Enterprise partitions. Previously, Lambda functions were forced to the default
+// partition due to Agent API limitations with the /agent/connect/ca/leaf endpoint.
+// The registrator now passes nil QueryOptions to Agent API calls, allowing proper
+// certificate retrieval for services in any partition.
+
 package main
 
 import (
