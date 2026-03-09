@@ -44,8 +44,7 @@ const (
 )
 
 var (
-	errARNUndefined  = errors.New("arn isn't populated")
-	errNotEnterprise = errors.New("namespaces and admin partitions require Consul enterprise")
+	errARNUndefined = errors.New("arn isn't populated")
 )
 
 type AWSEvent struct {
