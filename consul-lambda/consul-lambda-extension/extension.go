@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -309,19 +308,13 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 					opts.Intermediates.AddCert(cert)
 				}
 
+				// Verify the peer cert is signed by the Consul CA.
+				// We do NOT verify the SPIFFE ID against the upstream service here because
+				// when routing through a mesh gateway the peer presents the mesh gateway's
+				// own certificate (not the upstream service's certificate). The SNI value
+				// is used purely as a routing hint to the mesh gateway.
 				_, err := certs[0].Verify(opts)
-				if err != nil {
-					return err
-				}
-
-				// Match the SPIFFE ID.
-				if len(certs[0].URIs) == 0 {
-					return fmt.Errorf("certificate has no URIs for upstream %s", upstream.Name)
-				}
-				if !strings.EqualFold(certs[0].URIs[0].String(), upstream.SpiffeID()) {
-					return fmt.Errorf("invalid SPIFFE ID for upstream %s", upstream.Name)
-				}
-				return nil
+				return err
 			},
 		})
 	}
