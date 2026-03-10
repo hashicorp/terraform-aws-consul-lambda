@@ -462,8 +462,32 @@ func TestBasic(t *testing.T) {
 				result, err := os.ReadFile(outFile.Name())
 				r.Check(err)
 
+				// First, check if the Lambda function returned an error response.
+				// When the Consul extension isn't ready, Lambda returns an error response
+				// instead of a successful response with a body array.
+				var errorResponse struct {
+					ErrorMessage string `json:"errorMessage"`
+					ErrorType    string `json:"errorType"`
+				}
+				if err := json.Unmarshal(result, &errorResponse); err == nil && errorResponse.ErrorMessage != "" {
+					// Lambda returned an error. Check if it's a retryable connection issue.
+					if strings.Contains(errorResponse.ErrorMessage, "connection reset by peer") ||
+						strings.Contains(errorResponse.ErrorMessage, "connection refused") ||
+						strings.Contains(errorResponse.ErrorMessage, "EOF") ||
+						strings.Contains(errorResponse.ErrorMessage, "i/o timeout") {
+						// Consul extension is not ready yet - this is expected during initialization, retry
+						r.Errorf("Consul extension not ready (will retry): %s", errorResponse.ErrorMessage)
+						return
+					}
+					// Non-retryable error - fail immediately
+					r.Errorf("Lambda invocation failed with non-retryable error: %s", errorResponse.ErrorMessage)
+					return
+				}
+
+				// Parse the successful response
 				obs := struct {
-					Body []struct {
+					StatusCode int `json:"statusCode"`
+					Body       []struct {
 						Body struct {
 							Code int `json:"code"`
 						} `json:"body"`
@@ -471,6 +495,13 @@ func TestBasic(t *testing.T) {
 				}{}
 				err = json.Unmarshal(result, &obs)
 				r.Check(err)
+
+				// Verify we got a valid response structure
+				if obs.StatusCode == 0 || len(obs.Body) == 0 {
+					r.Errorf("Invalid or incomplete response structure (will retry): %s", string(result))
+					return
+				}
+
 				require.Len(r, obs.Body, 1, fmt.Sprintf("result included %s", string(result)))
 				require.Equal(r, http.StatusOK, obs.Body[0].Body.Code, fmt.Sprintf("result included %s", string(result)))
 			})
