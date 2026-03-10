@@ -380,7 +380,7 @@ func TestBasic(t *testing.T) {
 				}
 
 				// Fetch lambda-to-mesh function logs to see extension errors
-				lambdaToMeshLogGroupName := fmt.Sprintf("/aws/lambda/%s", lambdaToMeshFunctionName)
+				lambdaToMeshLogGroupName := fmt.Sprintf("/aws/lambda/%s", lambdaToMeshServiceName)
 				lambdaToMeshOutput, lambdaToMeshErr := shell.RunCommandAndGetOutputE(t, shell.Command{
 					Command: "aws",
 					Args: []string{
