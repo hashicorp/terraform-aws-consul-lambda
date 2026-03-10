@@ -82,7 +82,9 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.22.0"
+			// Use Consul 1.15.2 for compatibility with Lambda extension and registrator 0.1.0-beta4
+			// Consul 1.22.0 may have compatibility issues with the current extension implementation
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.15.2"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -91,7 +93,8 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.22.0-ent"
+				// Use Consul 1.15.2 Enterprise for compatibility
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.15.2-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
@@ -354,6 +357,7 @@ func TestBasic(t *testing.T) {
 				retryResult, _ := os.ReadFile(syncOutFile.Name())
 				logger.Log(t, "DEBUG: Registrator response:", string(retryResult))
 
+				// Fetch registrator logs
 				logGroupName := fmt.Sprintf("/aws/lambda/%s", registratorFunctionName)
 				cwOutput, cwErr := shell.RunCommandAndGetOutputE(t, shell.Command{
 					Command: "aws",
@@ -370,9 +374,31 @@ func TestBasic(t *testing.T) {
 					},
 				})
 				if cwErr != nil {
-					logger.Log(t, "DEBUG: Could not fetch CloudWatch logs:", cwErr.Error())
+					logger.Log(t, "DEBUG: Could not fetch registrator CloudWatch logs:", cwErr.Error())
 				} else {
 					logger.Log(t, "DEBUG: Registrator CloudWatch logs:\n"+cwOutput)
+				}
+
+				// Fetch lambda-to-mesh function logs to see extension errors
+				lambdaToMeshLogGroupName := fmt.Sprintf("/aws/lambda/%s", lambdaToMeshFunctionName)
+				lambdaToMeshOutput, lambdaToMeshErr := shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"logs",
+						"tail",
+						lambdaToMeshLogGroupName,
+						"--region",
+						suite.Config().Region,
+						"--since",
+						"30m",
+						"--format",
+						"short",
+					},
+				})
+				if lambdaToMeshErr != nil {
+					logger.Log(t, "DEBUG: Could not fetch lambda-to-mesh CloudWatch logs:", lambdaToMeshErr.Error())
+				} else {
+					logger.Log(t, "DEBUG: Lambda-to-mesh CloudWatch logs:\n"+lambdaToMeshOutput)
 				}
 			})
 
@@ -439,6 +465,52 @@ func TestBasic(t *testing.T) {
 			outFile, err := os.CreateTemp("", "lambda-output")
 			require.NoError(t, err)
 			defer os.Remove(outFile.Name())
+
+			// Warm-up invocation: The Consul extension needs to initialize on the first invocation.
+			// This can take time as it fetches config from SSM, gets certificates, and connects to mesh gateway.
+			// Wait for the registrator to create the SSM parameter for the lambda-to-mesh function.
+			// The extension needs this parameter to get its mTLS certificates.
+			logger.Log(t, "Waiting for SSM parameter to be created by registrator")
+			expectedSSMPath := fmt.Sprintf("/%s/default/default/%s", suffix, lambdaToMeshServiceName)
+			logger.Log(t, "Expected SSM parameter path:", expectedSSMPath)
+			
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 5 * time.Second}, t, func(r *retry.R) {
+				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"ssm",
+						"get-parameter",
+						"--name",
+						expectedSSMPath,
+						"--region",
+						suite.Config().Region,
+					}},
+				)
+				if err != nil {
+					r.Errorf("SSM parameter not yet available: %v", err)
+				}
+			})
+			logger.Log(t, "SSM parameter exists, proceeding with Lambda invocation")
+
+			// We invoke the Lambda once to trigger initialization, then wait before the actual test.
+			logger.Log(t, "Performing warm-up invocation to initialize Consul extension")
+			_, _ = shell.RunCommandAndGetOutputE(testingT, shell.Command{
+				Command: "aws",
+				Args: []string{
+					"lambda",
+					"invoke",
+					"--region",
+					suite.Config().Region,
+					"--function-name",
+					lambdaToMeshServiceName,
+					"--payload",
+					base64.StdEncoding.EncodeToString([]byte(`{"lambda-to-mesh":true}`)),
+					outFile.Name(),
+				}},
+			)
+			// Give the extension time to fully initialize after first invocation
+			logger.Log(t, "Waiting 30 seconds for Consul extension to complete initialization")
+			time.Sleep(30 * time.Second)
 
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
