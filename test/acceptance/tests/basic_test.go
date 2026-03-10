@@ -473,7 +473,7 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Waiting for SSM parameter to be created by registrator")
 			expectedSSMPath := fmt.Sprintf("/%s/default/default/%s", suffix, lambdaToMeshServiceName)
 			logger.Log(t, "Expected SSM parameter path:", expectedSSMPath)
-			
+
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 5 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
