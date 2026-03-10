@@ -66,6 +66,9 @@ jobs:
     - name: go vet (temporary replacement for golangci-lint)
       run: |
         go vet ./...
+      env:
+        GOPROXY: direct
+        GOSUMDB: sum.golang.org
     - name: gofmt check
       run: |
         if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
