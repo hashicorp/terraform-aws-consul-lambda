@@ -9,9 +9,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.27.0
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul v1.20.5
-	github.com/hashicorp/consul/api v1.31.2
-	github.com/hashicorp/consul/sdk v0.16.2
+	github.com/hashicorp/consul v1.22.0
+	github.com/hashicorp/consul/api v1.33.0
+	github.com/hashicorp/consul/sdk v0.17.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
