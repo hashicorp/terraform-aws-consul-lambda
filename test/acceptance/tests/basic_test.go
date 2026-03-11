@@ -304,10 +304,6 @@ func TestBasic(t *testing.T) {
 				}
 			}
 
-			// Wait for async processing. In CI this can take longer due to Lambda cold starts,
-			// EventBridge latency, and eventual consistency across AWS APIs.
-			time.Sleep(30 * time.Second)
-
 			lambdas := []struct {
 				name               string
 				inDefaultPartition bool
@@ -376,13 +372,33 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			for _, l := range lambdas {
-				lambdaName := l.name
-				inDefaultPartition := l.inDefaultPartition
-				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			// Re-invoke the registrator on each retry attempt to handle AWS tag propagation
+			// delays on cold infrastructure. The Lambda API may not immediately reflect newly
+			// applied tags, so the first sync can find 0 functions. Subsequent invocations
+			// will pick them up once tags are visible.
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				syncRetryFile, ferr := os.CreateTemp("", "registrator-sync-retry")
+				if ferr == nil {
+					defer os.Remove(syncRetryFile.Name())
+					_, _ = shell.RunCommandAndGetOutputE(testingT, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"lambda",
+							"invoke",
+							"--region",
+							suite.Config().Region,
+							"--function-name",
+							registratorFunctionName,
+							"--payload",
+							base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
+							syncRetryFile.Name(),
+						},
+					})
+				}
+				for _, l := range lambdas {
 					var services []api.CatalogService
 					qs := queryString
-					if inDefaultPartition {
+					if l.inDefaultPartition {
 						qs = ""
 					}
 					err := ExecuteRemoteCommandJSON(
@@ -390,13 +406,13 @@ func TestBasic(t *testing.T) {
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, lambdaName, qs),
+						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, l.name, qs),
 						&services,
 					)
 					r.Check(err)
 					require.Len(r, services, 1)
-				})
-			}
+				}
+			})
 
 			if c.secure {
 				// Create an intention to allow the Lambda function to call the test_client service
