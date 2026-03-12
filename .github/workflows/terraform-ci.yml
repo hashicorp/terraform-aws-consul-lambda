@@ -50,27 +50,13 @@ jobs:
       run: |
         go install github.com/hashicorp/lint-consul-retry@latest
         lint-consul-retry
-    # Temporarily disabled: golangci-lint is not compatible as the dependencies are not updated for a long time in this repo
-    # TODO: Re-enable / update golangci-lint after dependencies are updated
-    # - name: golangci-lint
-    #   uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
-    #   with:
-    #     version: v2.0.0
-    #     args: "--verbose --enable gofmt --timeout 12m"
-    #     only-new-issues: false
-    #     skip-pkg-cache: true
-    #     skip-build-cache: true
-    #     working-directory: ./test/acceptance
-    - name: go vet (temporary replacement for golangci-lint)
-      run: |
-        go vet ./...
-    - name: gofmt check
-      run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "The following files need formatting:"
-          gofmt -s -l .
-          exit 1
-        fi
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+      with:
+        version: v2.8.0
+        args: "--verbose --timeout 12m"
+        only-new-issues: false
+        working-directory: ./test/acceptance
   acceptance:
     strategy:
       matrix:

@@ -44,7 +44,8 @@ const (
 )
 
 var (
-	errARNUndefined = errors.New("arn isn't populated")
+	errARNUndefined  = errors.New("arn isn't populated")
+	errNotEnterprise = errors.New("namespaces and admin partitions require Consul enterprise")
 )
 
 type AWSEvent struct {
@@ -151,12 +152,7 @@ func (env Environment) GetLambdaEvents(fn LambdaFunction) ([]Event, error) {
 	// Get enterprise metadata from the tags. This will be nil for OSS.
 	em := structs.NewEnterpriseMeta(tags[partitionTag], tags[namespaceTag])
 	if !env.IsEnterprise && em != nil {
-		// To ensure pipeline stability skip Lambda functions with enterprise metadata when running in OSS mode.
-		// This can happen when Lambda functions from enterprise tests are still present
-		// during OSS test runs, or in mixed environments.
-		env.Logger.Debug("skipping function with enterprise metadata in OSS mode",
-			"service", serviceName, "partition", tags[partitionTag], "namespace", tags[namespaceTag])
-		return nil, nil
+		return nil, errNotEnterprise
 	}
 
 	if env.IsEnterprise && em == nil {

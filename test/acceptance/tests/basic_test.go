@@ -381,7 +381,9 @@ func TestBasic(t *testing.T) {
 			outFile, err := os.CreateTemp("", "lambda-output")
 			require.NoError(t, err)
 			defer func() {
-				_ = os.Remove(outFile.Name())
+				if removeErr := os.Remove(outFile.Name()); removeErr != nil {
+					t.Logf("failed to remove temp file %s: %v", outFile.Name(), removeErr)
+				}
 			}()
 
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {

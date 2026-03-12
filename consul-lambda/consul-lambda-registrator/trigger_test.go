@@ -108,13 +108,12 @@ func TestGetLambdaData(t *testing.T) {
 		},
 		"Enterprise meta is passed without enterprise Consul": {
 			arn: arn,
-			err: false,
+			err: true,
 			upsertEvents: []UpsertEventPlusMeta{
 				{
 					UpsertEvent: makeService(true, "", ""),
 				},
 			},
-			expected: nil, // Should return nil (skipped), not error
 		},
 		"Everything is passed - Enterprise": {
 			arn: arn,

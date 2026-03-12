@@ -148,7 +148,9 @@ func getUpstreamResponse(u string) (UpstreamResponse, error) {
 		return ur, err
 	}
 	defer func() {
-		_ = r.Body.Close()
+		if closeErr := r.Body.Close(); closeErr != nil {
+			fmt.Println("failed to close response body:", closeErr)
+		}
 	}()
 
 	b, err := io.ReadAll(r.Body)

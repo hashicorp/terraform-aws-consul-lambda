@@ -69,15 +69,14 @@ func (e UpsertEvent) Reconcile(env Environment) error {
 	env.Logger.Debug("Storing service defaults config entry", "arn", e.ARN)
 	err := env.storeServiceDefaults(e)
 	if err != nil {
-		env.Logger.Error("Failed to store service defaults", "error", err, "arn", e.ARN, "service", e.Name)
+		env.Logger.Error("Failed to store service defaults", "arn", e.ARN)
 		return err
 	}
-	env.Logger.Info("Successfully stored service defaults", "service", e.Name)
 
 	env.Logger.Debug("Registering service", "arn", e.ARN)
 	err = env.registerService(e)
 	if err != nil {
-		env.Logger.Error("Failed to register service", "error", err, "arn", e.ARN, "service", e.Name)
+		env.Logger.Error("Failed to register service", "arn", e.ARN)
 		return err
 	}
 
@@ -110,8 +109,10 @@ func (env Environment) registerService(e UpsertEvent) error {
 	_, err := env.ConsulClient.Catalog().Register(registration, writeOpts)
 	if err != nil {
 		env.Logger.Error("Catalog register failed", "error", err)
+		return err
 	}
-	return err
+
+	return nil
 }
 
 func (env Environment) storeServiceDefaults(e UpsertEvent) error {
@@ -123,9 +124,10 @@ func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 	_, _, err := env.ConsulClient.ConfigEntries().Set(serviceDefaults, writeOpts)
 	if err != nil {
 		env.Logger.Error("ConfigEntries set failed", "error", err)
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func (env Environment) upsertTLSData(e UpsertEvent) error {
