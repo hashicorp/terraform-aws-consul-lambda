@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
