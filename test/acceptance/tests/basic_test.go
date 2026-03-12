@@ -271,38 +271,7 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, lambdaToMeshTerraformOptions)
 
-			// DEBUG: Directly invoke the registrator Lambda to trigger a full sync
-			// and capture any errors from the registrator itself.
 			registratorFunctionName := fmt.Sprintf("lambda-registrator-1-%s", suffix)
-			logger.Log(t, "DEBUG: Invoking registrator Lambda for full sync", "function", registratorFunctionName)
-
-			syncOutFile, err := os.CreateTemp("", "registrator-sync-output")
-			require.NoError(t, err)
-			defer os.Remove(syncOutFile.Name())
-
-			syncOutput, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
-				Command: "aws",
-				Args: []string{
-					"lambda",
-					"invoke",
-					"--region",
-					suite.Config().Region,
-					"--function-name",
-					registratorFunctionName,
-					"--payload",
-					base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
-					syncOutFile.Name(),
-				},
-			})
-			if err != nil {
-				logger.Log(t, "DEBUG: Error invoking registrator Lambda:", err.Error())
-			} else {
-				logger.Log(t, "DEBUG: Registrator Lambda invoke CLI output:", syncOutput)
-				syncResult, readErr := os.ReadFile(syncOutFile.Name())
-				if readErr == nil {
-					logger.Log(t, "DEBUG: Registrator Lambda response payload:", string(syncResult))
-				}
-			}
 
 			lambdas := []struct {
 				name               string
@@ -327,51 +296,6 @@ func TestBasic(t *testing.T) {
 				},
 			}
 
-			// DEBUG: Register cleanup to dump CloudWatch logs on test failure
-			t.Cleanup(func() {
-				if !t.Failed() {
-					return
-				}
-				logger.Log(t, "DEBUG: Test failed - invoking registrator and fetching CloudWatch logs")
-				_, _ = shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"lambda",
-						"invoke",
-						"--region",
-						suite.Config().Region,
-						"--function-name",
-						registratorFunctionName,
-						"--payload",
-						base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
-						syncOutFile.Name(),
-					},
-				})
-				retryResult, _ := os.ReadFile(syncOutFile.Name())
-				logger.Log(t, "DEBUG: Registrator response:", string(retryResult))
-
-				logGroupName := fmt.Sprintf("/aws/lambda/%s", registratorFunctionName)
-				cwOutput, cwErr := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"logs",
-						"tail",
-						logGroupName,
-						"--region",
-						suite.Config().Region,
-						"--since",
-						"30m",
-						"--format",
-						"short",
-					},
-				})
-				if cwErr != nil {
-					logger.Log(t, "DEBUG: Could not fetch CloudWatch logs:", cwErr.Error())
-				} else {
-					logger.Log(t, "DEBUG: Registrator CloudWatch logs:\n"+cwOutput)
-				}
-			})
-
 			// Re-invoke the registrator on each retry attempt to handle AWS tag propagation
 			// delays on cold infrastructure. The Lambda API may not immediately reflect newly
 			// applied tags, so the first sync can find 0 functions. Subsequent invocations
@@ -379,7 +303,9 @@ func TestBasic(t *testing.T) {
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				syncRetryFile, ferr := os.CreateTemp("", "registrator-sync-retry")
 				if ferr == nil {
-					defer os.Remove(syncRetryFile.Name())
+					defer func() {
+						_ = os.Remove(syncRetryFile.Name())
+					}()
 					_, _ = shell.RunCommandAndGetOutputE(testingT, shell.Command{
 						Command: "aws",
 						Args: []string{
@@ -454,7 +380,9 @@ func TestBasic(t *testing.T) {
 			// This way we cover both the Lambda-to-mesh and mesh-to-Lambda use cases in one call.
 			outFile, err := os.CreateTemp("", "lambda-output")
 			require.NoError(t, err)
-			defer os.Remove(outFile.Name())
+			defer func() {
+				_ = os.Remove(outFile.Name())
+			}()
 
 			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{

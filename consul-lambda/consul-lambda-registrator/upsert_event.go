@@ -65,12 +65,8 @@ func (e UpsertEvent) Identifier() string {
 
 // Reconcile reconciles lambda with the state of Consul and performs the necessary steps to upsert a Lambda.
 func (e UpsertEvent) Reconcile(env Environment) error {
-	env.Logger.Info("Upserting Lambda", "arn", e.ARN, "service", e.Name,
-		"datacenter", e.Datacenter, "hasEnterpriseMeta", e.EnterpriseMeta != nil)
-	if e.EnterpriseMeta != nil {
-		env.Logger.Info("Enterprise metadata", "partition", e.Partition, "namespace", e.Namespace)
-	}
-	env.Logger.Info("Storing service defaults config entry", "arn", e.ARN, "service", e.Name)
+	env.Logger.Info("Upserting Lambda", "arn", e.ARN)
+	env.Logger.Debug("Storing service defaults config entry", "arn", e.ARN)
 	err := env.storeServiceDefaults(e)
 	if err != nil {
 		env.Logger.Error("Failed to store service defaults", "error", err, "arn", e.ARN, "service", e.Name)
@@ -78,19 +74,14 @@ func (e UpsertEvent) Reconcile(env Environment) error {
 	}
 	env.Logger.Info("Successfully stored service defaults", "service", e.Name)
 
-	env.Logger.Info("Registering service", "arn", e.ARN, "service", e.Name, "node", env.NodeName)
+	env.Logger.Debug("Registering service", "arn", e.ARN)
 	err = env.registerService(e)
 	if err != nil {
 		env.Logger.Error("Failed to register service", "error", err, "arn", e.ARN, "service", e.Name)
 		return err
 	}
-	env.Logger.Info("Successfully registered service", "service", e.Name)
 
-	err = env.upsertTLSData(e)
-	if err != nil {
-		env.Logger.Error("Failed to upsert TLS data", "error", err, "arn", e.ARN, "service", e.Name)
-	}
-	return err
+	return env.upsertTLSData(e)
 }
 
 // AddAlias sets the UpserEvent Name and ARN by appending on the alias in the form `-alias`
@@ -102,14 +93,6 @@ func (e UpsertEvent) AddAlias(alias string) UpsertEvent {
 
 func (env Environment) registerService(e UpsertEvent) error {
 	writeOpts := WriteOptions(e.Service)
-	env.Logger.Info("Catalog register request",
-		"node", env.NodeName,
-		"serviceID", e.Name,
-		"serviceName", e.Name,
-		"writeOpts.Datacenter", writeOpts.Datacenter,
-		"writeOpts.Partition", writeOpts.Partition,
-		"writeOpts.Namespace", writeOpts.Namespace,
-	)
 	registration := &api.CatalogRegistration{
 		Node:           env.NodeName,
 		SkipNodeUpdate: true,
@@ -134,15 +117,6 @@ func (env Environment) registerService(e UpsertEvent) error {
 func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 	serviceDefaults := e.toConsulServiceConfigEntry(e.Name)
 	writeOpts := WriteOptions(e.Service)
-	env.Logger.Info("ConfigEntries set request",
-		"kind", serviceDefaults.Kind,
-		"name", serviceDefaults.Name,
-		"protocol", serviceDefaults.Protocol,
-		"envoyExtensions", len(serviceDefaults.EnvoyExtensions),
-		"writeOpts.Datacenter", writeOpts.Datacenter,
-		"writeOpts.Partition", writeOpts.Partition,
-		"writeOpts.Namespace", writeOpts.Namespace,
-	)
 
 	// There is no need for CAS because we are completely regenerating the service
 	// defaults config entry.

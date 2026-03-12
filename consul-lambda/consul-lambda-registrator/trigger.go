@@ -151,7 +151,7 @@ func (env Environment) GetLambdaEvents(fn LambdaFunction) ([]Event, error) {
 	// Get enterprise metadata from the tags. This will be nil for OSS.
 	em := structs.NewEnterpriseMeta(tags[partitionTag], tags[namespaceTag])
 	if !env.IsEnterprise && em != nil {
-		// Skip Lambda functions with enterprise metadata when running in OSS mode.
+		// To ensure pipeline stability skip Lambda functions with enterprise metadata when running in OSS mode.
 		// This can happen when Lambda functions from enterprise tests are still present
 		// during OSS test runs, or in mixed environments.
 		env.Logger.Debug("skipping function with enterprise metadata in OSS mode",

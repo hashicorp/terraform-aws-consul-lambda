@@ -50,10 +50,8 @@ jobs:
       run: |
         go install github.com/hashicorp/lint-consul-retry@latest
         lint-consul-retry
-    # Temporarily disabled: golangci-lint doesn't yet support Go 1.25.7
-    # Latest golangci-lint v2.0.0 has incompatible CLI flags
-    # Latest v1.x (v1.64.8) is built with Go 1.24 and cannot lint Go 1.25.7 code
-    # TODO: Re-enable once golangci-lint v2.x stabilizes or v1.x supports Go 1.25.7
+    # Temporarily disabled: golangci-lint is not compatible as the dependencies are not updated for a long time in this repo
+    # TODO: Re-enable / update golangci-lint after dependencies are updated
     # - name: golangci-lint
     #   uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
     #   with:
