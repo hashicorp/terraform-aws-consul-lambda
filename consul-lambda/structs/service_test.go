@@ -19,6 +19,10 @@ const (
 	ap   = "ap1"
 	dc   = "dc2"
 	td   = "ba471007-78d1-3261-2e02-24258f2cb341.consul"
+
+	internal        = "internal"
+	version         = "v1"
+	internalVersion = internal + "-" + version
 )
 
 func TestService(t *testing.T) {
@@ -34,28 +38,28 @@ func TestService(t *testing.T) {
 		"service only": {
 			up:   structs.Service{TrustDomain: td, Name: svc, Port: port},
 			str:  "test-service:1234",
-			sni:  "test-service.default.dc1.internal.ba471007-78d1-3261-2e02-24258f2cb341.consul",
+			sni:  "test-service.default.dc1." + internal + "." + td,
 			sid:  "spiffe://ba471007-78d1-3261-2e02-24258f2cb341.consul/ns/default/dc/dc1/svc/test-service",
 			path: "/default/default/test-service",
 		},
 		"service, ns": {
 			up:   structs.Service{TrustDomain: td, Name: svc, Port: port, EnterpriseMeta: &structs.EnterpriseMeta{Namespace: ns, Partition: "default"}},
 			str:  "test-service.ns1:1234",
-			sni:  "test-service.ns1.dc1.internal.ba471007-78d1-3261-2e02-24258f2cb341.consul",
+			sni:  "test-service.ns1.dc1." + internal + "." + td,
 			sid:  "spiffe://ba471007-78d1-3261-2e02-24258f2cb341.consul/ns/ns1/dc/dc1/svc/test-service",
 			path: "/default/ns1/test-service",
 		},
 		"service, ns, ap": {
 			up:   structs.Service{TrustDomain: td, Name: svc, Port: port, EnterpriseMeta: &structs.EnterpriseMeta{Namespace: ns, Partition: ap}},
 			str:  "test-service.ns1.ap1:1234",
-			sni:  "test-service.ns1.ap1.dc1.internal-v1.ba471007-78d1-3261-2e02-24258f2cb341.consul",
+			sni:  "test-service.ns1.ap1.dc1." + internalVersion + "." + td,
 			sid:  "spiffe://ba471007-78d1-3261-2e02-24258f2cb341.consul/ap/ap1/ns/ns1/dc/dc1/svc/test-service",
 			path: "/ap1/ns1/test-service",
 		},
 		"service, ns, ap, dc": {
 			up:   structs.Service{TrustDomain: td, Name: svc, Port: port, Datacenter: dc, EnterpriseMeta: &structs.EnterpriseMeta{Namespace: ns, Partition: ap}},
 			str:  "test-service.ns1.ap1:1234:dc2",
-			sni:  "test-service.ns1.ap1.dc2.internal-v1.ba471007-78d1-3261-2e02-24258f2cb341.consul",
+			sni:  "test-service.ns1.ap1.dc2." + internalVersion + "." + td,
 			sid:  "spiffe://ba471007-78d1-3261-2e02-24258f2cb341.consul/ap/ap1/ns/ns1/dc/dc2/svc/test-service",
 			path: "/ap1/ns1/test-service",
 		},
