@@ -40,6 +40,100 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/logger"
 )
 
+type listTasksResponse struct {
+	TaskARNs []string `json:"taskArns"`
+}
+
+type describeTasksResponse struct {
+	Tasks []ecsTask `json:"tasks"`
+}
+
+type ecsTask struct {
+	EnableExecuteCommand bool           `json:"enableExecuteCommand"`
+	Containers           []ecsContainer `json:"containers"`
+}
+
+type ecsContainer struct {
+	Name          string            `json:"name"`
+	ManagedAgents []ecsManagedAgent `json:"managedAgents"`
+}
+
+type ecsManagedAgent struct {
+	Name       string `json:"name"`
+	LastStatus string `json:"lastStatus"`
+}
+
+func waitForExecuteCommandReady(t *testing.T, testConfig *config.TestConfig, taskARN, container string) error {
+	deadline := time.Now().Add(2 * time.Minute)
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		describeOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+			Command: "aws",
+			Args: []string{
+				"ecs",
+				"describe-tasks",
+				"--region",
+				testConfig.Region,
+				"--cluster",
+				testConfig.ECSClusterARN,
+				"--tasks",
+				taskARN,
+			},
+		})
+		if err != nil {
+			lastErr = err
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		var desc describeTasksResponse
+		if err := json.Unmarshal([]byte(describeOut), &desc); err != nil {
+			lastErr = err
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if len(desc.Tasks) != 1 {
+			lastErr = fmt.Errorf("expected 1 described task, got %d", len(desc.Tasks))
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		task := desc.Tasks[0]
+		if !task.EnableExecuteCommand {
+			lastErr = fmt.Errorf("ecs task does not have execute command enabled")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		for _, c := range task.Containers {
+			if c.Name != container {
+				continue
+			}
+
+			for _, agent := range c.ManagedAgents {
+				if agent.Name == "ExecuteCommandAgent" && strings.EqualFold(agent.LastStatus, "RUNNING") {
+					return nil
+				}
+			}
+
+			lastErr = fmt.Errorf("ExecuteCommandAgent is not RUNNING for container %s", container)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		lastErr = fmt.Errorf("container %s not found in ECS task", container)
+		time.Sleep(5 * time.Second)
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timed out waiting for ECS ExecuteCommandAgent readiness")
+	}
+
+	return lastErr
+}
+
 type SetupConfig struct {
 	MeshGatewayURI string `json:"mesh_gateway_uri"`
 }
@@ -453,6 +547,10 @@ func TestBasic(t *testing.T) {
 // ExecuteRemoteCommand executes a command inside a container in the task specified
 // by taskARN.
 func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string) (string, error) {
+	if err := waitForExecuteCommandReady(t, testConfig, taskARN, container); err != nil {
+		return "", err
+	}
+
 	return shell.RunCommandAndGetOutputE(t, shell.Command{
 		// TODO This uses unbuffer to get around an issue where `Cannot perform
 		// start session: EOF` is added to the end of the response. This is
@@ -494,10 +592,6 @@ func ExecuteRemoteCommandJSON(t *testing.T, testConfig *config.TestConfig, taskA
 	}
 
 	return fmt.Errorf("couldn't decode: %+v", output)
-}
-
-type listTasksResponse struct {
-	TaskARNs []string `json:"taskArns"`
 }
 
 func buildIntention(src, srcAP, srcNS, dst, dstAP, dstNS string) string {

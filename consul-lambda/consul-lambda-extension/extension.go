@@ -293,11 +293,6 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 					certs[i] = cert
 				}
 
-				// Check if we received any certificates
-				if len(certs) == 0 {
-					return fmt.Errorf("no certificates received from peer for upstream %s", upstream.Name)
-				}
-
 				opts := x509.VerifyOptions{
 					Roots:         roots,
 					Intermediates: x509.NewCertPool(),
