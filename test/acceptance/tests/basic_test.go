@@ -107,10 +107,12 @@ func waitForExecuteCommandReady(t *testing.T, testConfig *config.TestConfig, tas
 			continue
 		}
 
+		foundContainer := false
 		for _, c := range task.Containers {
 			if c.Name != container {
 				continue
 			}
+			foundContainer = true
 
 			for _, agent := range c.ManagedAgents {
 				if agent.Name == "ExecuteCommandAgent" && strings.EqualFold(agent.LastStatus, "RUNNING") {
@@ -120,11 +122,13 @@ func waitForExecuteCommandReady(t *testing.T, testConfig *config.TestConfig, tas
 
 			lastErr = fmt.Errorf("ExecuteCommandAgent is not RUNNING for container %s", container)
 			time.Sleep(5 * time.Second)
-			continue
+			break
 		}
 
-		lastErr = fmt.Errorf("container %s not found in ECS task", container)
-		time.Sleep(5 * time.Second)
+		if !foundContainer {
+			lastErr = fmt.Errorf("container %s not found in ECS task", container)
+			time.Sleep(5 * time.Second)
+		}
 	}
 
 	if lastErr == nil {
