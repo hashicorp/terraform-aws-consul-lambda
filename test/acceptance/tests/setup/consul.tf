@@ -1,29 +1,11 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-// Generate a gossip encryption key if a secure installation.
-resource "random_id" "gossip_encryption_key" {
-  count       = var.secure ? 1 : 0
-  byte_length = 32
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  count                   = var.secure ? 1 : 0
-  name                    = "consul_server_${var.suffix}-gossip-encryption-key"
-  recovery_window_in_days = "0"
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  count         = var.secure ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.gossip_key[0].id
-  secret_string = random_id.gossip_encryption_key[0].b64_std
-}
-
 module "dev_consul_server" {
   consul_image                = var.consul_image
   name                        = "${local.short_name}-consul-server"
   source                      = "hashicorp/consul-ecs/aws//modules/dev-server"
-  version                     = "0.6.0"
+  version                     = "0.9.3"
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.private_subnets
   vpc_id                      = var.vpc_id
@@ -38,14 +20,10 @@ module "dev_consul_server" {
       awslogs-stream-prefix = "consul-server"
     }
   }
-  launch_type                    = "FARGATE"
-  tls                            = true
-  acls                           = var.secure
-  gossip_encryption_enabled      = var.secure
-  generate_gossip_encryption_key = false
-  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  consul_license                 = var.consul_license
-
+  launch_type    = "FARGATE"
+  tls            = true
+  acls           = var.secure
+  consul_license = var.consul_license
 }
 
 data "aws_security_group" "vpc_default" {

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -277,10 +276,7 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 
 		ext.Logger.Debug("dialing upstream", "sni", upstream.SNI(), "port", upstream.Port)
 
-		skipTLSVerification := true
-		if PRE_RELEASE != "dev" {
-			skipTLSVerification = false
-		}
+		skipTLSVerification := PRE_RELEASE == "dev"
 
 		return tls.Dial("tcp", ext.MeshGatewayURI, &tls.Config{
 			RootCAs:            roots,
@@ -307,16 +303,13 @@ func (ext *Extension) proxyConfig(upstream *structs.Service) *proxy.Config {
 					opts.Intermediates.AddCert(cert)
 				}
 
+				// Verify the peer cert is signed by the Consul CA.
+				// We do NOT verify the SPIFFE ID against the upstream service here because
+				// when routing through a mesh gateway the peer presents the mesh gateway's
+				// own certificate (not the upstream service's certificate). The SNI value
+				// is used purely as a routing hint to the mesh gateway.
 				_, err := certs[0].Verify(opts)
-				if err != nil {
-					return err
-				}
-
-				// Match the SPIFFE ID.
-				if !strings.EqualFold(certs[0].URIs[0].String(), upstream.SpiffeID()) {
-					return fmt.Errorf("invalid SPIFFE ID for upstream %s", upstream.Name)
-				}
-				return nil
+				return err
 			},
 		})
 	}

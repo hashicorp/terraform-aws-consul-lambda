@@ -147,7 +147,11 @@ func getUpstreamResponse(u string) (UpstreamResponse, error) {
 		ur.Body = map[string]interface{}{"error": fmt.Sprintf("failed to get %s", u)}
 		return ur, err
 	}
-	defer r.Body.Close()
+	defer func() {
+		if closeErr := r.Body.Close(); closeErr != nil {
+			fmt.Println("failed to close response body:", closeErr)
+		}
+	}()
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {

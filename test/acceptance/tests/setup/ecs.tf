@@ -16,7 +16,7 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  version = "0.6.0"
+  version = "0.9.3"
   family  = "test_client_${var.suffix}"
   port    = "9090"
   container_definitions = [{
@@ -47,7 +47,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  retry_join = [module.dev_consul_server.server_dns]
+  consul_server_hosts = module.dev_consul_server.server_dns
   upstreams = [
     {
       destinationName      = "mesh_to_lambda_example_${var.suffix}"
@@ -81,8 +81,6 @@ module "test_client" {
     }
   }
 
-  consul_image     = var.consul_image
-  consul_http_addr = local.consul_http_addr
   consul_namespace = var.consul_namespace
   consul_partition = var.consul_partition
 
@@ -90,15 +88,13 @@ module "test_client" {
     aws_iam_policy.execute_command.arn,
     aws_iam_policy.invoke_lambda.arn
   ]
-  consul_agent_configuration = <<-EOT
-  log_level = "debug"
-  EOT
 
-  tls                       = true
-  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn
-  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
-  acls                      = var.secure
-  gossip_key_secret_arn     = var.secure ? module.dev_consul_server.gossip_key_arn : ""
+  tls                      = true
+  consul_ca_cert_arn       = module.dev_consul_server.ca_cert_arn
+  consul_https_ca_cert_arn = module.dev_consul_server.ca_cert_arn
+  acls                     = var.secure
+  # Transparent proxy is not supported for FARGATE launch type
+  enable_transparent_proxy = false
 }
 
 // Policy to allow `aws execute-command`
@@ -163,8 +159,8 @@ resource "aws_iam_role" "execution" {
 
 module "acl_controller" {
   count   = var.secure ? 1 : 0
-  source  = "hashicorp/consul-ecs/aws//modules/acl-controller"
-  version = "0.6.0"
+  source  = "hashicorp/consul-ecs/aws//modules/controller"
+  version = "0.9.3"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -175,8 +171,9 @@ module "acl_controller" {
   }
   launch_type                       = "FARGATE"
   consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = local.consul_http_addr
-  consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
+  consul_server_hosts               = module.dev_consul_server.server_dns
+  consul_ca_cert_arn                = module.dev_consul_server.ca_cert_arn
+  tls                               = true
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.private_subnets

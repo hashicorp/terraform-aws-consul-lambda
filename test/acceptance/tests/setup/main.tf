@@ -32,7 +32,7 @@ locals {
   name             = "lambda-registrator-${var.suffix}"
   short_name       = "lr-${var.suffix}"
   consul_http_addr = "https://${module.dev_consul_server.server_dns}:8501"
-  enterprise       = var.consul_partition != ""
+  enterprise       = var.consul_license != ""
 }
 
 data "aws_secretsmanager_secret_version" "ca_cert" {

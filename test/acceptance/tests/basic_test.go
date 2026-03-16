@@ -1,6 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
+// NOTE: Lambda-to-mesh functions must be registered in the default partition because
+// the Consul Agent API's /agent/connect/ca/leaf/:service endpoint can only issue
+// leaf certificates for services in the agent's own partition. The Consul server
+// runs in the "default" partition, so ConnectCALeaf with nil QueryOptions always
+// returns certs with SPIFFE IDs scoped to the default partition. Passing explicit
+// partition/namespace in QueryOptions causes "request targets partition does not
+// match agent partition" errors.
+//
+// Mesh-to-lambda functions CAN be in non-default partitions because they don't
+// use the leaf cert for outbound mTLS connections (the mesh gateway handles that).
+//
+// TODO: Implement gRPC-based cert signing via ConnectCA.Sign to support
+// lambda-to-mesh functions in non-default partitions.
+
 package main
 
 import (
@@ -25,6 +39,104 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/config"
 	"github.com/hashicorp/terraform-aws-consul-lambda/test/acceptance/framework/logger"
 )
+
+type listTasksResponse struct {
+	TaskARNs []string `json:"taskArns"`
+}
+
+type describeTasksResponse struct {
+	Tasks []ecsTask `json:"tasks"`
+}
+
+type ecsTask struct {
+	EnableExecuteCommand bool           `json:"enableExecuteCommand"`
+	Containers           []ecsContainer `json:"containers"`
+}
+
+type ecsContainer struct {
+	Name          string            `json:"name"`
+	ManagedAgents []ecsManagedAgent `json:"managedAgents"`
+}
+
+type ecsManagedAgent struct {
+	Name       string `json:"name"`
+	LastStatus string `json:"lastStatus"`
+}
+
+func waitForExecuteCommandReady(t *testing.T, testConfig *config.TestConfig, taskARN, container string) error {
+	deadline := time.Now().Add(2 * time.Minute)
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		describeOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+			Command: "aws",
+			Args: []string{
+				"ecs",
+				"describe-tasks",
+				"--region",
+				testConfig.Region,
+				"--cluster",
+				testConfig.ECSClusterARN,
+				"--tasks",
+				taskARN,
+			},
+		})
+		if err != nil {
+			lastErr = err
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		var desc describeTasksResponse
+		if err := json.Unmarshal([]byte(describeOut), &desc); err != nil {
+			lastErr = err
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if len(desc.Tasks) != 1 {
+			lastErr = fmt.Errorf("expected 1 described task, got %d", len(desc.Tasks))
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		task := desc.Tasks[0]
+		if !task.EnableExecuteCommand {
+			lastErr = fmt.Errorf("ecs task does not have execute command enabled")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		foundContainer := false
+		for _, c := range task.Containers {
+			if c.Name != container {
+				continue
+			}
+			foundContainer = true
+
+			for _, agent := range c.ManagedAgents {
+				if agent.Name == "ExecuteCommandAgent" && strings.EqualFold(agent.LastStatus, "RUNNING") {
+					return nil
+				}
+			}
+
+			lastErr = fmt.Errorf("ExecuteCommandAgent is not RUNNING for container %s", container)
+			time.Sleep(5 * time.Second)
+			break
+		}
+
+		if !foundContainer {
+			lastErr = fmt.Errorf("container %s not found in ECS task", container)
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timed out waiting for ECS ExecuteCommandAgent readiness")
+	}
+
+	return lastErr
+}
 
 type SetupConfig struct {
 	MeshGatewayURI string `json:"mesh_gateway_uri"`
@@ -68,7 +180,7 @@ func TestBasic(t *testing.T) {
 			namespace := ""
 			partition := ""
 			queryString := ""
-			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.16.1"
+			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.22.0"
 			if c.enterprise {
 				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
 				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
@@ -77,7 +189,7 @@ func TestBasic(t *testing.T) {
 				tfVars["consul_namespace"] = namespace
 				tfVars["consul_partition"] = partition
 				queryString = fmt.Sprintf("?partition=%s&ns=%s", partition, namespace)
-				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.16.1-ent"
+				tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul-enterprise:1.22.0-ent"
 			}
 
 			setupSuffix := tfVars["suffix"]
@@ -202,6 +314,9 @@ func TestBasic(t *testing.T) {
 			terraform.InitAndApply(t, meshToLambdaTerraformOptions)
 
 			// Create Lambda function that calls the test_client
+			// For enterprise, the lambda-to-mesh function must be in the default partition
+			// because the Agent API's ConnectCALeaf can only issue certs for the agent's
+			// own partition (default). The upstream can still be in a non-default partition.
 			lambdaToMeshAP := ""
 			lambdaToMeshNS := ""
 			env := map[string]string{
@@ -217,28 +332,25 @@ func TestBasic(t *testing.T) {
 			if c.enterprise {
 				env["CONSUL_SERVICE_UPSTREAMS"] = fmt.Sprintf("%s.%s.%s:1234", clientServiceName, namespace, partition)
 
-				// Lambda functions don't have a Consul client agent so Lambda registrator uses the HTTP API
-				// to retrieve the leaf service certificate for the Lambda function. That works in the default
-				// partition and namespace but it does not work when the Lambda function is in a non-default
-				// ap/ns. The registrator hits the /agent/connect/ca/leaf/:service endpoint on the Consul server
-				// but supplying any non-default partition to this endpoint on the server results in:
-				//
-				//	request targets partition "ap1" which does not match agent partition "default"
-				//
-				// So we can't get a service cert for a Lambda function in a non-default partition :(
+				// Lambda-to-mesh functions must use the default partition for their own
+				// identity because the Consul Agent API's ConnectCALeaf endpoint cannot
+				// issue leaf certs for non-default partitions. The upstream (test_client)
+				// is still in partition ap1.
 				lambdaToMeshAP = "default"
 				lambdaToMeshNS = "default"
 				env["CONSUL_SERVICE_PARTITION"] = lambdaToMeshAP
 				env["CONSUL_SERVICE_NAMESPACE"] = lambdaToMeshNS
 			}
 
+			lambdaToMeshTags := map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
+			}
+
 			lambdaToMeshTerraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./lambda-to-mesh",
 				NoColor:      true,
 				Vars: map[string]interface{}{
-					"tags": map[string]string{
-						"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
-					},
+					"tags":   lambdaToMeshTags,
 					"name":   lambdaToMeshServiceName,
 					"region": config.Region,
 					"env":    env,
@@ -256,6 +368,8 @@ func TestBasic(t *testing.T) {
 			})
 
 			terraform.InitAndApply(t, lambdaToMeshTerraformOptions)
+
+			registratorFunctionName := fmt.Sprintf("lambda-registrator-1-%s", suffix)
 
 			lambdas := []struct {
 				name               string
@@ -280,11 +394,35 @@ func TestBasic(t *testing.T) {
 				},
 			}
 
-			for _, c := range lambdas {
-				retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+			// Re-invoke the registrator on each retry attempt to handle AWS tag propagation
+			// delays on cold infrastructure. The Lambda API may not immediately reflect newly
+			// applied tags, so the first sync can find 0 functions. Subsequent invocations
+			// will pick them up once tags are visible.
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				syncRetryFile, ferr := os.CreateTemp("", "registrator-sync-retry")
+				if ferr == nil {
+					defer func() {
+						_ = os.Remove(syncRetryFile.Name())
+					}()
+					_, _ = shell.RunCommandAndGetOutputE(testingT, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"lambda",
+							"invoke",
+							"--region",
+							suite.Config().Region,
+							"--function-name",
+							registratorFunctionName,
+							"--payload",
+							base64.StdEncoding.EncodeToString([]byte(`{"source":"aws.events"}`)),
+							syncRetryFile.Name(),
+						},
+					})
+				}
+				for _, l := range lambdas {
 					var services []api.CatalogService
 					qs := queryString
-					if c.inDefaultPartition {
+					if l.inDefaultPartition {
 						qs = ""
 					}
 					err := ExecuteRemoteCommandJSON(
@@ -292,13 +430,13 @@ func TestBasic(t *testing.T) {
 						suite.Config(),
 						consulServerTaskARN,
 						"consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, c.name, qs),
+						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, l.name, qs),
 						&services,
 					)
 					r.Check(err)
 					require.Len(r, services, 1)
-				})
-			}
+				}
+			})
 
 			if c.secure {
 				// Create an intention to allow the Lambda function to call the test_client service
@@ -340,9 +478,13 @@ func TestBasic(t *testing.T) {
 			// This way we cover both the Lambda-to-mesh and mesh-to-Lambda use cases in one call.
 			outFile, err := os.CreateTemp("", "lambda-output")
 			require.NoError(t, err)
-			defer os.Remove(outFile.Name())
+			defer func() {
+				if removeErr := os.Remove(outFile.Name()); removeErr != nil {
+					t.Logf("failed to remove temp file %s: %v", outFile.Name(), removeErr)
+				}
+			}()
 
-			retry.RunWith(&retry.Timer{Timeout: 120 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				_, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
 					Args: []string{
@@ -409,6 +551,10 @@ func TestBasic(t *testing.T) {
 // ExecuteRemoteCommand executes a command inside a container in the task specified
 // by taskARN.
 func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string) (string, error) {
+	if err := waitForExecuteCommandReady(t, testConfig, taskARN, container); err != nil {
+		return "", err
+	}
+
 	return shell.RunCommandAndGetOutputE(t, shell.Command{
 		// TODO This uses unbuffer to get around an issue where `Cannot perform
 		// start session: EOF` is added to the end of the response. This is
@@ -450,10 +596,6 @@ func ExecuteRemoteCommandJSON(t *testing.T, testConfig *config.TestConfig, taskA
 	}
 
 	return fmt.Errorf("couldn't decode: %+v", output)
-}
-
-type listTasksResponse struct {
-	TaskARNs []string `json:"taskArns"`
 }
 
 func buildIntention(src, srcAP, srcNS, dst, dstAP, dstNS string) string {

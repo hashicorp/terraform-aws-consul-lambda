@@ -69,12 +69,14 @@ func (e UpsertEvent) Reconcile(env Environment) error {
 	env.Logger.Debug("Storing service defaults config entry", "arn", e.ARN)
 	err := env.storeServiceDefaults(e)
 	if err != nil {
+		env.Logger.Error("Failed to store service defaults", "arn", e.ARN)
 		return err
 	}
 
 	env.Logger.Debug("Registering service", "arn", e.ARN)
 	err = env.registerService(e)
 	if err != nil {
+		env.Logger.Error("Failed to register service", "arn", e.ARN)
 		return err
 	}
 
@@ -89,6 +91,7 @@ func (e UpsertEvent) AddAlias(alias string) UpsertEvent {
 }
 
 func (env Environment) registerService(e UpsertEvent) error {
+	writeOpts := WriteOptions(e.Service)
 	registration := &api.CatalogRegistration{
 		Node:           env.NodeName,
 		SkipNodeUpdate: true,
@@ -103,18 +106,28 @@ func (env Environment) registerService(e UpsertEvent) error {
 		},
 	}
 
-	_, err := env.ConsulClient.Catalog().Register(registration, WriteOptions(e.Service))
-	return err
+	_, err := env.ConsulClient.Catalog().Register(registration, writeOpts)
+	if err != nil {
+		env.Logger.Error("Catalog register failed", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 func (env Environment) storeServiceDefaults(e UpsertEvent) error {
 	serviceDefaults := e.toConsulServiceConfigEntry(e.Name)
+	writeOpts := WriteOptions(e.Service)
 
 	// There is no need for CAS because we are completely regenerating the service
 	// defaults config entry.
-	_, _, err := env.ConsulClient.ConfigEntries().Set(serviceDefaults, WriteOptions(e.Service))
+	_, _, err := env.ConsulClient.ConfigEntries().Set(serviceDefaults, writeOpts)
+	if err != nil {
+		env.Logger.Error("ConfigEntries set failed", "error", err)
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (env Environment) upsertTLSData(e UpsertEvent) error {
@@ -145,7 +158,15 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 	}
 
 	// Retrieve the leaf for this service
-	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, QueryOptions(e.Service))
+	// Note: Agent API calls should not include partition/namespace in QueryOptions
+	// as the agent operates within its own partition context. Including them
+	// causes "request targets partition does not match agent partition" errors.
+	// This means the leaf cert SPIFFE ID will always be scoped to the agent's
+	// own partition (default). Lambda-to-mesh functions must therefore be registered
+	// in the default partition for the cert identity to match intentions.
+	// TODO: Use the gRPC ConnectCA.Sign endpoint to generate CSRs with the
+	// correct SPIFFE ID for services in non-default partitions.
+	leafCert, _, err := env.ConsulClient.Agent().ConnectCALeaf(e.Name, nil)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve leaf cert for %s: %w", e.Name, err)
 	}
@@ -182,8 +203,8 @@ func (env Environment) upsertTLSData(e UpsertEvent) error {
 func QueryOptions(s structs.Service) *api.QueryOptions {
 	opts := &api.QueryOptions{Datacenter: s.Datacenter}
 	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
+		opts.Partition = s.Partition
+		opts.Namespace = s.Namespace
 	}
 	return opts
 }
@@ -193,8 +214,8 @@ func QueryOptions(s structs.Service) *api.QueryOptions {
 func WriteOptions(s structs.Service) *api.WriteOptions {
 	opts := &api.WriteOptions{Datacenter: s.Datacenter}
 	if s.EnterpriseMeta != nil {
-		opts.Partition = s.EnterpriseMeta.Partition
-		opts.Namespace = s.EnterpriseMeta.Namespace
+		opts.Partition = s.Partition
+		opts.Namespace = s.Namespace
 	}
 	return opts
 }
