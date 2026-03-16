@@ -9,8 +9,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.88.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.2
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul v1.22.0
-	github.com/hashicorp/consul/api v1.33.3
+	github.com/hashicorp/consul v1.22.5
+	github.com/hashicorp/consul/api v1.33.4
 	github.com/hashicorp/consul/sdk v0.17.2
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -25,7 +25,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.11 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.19 // indirect
