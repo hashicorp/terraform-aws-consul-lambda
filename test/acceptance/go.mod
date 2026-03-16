@@ -5,7 +5,7 @@ go 1.25.8
 require (
 	github.com/aws/aws-lambda-go v1.46.0
 	github.com/gruntwork-io/terratest v0.40.8
-	github.com/hashicorp/consul/api v1.33.4
+	github.com/hashicorp/consul/api v1.33.3
 	github.com/hashicorp/consul/sdk v0.17.2
 	github.com/stretchr/testify v1.8.4
 )
