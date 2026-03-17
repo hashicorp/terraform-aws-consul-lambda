@@ -23,16 +23,18 @@ import (
 func TestExtension(t *testing.T) {
 	const trustDomain = "1e6de438-c2bd-e632-0ce1-c0fa58607a45.consul"
 	const name = "test"
+	upstreamPort1 := freePort(t)
+	upstreamPort2 := freePort(t)
 	var wg sync.WaitGroup
 	cfg := &ext.Config{
 		MeshGatewayURI:      "mesh.gateway.consul:8443",
 		ExtensionDataPrefix: "test",
 		ServiceName:         "lambda-function",
-		ServiceUpstreams:    []string{"upstream-1:1234", "upstream-2:1235"},
+		ServiceUpstreams:    []string{fmt.Sprintf("upstream-1:%d", upstreamPort1), fmt.Sprintf("upstream-2:%d", upstreamPort2)},
 		Events:              MockEventProcessor{Wait: &wg},
 		Logger:              hclog.NewNullLogger(),
 		RefreshFrequency:    10 * time.Millisecond,
-		ProxyTimeout:        time.Millisecond,
+		ProxyTimeout:        5 * time.Second,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -51,6 +53,7 @@ func TestExtension(t *testing.T) {
 	wg.Add(1)
 
 	e := ext.NewExtension(cfg)
+	errCh := make(chan error, 1)
 
 	go func() {
 		err := e.Start(ctx)
@@ -59,10 +62,17 @@ func TestExtension(t *testing.T) {
 			// to end the test.
 			wg.Done()
 		}
-		require.NoError(t, err)
+		errCh <- err
 	}()
 
 	wg.Wait()
+
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for extension to stop")
+	}
 }
 
 type MockParamGetter struct {
@@ -131,4 +141,14 @@ func generateExtensionData(t *testing.T, name, trustDomain string) string {
 	edJSON, err := json.Marshal(ed)
 	require.NoError(t, err)
 	return string(edJSON)
+}
+
+func freePort(t *testing.T) int {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer ln.Close()
+
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	require.True(t, ok)
+	return addr.Port
 }
