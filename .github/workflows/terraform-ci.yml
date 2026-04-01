@@ -106,27 +106,6 @@ jobs:
         aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
         aws configure set region us-west-2
         aws configure set source_profile lambda_user
-    - name: Check VPC quota usage (pre-clean)
-      continue-on-error: true
-      run: |
-        used=$(aws ec2 describe-vpcs --region us-west-2 --query 'length(Vpcs[])' --output text)
-        quota=$(aws service-quotas get-service-quota --service-code vpc --quota-code L-F678F1CE --region us-west-2 --query 'Quota.Value' --output text)
-        echo "VPC usage before cleanup: $used / $quota"
-    - name: Cleanup abandoned acceptance VPCs (best effort)
-      continue-on-error: true
-      run: |
-        bash ../../scripts/cleanup_abandoned_vpcs.sh \
-          --region us-west-2 \
-          --apply \
-          --delete-empty-sgs \
-          --delete-nacls \
-          --name-regex '^(lambda-registrator-|consul-ecs-)'
-    - name: Check VPC quota usage (post-clean)
-      continue-on-error: true
-      run: |
-        used=$(aws ec2 describe-vpcs --region us-west-2 --query 'length(Vpcs[])' --output text)
-        quota=$(aws service-quotas get-service-quota --service-code vpc --quota-code L-F678F1CE --region us-west-2 --query 'Quota.Value' --output text)
-        echo "VPC usage after cleanup: $used / $quota"
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       with:
