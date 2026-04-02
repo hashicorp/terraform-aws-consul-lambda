@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2022, 2025
 # SPDX-License-Identifier: MPL-2.0
 
 resource "null_resource" "build_lambda_function" {
