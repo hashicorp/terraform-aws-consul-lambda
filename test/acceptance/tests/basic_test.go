@@ -182,8 +182,8 @@ func TestBasic(t *testing.T) {
 			queryString := ""
 			tfVars["consul_image"] = "public.ecr.aws/hashicorp/consul:1.22.0"
 			if c.enterprise {
-				tfVars["consul_license"] = os.Getenv("CONSUL_LICENSE")
-				require.NotEmpty(t, tfVars["consul_license"], "CONSUL_LICENSE environment variable is required for enterprise tests")
+				tfVars["consul_license"] = getConsulLicense(t)
+				require.NotEmpty(t, tfVars["consul_license"], "either CONSUL_LICENSE or CONSUL_LICENSE_PATH must be set for enterprise tests")
 				namespace = "ns1"
 				partition = "ap1"
 				tfVars["consul_namespace"] = namespace
@@ -567,6 +567,23 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
+}
+
+func getConsulLicense(t *testing.T) string {
+	license := strings.TrimSpace(os.Getenv("CONSUL_LICENSE"))
+	if license != "" {
+		return license
+	}
+
+	licensePath := strings.TrimSpace(os.Getenv("CONSUL_LICENSE_PATH"))
+	if licensePath == "" {
+		return ""
+	}
+
+	content, err := os.ReadFile(licensePath)
+	require.NoError(t, err, "failed to read CONSUL_LICENSE_PATH file")
+
+	return strings.TrimSpace(string(content))
 }
 
 // ExecuteRemoteCommand executes a command inside a container in the task specified
