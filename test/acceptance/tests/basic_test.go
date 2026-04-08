@@ -231,10 +231,11 @@ func TestBasic(t *testing.T) {
 			prodLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-prod", suffix)
 			devLambdaServiceName := fmt.Sprintf("mesh_to_lambda_example_%s-dev", suffix)
 			lambdaToMeshServiceName := fmt.Sprintf("lambda_to_mesh_example_%s", suffix)
+			consulServerTaskFamily := fmt.Sprintf("lr-%s-consul-server", suffix)
 
 			var consulServerTaskARN string
 			testingT := t
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			refreshConsulServerTaskARN := func() error {
 				taskListOut, err := shell.RunCommandAndGetOutputE(testingT, shell.Command{
 					Command: "aws",
 					Args: []string{
@@ -244,20 +245,60 @@ func TestBasic(t *testing.T) {
 						suite.Config().Region,
 						"--cluster",
 						suite.Config().ECSClusterARN,
+						"--desired-status",
+						"RUNNING",
 						"--family",
-						fmt.Sprintf("lr-%s-consul-server", suffix),
+						consulServerTaskFamily,
 					},
 				})
-				r.Check(err)
+				if err != nil {
+					return err
+				}
 
 				var tasks listTasksResponse
-				r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
+				if err := json.Unmarshal([]byte(taskListOut), &tasks); err != nil {
+					return err
+				}
+
 				if len(tasks.TaskARNs) != 1 {
-					r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
-					return
+					return fmt.Errorf("expected 1 RUNNING task for family %s, got %d", consulServerTaskFamily, len(tasks.TaskARNs))
 				}
 
 				consulServerTaskARN = tasks.TaskARNs[0]
+				return nil
+			}
+
+			executeRemoteCommand := func(command string) (string, error) {
+				if err := refreshConsulServerTaskARN(); err != nil {
+					return "", err
+				}
+
+				return ExecuteRemoteCommand(
+					testingT,
+					suite.Config(),
+					consulServerTaskARN,
+					"consul-server",
+					command,
+				)
+			}
+
+			executeRemoteCommandJSON := func(command string, out interface{}) error {
+				if err := refreshConsulServerTaskARN(); err != nil {
+					return err
+				}
+
+				return ExecuteRemoteCommandJSON(
+					testingT,
+					suite.Config(),
+					consulServerTaskARN,
+					"consul-server",
+					command,
+					out,
+				)
+			}
+
+			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+				r.Check(refreshConsulServerTaskARN())
 			})
 
 			// Wait for passing health check for test_client
@@ -269,11 +310,7 @@ func TestBasic(t *testing.T) {
 			// We need high timeout here because sometimes Route53 propogation takes a long time. We've observed upto 15 mins for the task to be able to reach consul server through DNS.
 			retry.RunWith(&retry.Timer{Timeout: 20 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
-				err := ExecuteRemoteCommandJSON(
-					testingT,
-					suite.Config(),
-					consulServerTaskARN,
-					"consul-server",
+				err := executeRemoteCommandJSON(
 					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, clientServiceName, queryString),
 					&services,
 				)
@@ -425,11 +462,7 @@ func TestBasic(t *testing.T) {
 					if l.inDefaultPartition {
 						qs = ""
 					}
-					err := ExecuteRemoteCommandJSON(
-						testingT,
-						suite.Config(),
-						consulServerTaskARN,
-						"consul-server",
+					err := executeRemoteCommandJSON(
 						fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, l.name, qs),
 						&services,
 					)
@@ -441,11 +474,7 @@ func TestBasic(t *testing.T) {
 			if c.secure {
 				// Create an intention to allow the Lambda function to call the test_client service
 				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
-					result, err := ExecuteRemoteCommand(
-						testingT,
-						suite.Config(),
-						consulServerTaskARN,
-						"consul-server",
+					result, err := executeRemoteCommand(
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
 							buildIntention(lambdaToMeshServiceName, lambdaToMeshAP, lambdaToMeshNS, clientServiceName, partition, namespace)),
@@ -458,11 +487,7 @@ func TestBasic(t *testing.T) {
 			if c.enterprise {
 				// Export the test_client service so it can be called by the Lambda function.
 				retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
-					result, err := ExecuteRemoteCommand(
-						testingT,
-						suite.Config(),
-						consulServerTaskARN,
-						"consul-server",
+					result, err := executeRemoteCommand(
 						fmt.Sprintf(`/bin/sh -c 'curl %s -XPUT "localhost:8500/v1/config" -d"%s"'`,
 							tokenHeader,
 							buildExport(clientServiceName, partition, namespace, lambdaToMeshAP)),
@@ -531,11 +556,7 @@ func TestBasic(t *testing.T) {
 			// Lambda doesn't exists
 			retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: 5 * time.Second}, t, func(r *retry.R) {
 				var services []api.CatalogService
-				err := ExecuteRemoteCommandJSON(
-					testingT,
-					suite.Config(),
-					consulServerTaskARN,
-					"consul-server",
+				err := executeRemoteCommandJSON(
 					fmt.Sprintf(`/bin/sh -c 'curl %s "localhost:8500/v1/catalog/service/%s%s"'`, tokenHeader, meshToLambdaServiceName, queryString),
 					&services,
 				)
