@@ -285,19 +285,6 @@ func TestFullSyncData(t *testing.T) {
 
 	otherDCService1 := service1
 	otherDCService1.Datacenter = "dc2"
-	ossEnterpriseTaggedService := UpsertEventPlusMeta{
-		UpsertEvent: UpsertEvent{
-			Service: structs.Service{
-				Name:           "lambda-oss-enterprise-meta",
-				EnterpriseMeta: &structs.EnterpriseMeta{Namespace: "ns1", Partition: "ap1"},
-			},
-			LambdaArguments: LambdaArguments{
-				ARN:            "arn:aws:lambda:us-east-1:111111111111:function:lambda-oss-enterprise-meta",
-				InvocationMode: "SYNCHRONOUS",
-			},
-		},
-		CreateService: true,
-	}
 
 	type caseData struct {
 		// Set up consul state
@@ -352,11 +339,6 @@ func TestFullSyncData(t *testing.T) {
 			SeedConsulState: []UpsertEventPlusMeta{service1},
 			ExpectedEvents:  []Event{},
 			Partitions:      []string{},
-		}
-	} else {
-		cases["Ignore enterprise-tagged Lambdas in OSS"] = &caseData{
-			SeedLambdaState: []UpsertEventPlusMeta{service1, ossEnterpriseTaggedService},
-			ExpectedEvents:  []Event{s1},
 		}
 	}
 

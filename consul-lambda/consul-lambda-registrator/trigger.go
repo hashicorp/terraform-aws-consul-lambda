@@ -253,10 +253,6 @@ func (env Environment) getLambdas(ctx context.Context) (eventMap, error) {
 	for _, fn := range funcs {
 		events, err := env.GetLambdaEvents(fn)
 		if err != nil {
-			if errors.Is(err, errNotEnterprise) {
-				env.Logger.Warn("ignoring lambda with enterprise metadata in OSS mode", "function", fn.Name, "arn", fn.ARN)
-				continue
-			}
 			resultErr = multierror.Append(resultErr, err)
 			continue
 		}
