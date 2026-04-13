@@ -1,3 +1,12 @@
+## UNRELEASED
+
+BUG FIXES
+* Security:
+  * Upgrade to `github.com/hashicorp/consul` `v1.22.5`, `github.com/hashicorp/consul/api` `v1.33.3`, and `github.com/hashicorp/consul/sdk` `v0.17.2` to pick up the Consul fixes for `CVE-2025-11375` and `CVE-2025-11374`. [[GH-122]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/122)
+  * Upgrade `google.golang.org/grpc` to `v1.79.3` in the acceptance test module to address the gRPC-Go authorization bypass caused by malformed HTTP/2 `:path` values. [[GH-122]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/122)
+* Compatibility:
+  * Align the AWS SDK v2 Lambda and SSM service clients with the updated dependency graph and update the registrator SSM client for the newer SDK request types. [[GH-122]](https://github.com/hashicorp/terraform-aws-consul-lambda/pull/122)
+
 ## 0.1.0-beta6 (Apr 21, 2025)
 BUG FIXES
 * Security:
