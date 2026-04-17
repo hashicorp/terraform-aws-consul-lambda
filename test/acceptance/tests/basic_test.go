@@ -252,6 +252,7 @@ func TestBasic(t *testing.T) {
 
 				var tasks listTasksResponse
 				r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
+
 				if len(tasks.TaskARNs) != 1 {
 					r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
 					return
@@ -547,7 +548,6 @@ func TestBasic(t *testing.T) {
 		})
 	}
 }
-
 // ExecuteRemoteCommand executes a command inside a container in the task specified
 // by taskARN.
 func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string) (string, error) {
