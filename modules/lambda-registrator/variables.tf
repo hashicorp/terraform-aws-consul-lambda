@@ -157,3 +157,9 @@ variable "arch" {
     error_message = "Invalid value for 'arch', options: 'arm64', 'x86_64'."
   }
 }
+
+variable "aws_iam_permissions_boundary" {
+  description = "Optional Permissions Boundary to add to the created IAM Role."
+  type        = string
+  default     = ""
+}
